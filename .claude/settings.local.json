@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm install:*)",
+      "Bash(pnpm approve-builds:*)",
+      "Bash(pnpm --filter backend build)",
+      "Bash(pnpm --filter frontend build)"
+    ]
+  }
+}
