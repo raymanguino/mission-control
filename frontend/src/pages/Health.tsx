@@ -27,7 +27,14 @@ function todayStr() {
 function nowLocalISO() {
   const d = new Date();
   d.setSeconds(0, 0);
-  return d.toISOString().slice(0, 16); // datetime-local format
+  const tzOffsetMs = d.getTimezoneOffset() * 60_000;
+  return new Date(d.getTime() - tzOffsetMs).toISOString().slice(0, 16); // datetime-local format
+}
+
+function toLocalDateTimeInput(iso: string) {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 function fmt12(iso: string) {
@@ -186,10 +193,12 @@ function LogModal({
 function SleepSection({
   date,
   sleepLogs,
+  onUpsert,
   onRefresh,
 }: {
   date: string;
   sleepLogs: SleepLog[];
+  onUpsert: (log: SleepLog) => void;
   onRefresh: () => void;
 }) {
   const [showAdd, setShowAdd] = useState(false);
@@ -246,7 +255,11 @@ function SleepSection({
         <SleepModal
           date={date}
           onClose={() => setShowAdd(false)}
-          onSaved={() => { setShowAdd(false); onRefresh(); }}
+          onSaved={(saved) => {
+            setShowAdd(false);
+            onUpsert(saved);
+            onRefresh();
+          }}
         />
       )}
       {editLog && (
@@ -254,7 +267,11 @@ function SleepSection({
           date={date}
           existing={editLog}
           onClose={() => setEditLog(null)}
-          onSaved={() => { setEditLog(null); onRefresh(); }}
+          onSaved={(saved) => {
+            setEditLog(null);
+            onUpsert(saved);
+            onRefresh();
+          }}
         />
       )}
     </Section>
@@ -270,14 +287,14 @@ function SleepModal({
   date: string;
   existing?: SleepLog;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (saved: SleepLog) => void;
 }) {
   const defaultBed = existing
-    ? new Date(existing.bedTime).toISOString().slice(0, 16)
-    : `${date}T22:00`;
+    ? toLocalDateTimeInput(existing.bedTime)
+    : nowLocalISO();
   const [bedTime, setBedTime] = useState(defaultBed);
   const [wakeTime, setWakeTime] = useState(
-    existing?.wakeTime ? new Date(existing.wakeTime).toISOString().slice(0, 16) : '',
+    existing ? (existing.wakeTime ? toLocalDateTimeInput(existing.wakeTime) : nowLocalISO()) : '',
   );
   const [quality, setQuality] = useState(existing?.qualityScore?.toString() ?? '');
   const [notes, setNotes] = useState(existing?.notes ?? '');
@@ -290,12 +307,10 @@ function SleepModal({
       notes: notes || null,
       date,
     };
-    if (existing) {
-      await api.patch(`/api/health/sleep/${existing.id}`, payload);
-    } else {
-      await api.post('/api/health/sleep', payload);
-    }
-    onSaved();
+    const saved = existing
+      ? await api.patch<SleepLog>(`/api/health/sleep/${existing.id}`, payload)
+      : await api.post<SleepLog>('/api/health/sleep', payload);
+    onSaved(saved);
   }
 
   return (
@@ -976,6 +991,16 @@ export default function Health() {
     api.get<SleepLog[]>(`/api/health/sleep?from=${fromStr}`).then(setSleepLogs).catch(() => {});
   }, []);
 
+  const upsertSleepLog = useCallback((saved: SleepLog) => {
+    setSleepLogs((prev) => {
+      const idx = prev.findIndex((s) => s.id === saved.id);
+      if (idx === -1) return [saved, ...prev];
+      const next = [...prev];
+      next[idx] = saved;
+      return next;
+    });
+  }, []);
+
   useEffect(() => {
     loadGoals();
     loadWellness();
@@ -1018,7 +1043,12 @@ export default function Health() {
             </button>
           </div>
 
-          <SleepSection date={selectedDate} sleepLogs={sleepLogs} onRefresh={loadWellness} />
+          <SleepSection
+            date={selectedDate}
+            sleepLogs={sleepLogs}
+            onUpsert={upsertSleepLog}
+            onRefresh={loadWellness}
+          />
           <FoodSection date={selectedDate} foodLogs={foodLogs} onRefresh={loadWellness} />
           <CannabisSection
             date={selectedDate}

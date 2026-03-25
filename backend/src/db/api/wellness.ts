@@ -1,4 +1,4 @@
-import { eq, and, gte, lte, desc } from 'drizzle-orm';
+import { eq, and, gte, lte, desc, sql } from 'drizzle-orm';
 import { db } from '../index.js';
 import { foodLogs, marijuanaSessions, sleepLogs } from '../schema.js';
 
@@ -113,7 +113,10 @@ export async function listSleepLogs(filters: { from?: string; to?: string }) {
   if (filters.from) conditions.push(gte(sleepLogs.date, filters.from));
   if (filters.to) conditions.push(lte(sleepLogs.date, filters.to));
 
-  const query = db.select().from(sleepLogs).orderBy(desc(sleepLogs.bedTime));
+  const query = db
+    .select()
+    .from(sleepLogs)
+    .orderBy(desc(sql`coalesce(${sleepLogs.wakeTime}, ${sleepLogs.bedTime})`));
   if (conditions.length > 0) return query.where(and(...conditions));
   return query;
 }
