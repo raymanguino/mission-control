@@ -1,5 +1,9 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
+// #region agent log
+import { appendFileSync } from 'fs';
+const _dbgLog = (data: object) => { try { appendFileSync('C:/Users/mangu/Dev/debug-5f3356.log', JSON.stringify({sessionId:'5f3356',...data,timestamp:Date.now()})+'\n'); } catch {} };
+// #endregion
 import * as healthDb from '../../db/api/health.js';
 
 const createGoalSchema = z.object({
@@ -58,7 +62,10 @@ const healthRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   fastify.post('/entries', { preHandler: fastify.authenticate }, async (request, reply) => {
+    // #region agent log
     const body = createEntrySchema.safeParse(request.body);
+    _dbgLog({location:'health.ts:65',message:'POST /entries received',hypothesisId:'A',runId:'post-fix',data:{rawBody:request.body,types:{goalId:typeof (request.body as any)?.goalId,value:typeof (request.body as any)?.value,date:typeof (request.body as any)?.date,notes:typeof (request.body as any)?.notes},parseSuccess:body.success,parseErrors:body.success?null:body.error?.issues}});
+    // #endregion
     if (!body.success) return reply.code(400).send({ error: 'Invalid body' });
     const entry = await healthDb.createEntry(body.data);
     return reply.code(201).send(entry);
