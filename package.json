@@ -2,8 +2,10 @@
   "name": "mission-control",
   "private": true,
   "scripts": {
-    "dev": "pnpm --parallel --filter backend --filter frontend dev",
-    "build": "pnpm --filter backend build && pnpm --filter frontend build",
+    "dev": "pnpm --parallel --filter backend --filter frontend --filter @mission-control/mcp dev",
+    "dev:app": "pnpm --parallel --filter backend --filter frontend dev",
+    "dev:mcp": "pnpm --filter @mission-control/mcp dev",
+    "build": "pnpm --filter backend build && pnpm --filter frontend build && pnpm --filter @mission-control/mcp build",
     "test": "pnpm --recursive test",
     "lint": "pnpm --recursive lint",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,css}\" --ignore-path .gitignore"
