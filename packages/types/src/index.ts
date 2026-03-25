@@ -72,6 +72,51 @@ export interface HealthEntry {
   createdAt: string;
 }
 
+// Wellness tracking types
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+export type CannabisFom = 'flower' | 'vape' | 'edible' | 'tincture' | 'other';
+
+export interface FoodLog {
+  id: string;
+  mealType: MealType;
+  description: string;
+  calories: number | null;
+  protein: string | null;
+  carbs: string | null;
+  fat: string | null;
+  loggedAt: string;
+  date: string;
+  notes: string | null;
+  createdAt: string;
+}
+
+export interface MarijuanaSession {
+  id: string;
+  form: CannabisFom;
+  strain: string | null;
+  amount: string | null;
+  unit: string | null;
+  notes: string | null;
+  sessionAt: string;
+  date: string;
+  createdAt: string;
+}
+
+export interface SleepLog {
+  id: string;
+  bedTime: string;
+  wakeTime: string | null;
+  qualityScore: number | null;
+  notes: string | null;
+  date: string;
+  createdAt: string;
+}
+
+export interface HealthAnalysis {
+  insights: string;
+  generatedAt: string;
+}
+
 // Chat types
 export interface Channel {
   id: string;

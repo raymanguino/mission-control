@@ -7,6 +7,7 @@ import {
   numeric,
   date,
   jsonb,
+  smallint,
 } from 'drizzle-orm/pg-core';
 
 export const agents = pgTable('agents', {
@@ -104,5 +105,43 @@ export const usageRecords = pgTable('usage_records', {
   tokensOut: integer('tokens_out'),
   costUsd: numeric('cost_usd', { precision: 10, scale: 6 }),
   recordedAt: timestamp('recorded_at').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+// Wellness tracking tables
+
+export const foodLogs = pgTable('food_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  mealType: text('meal_type').notNull(), // 'breakfast' | 'lunch' | 'dinner' | 'snack'
+  description: text('description').notNull(),
+  calories: integer('calories'),
+  protein: numeric('protein', { precision: 6, scale: 1 }), // grams
+  carbs: numeric('carbs', { precision: 6, scale: 1 }),     // grams
+  fat: numeric('fat', { precision: 6, scale: 1 }),         // grams
+  loggedAt: timestamp('logged_at').notNull(),               // actual time of meal
+  date: date('date').notNull(),
+  notes: text('notes'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const marijuanaSessions = pgTable('marijuana_sessions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  form: text('form').notNull(), // 'flower' | 'vape' | 'edible' | 'tincture' | 'other'
+  strain: text('strain'),
+  amount: numeric('amount', { precision: 6, scale: 2 }),
+  unit: text('unit'),  // 'g' | 'mg' | 'hits' | 'ml'
+  notes: text('notes'),
+  sessionAt: timestamp('session_at').notNull(), // key field for time-of-day correlation
+  date: date('date').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const sleepLogs = pgTable('sleep_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  bedTime: timestamp('bed_time').notNull(),
+  wakeTime: timestamp('wake_time'),          // nullable until they wake up
+  qualityScore: smallint('quality_score'),   // 1–5
+  notes: text('notes'),
+  date: date('date').notNull(),              // the night's date (date you went to bed)
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });

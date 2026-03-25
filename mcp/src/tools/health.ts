@@ -1,9 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-// #region agent log
-import { appendFileSync } from 'fs';
-const _dbgLog = (data: object) => { try { appendFileSync('C:/Users/mangu/Dev/debug-5f3356.log', JSON.stringify({sessionId:'5f3356',...data,timestamp:Date.now()})+'\n'); } catch {} };
-// #endregion
 import { apiGet, apiPost } from '../client.js';
 import type { HealthGoal, HealthEntry } from '@mission-control/types';
 
@@ -73,10 +69,7 @@ export function registerHealthTools(server: McpServer) {
       notes: z.string().optional().describe('Optional notes'),
     },
     async ({ goalId, value, date, notes }) => {
-      // #region agent log
       const payload = { goalId, value, date: date ?? new Date().toISOString().slice(0, 10), notes };
-      _dbgLog({location:'mcp/health.ts:58',message:'log_health_entry sending payload',hypothesisId:'A',runId:'post-fix',data:{payload,types:{goalId:typeof goalId,value:typeof value,date:typeof payload.date,notes:typeof notes}}});
-      // #endregion
       const entry = await apiPost<HealthEntry>('/api/health/entries', payload);
       return {
         content: [{ type: 'text', text: JSON.stringify(entry, null, 2) }],
