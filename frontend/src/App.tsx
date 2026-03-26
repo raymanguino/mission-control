@@ -5,7 +5,7 @@ import Shell from './components/layout/Shell.js';
 import Login from './pages/Login.js';
 import Agents from './pages/Agents.js';
 import Projects from './pages/Projects.js';
-import Health from './pages/Health.js';
+import Wellness from './pages/Health.js';
 import Chat from './pages/Chat.js';
 import Usage from './pages/Usage.js';
 
@@ -26,7 +26,8 @@ export default function App() {
             <Route index element={<Navigate to="/agents" replace />} />
             <Route path="agents" element={<Agents />} />
             <Route path="projects" element={<Projects />} />
-            <Route path="health" element={<Health />} />
+            <Route path="health" element={<Navigate to="/wellness" replace />} />
+            <Route path="wellness" element={<Wellness />} />
             <Route path="chat" element={<Chat />} />
             <Route path="usage" element={<Usage />} />
           </Route>

@@ -1,8 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { api } from '../utils/api.js';
 import type {
-  HealthGoal,
-  HealthEntry,
   FoodLog,
   MarijuanaSession,
   SleepLog,
@@ -53,13 +51,12 @@ function sleepDuration(bedTime: string, wakeTime: string | null): string {
 
 // ─── Tab bar ──────────────────────────────────────────────────────────────────
 
-type Tab = 'goals' | 'log' | 'analysis';
+type Tab = 'log' | 'insights';
 
 function Tabs({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
   const items: { id: Tab; label: string }[] = [
-    { id: 'goals', label: 'Goals' },
     { id: 'log', label: 'Daily Log' },
-    { id: 'analysis', label: 'AI Analysis' },
+    { id: 'insights', label: 'AI Insights' },
   ];
   return (
     <div className="flex gap-1 border-b border-gray-800 mb-6">
@@ -77,114 +74,6 @@ function Tabs({ active, onChange }: { active: Tab; onChange: (t: Tab) => void })
         </button>
       ))}
     </div>
-  );
-}
-
-// ─── Goals tab ────────────────────────────────────────────────────────────────
-
-function GoalCard({
-  goal,
-  entries,
-  onLog,
-}: {
-  goal: HealthGoal;
-  entries: HealthEntry[];
-  onLog: (goal: HealthGoal) => void;
-}) {
-  const today = todayStr();
-  const todayTotal = entries
-    .filter((e) => e.date === today && e.goalId === goal.id)
-    .reduce((s, e) => s + Number(e.value), 0);
-  const pct = Math.min((todayTotal / Number(goal.target)) * 100, 100);
-
-  const last30 = Array.from({ length: 30 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (29 - i));
-    const date = d.toISOString().slice(0, 10);
-    const val = entries
-      .filter((e) => e.date === date && e.goalId === goal.id)
-      .reduce((s, e) => s + Number(e.value), 0);
-    return { date: date.slice(5), value: val };
-  });
-
-  return (
-    <div className="bg-gray-900 rounded-xl p-5 border border-gray-800 space-y-3">
-      <div className="flex items-start justify-between">
-        <div>
-          <h3 className="font-medium text-white">{goal.name}</h3>
-          <p className="text-xs text-gray-500 mt-0.5">
-            {goal.frequency} · target {goal.target} {goal.unit}
-          </p>
-        </div>
-        <button
-          onClick={() => onLog(goal)}
-          className="text-xs bg-indigo-600 hover:bg-indigo-700 px-3 py-1.5 rounded-md text-white"
-        >
-          Log
-        </button>
-      </div>
-      <div>
-        <div className="flex justify-between text-xs text-gray-400 mb-1">
-          <span>
-            Today: {todayTotal} {goal.unit}
-          </span>
-          <span>{Math.round(pct)}%</span>
-        </div>
-        <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-indigo-500 rounded-full transition-all"
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-      </div>
-      <ResponsiveContainer width="100%" height={80}>
-        <LineChart data={last30}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-          <XAxis dataKey="date" tick={{ fontSize: 9 }} stroke="#6b7280" />
-          <YAxis hide />
-          <Tooltip
-            contentStyle={{ background: '#111827', border: '1px solid #374151', fontSize: 11 }}
-          />
-          <Line type="monotone" dataKey="value" stroke="#6366f1" dot={false} strokeWidth={2} />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
-function LogModal({
-  goal,
-  onClose,
-  onSaved,
-}: {
-  goal: HealthGoal;
-  onClose: () => void;
-  onSaved: () => void;
-}) {
-  const [value, setValue] = useState('');
-  const [notes, setNotes] = useState('');
-  const [date, setDate] = useState(todayStr);
-
-  async function submit() {
-    if (!value) return;
-    await api.post('/api/health/entries', { goalId: goal.id, value, notes, date });
-    onSaved();
-    onClose();
-  }
-
-  return (
-    <Modal title={`Log — ${goal.name}`} onClose={onClose}>
-      <Field label={`Value (${goal.unit})`}>
-        <Input type="number" value={value} onChange={setValue} autoFocus />
-      </Field>
-      <Field label="Date">
-        <Input type="date" value={date} onChange={setDate} />
-      </Field>
-      <Field label="Notes">
-        <Input value={notes} onChange={setNotes} />
-      </Field>
-      <ModalFooter onCancel={onClose} onSave={submit} />
-    </Modal>
   );
 }
 
@@ -698,18 +587,108 @@ function CannabisModal({
   );
 }
 
-// ─── Analysis tab ─────────────────────────────────────────────────────────────
+// ─── AI Insights tab ───────────────────────────────────────────────────────────
 
-function AnalysisTab() {
+const presetInsightGoals = [
+  'Understand what sleep and cannabis timing patterns are reducing my sleep quality.',
+  'Find whether meal timing is affecting sleep duration and quality.',
+  'Identify practical timing changes I can make this week to improve recovery.',
+];
+
+type InsightTrendPoint = {
+  date: string;
+  sleepDuration: number | null;
+  sleepQuality: number | null;
+  meals: number;
+  cannabis: number;
+};
+
+function buildInsightTrendData(
+  sleepLogs: SleepLog[],
+  foodLogs: FoodLog[],
+  marijuanaSessions: MarijuanaSession[],
+): InsightTrendPoint[] {
+  const points: InsightTrendPoint[] = [];
+  for (let i = 29; i >= 0; i -= 1) {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - i);
+    const date = d.toISOString().slice(0, 10);
+    const daySleep = sleepLogs.filter((s) => s.date === date);
+    const dayFood = foodLogs.filter((f) => f.date === date);
+    const dayCannabis = marijuanaSessions.filter((m) => m.date === date);
+
+    const sleepDurations = daySleep
+      .filter((s) => Boolean(s.wakeTime))
+      .map((s) => (new Date(s.wakeTime as string).getTime() - new Date(s.bedTime).getTime()) / 3_600_000)
+      .filter((hours) => Number.isFinite(hours) && hours > 0);
+    const qualityScores = daySleep
+      .map((s) => s.qualityScore)
+      .filter((score): score is number => score != null);
+
+    points.push({
+      date: date.slice(5),
+      sleepDuration:
+        sleepDurations.length > 0
+          ? Number(
+              (sleepDurations.reduce((sum, hours) => sum + hours, 0) / sleepDurations.length).toFixed(2),
+            )
+          : null,
+      sleepQuality:
+        qualityScores.length > 0
+          ? Number((qualityScores.reduce((sum, score) => sum + score, 0) / qualityScores.length).toFixed(2))
+          : null,
+      meals: dayFood.length,
+      cannabis: dayCannabis.length,
+    });
+  }
+  return points;
+}
+
+function AnalysisTab({
+  sleepLogs,
+  foodLogs,
+  marijuanaSessions,
+}: {
+  sleepLogs: SleepLog[];
+  foodLogs: FoodLog[];
+  marijuanaSessions: MarijuanaSession[];
+}) {
   const [analysis, setAnalysis] = useState<HealthAnalysis | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [customGoalText, setCustomGoalText] = useState('');
+  const [customGoals, setCustomGoals] = useState<string[]>([]);
+  const [selectedGoal, setSelectedGoal] = useState(presetInsightGoals[0] ?? '');
+  const availableGoals = [...presetInsightGoals, ...customGoals];
+  const trendData = buildInsightTrendData(sleepLogs, foodLogs, marijuanaSessions);
+
+  function addCustomGoal() {
+    const goal = customGoalText.trim();
+    if (!goal) return;
+    if (availableGoals.includes(goal)) {
+      setSelectedGoal(goal);
+      setCustomGoalText('');
+      return;
+    }
+    setCustomGoals((prev) => [...prev, goal]);
+    setSelectedGoal(goal);
+    setCustomGoalText('');
+  }
 
   async function runAnalysis() {
+    const activeGoal = selectedGoal.trim();
+    if (!activeGoal) {
+      setError('Select or add a goal before running analysis.');
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      const result = await api.get<HealthAnalysis>('/api/health/analysis');
+      const result = await api.post<HealthAnalysis>('/api/health/analysis', {
+        goal: activeGoal,
+        goals: availableGoals,
+      });
       setAnalysis(result);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Analysis failed');
@@ -719,12 +698,112 @@ function AnalysisTab() {
   }
 
   return (
-    <div className="max-w-3xl space-y-4">
+    <div className="max-w-5xl space-y-4">
+      <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-white">AI Insights</h2>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Overlayed Daily Log trends for sleep, quality, meals, and cannabis use across 30 days.
+            </p>
+          </div>
+        </div>
+        <ResponsiveContainer width="100%" height={280}>
+          <LineChart data={trendData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+            <XAxis dataKey="date" stroke="#6b7280" />
+            <YAxis yAxisId="sleep" stroke="#6b7280" />
+            <YAxis yAxisId="events" orientation="right" stroke="#6b7280" />
+            <Tooltip
+              contentStyle={{ background: '#111827', border: '1px solid #374151' }}
+              formatter={(value: number, name: string) => [value, name]}
+            />
+            <Line
+              yAxisId="sleep"
+              type="monotone"
+              dataKey="sleepDuration"
+              name="Sleep Duration (hours)"
+              stroke="#6366f1"
+              dot={false}
+              connectNulls
+              strokeWidth={2}
+            />
+            <Line
+              yAxisId="sleep"
+              type="monotone"
+              dataKey="sleepQuality"
+              name="Sleep Quality (1-5)"
+              stroke="#f59e0b"
+              dot={false}
+              connectNulls
+              strokeWidth={2}
+            />
+            <Line
+              yAxisId="events"
+              type="monotone"
+              dataKey="meals"
+              name="Meals"
+              stroke="#10b981"
+              dot={false}
+              strokeWidth={2}
+            />
+            <Line
+              yAxisId="events"
+              type="monotone"
+              dataKey="cannabis"
+              name="Cannabis Sessions"
+              stroke="#ef4444"
+              dot={false}
+              strokeWidth={2}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-4">
+        <div>
+          <h3 className="text-base font-semibold text-white">Analysis Goal</h3>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Add a free-form goal or select an existing goal, then run analysis for one active goal.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Input
+            value={customGoalText}
+            onChange={setCustomGoalText}
+            placeholder="e.g. I want to improve deep sleep by adjusting meal and cannabis timing"
+          />
+          <button
+            onClick={addCustomGoal}
+            className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm rounded-lg border border-gray-700"
+          >
+            Add Goal
+          </button>
+        </div>
+        <div className="space-y-2">
+          {availableGoals.map((goal) => (
+            <label
+              key={goal}
+              className="flex items-center gap-2 p-2 rounded-md border border-gray-800 hover:border-gray-700"
+            >
+              <input
+                type="radio"
+                name="insight-goal"
+                checked={selectedGoal === goal}
+                onChange={() => setSelectedGoal(goal)}
+              />
+              <span className="text-sm text-gray-200">{goal}</span>
+            </label>
+          ))}
+          {availableGoals.length === 0 && <p className="text-sm text-gray-500">Add a goal to begin.</p>}
+        </div>
+      </div>
+
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-white">AI Health Analysis</h2>
+          <h2 className="text-lg font-semibold text-white">Run AI Insights</h2>
           <p className="text-sm text-gray-500 mt-0.5">
-            Analyzes your last 30 days of sleep, cannabis sessions, and food logs for patterns.
+            Generates analysis using your selected goal and Daily Log trends.
           </p>
         </div>
         <button
@@ -744,8 +823,8 @@ function AnalysisTab() {
 
       {!analysis && !loading && !error && (
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center text-gray-500 text-sm">
-          Click "Run Analysis" to get AI-powered insights about your sleep, cannabis, and food
-          patterns. Requires at least a few days of logged data.
+          Choose or add a goal, then click "Run Analysis". Insights are generated from your Daily Log
+          data and focused on the selected goal.
         </div>
       )}
 
@@ -758,9 +837,12 @@ function AnalysisTab() {
       {analysis && (
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-xs text-gray-500">
-              Generated {new Date(analysis.generatedAt).toLocaleString()}
-            </span>
+            <div className="text-xs text-gray-500 space-y-1">
+              <div>Generated {new Date(analysis.generatedAt).toLocaleString()}</div>
+              {'goal' in analysis && typeof analysis.goal === 'string' && (
+                <div className="text-gray-400">Goal: {analysis.goal}</div>
+              )}
+            </div>
             <button
               onClick={runAnalysis}
               disabled={loading}
@@ -957,27 +1039,14 @@ function Empty({ children }: { children: React.ReactNode }) {
 
 // ─── Page root ────────────────────────────────────────────────────────────────
 
-export default function Health() {
-  const [tab, setTab] = useState<Tab>('goals');
+export default function Wellness() {
+  const [tab, setTab] = useState<Tab>('log');
   const [selectedDate, setSelectedDate] = useState(todayStr);
-
-  // Goals tab state
-  const [goals, setGoals] = useState<HealthGoal[]>([]);
-  const [entries, setEntries] = useState<HealthEntry[]>([]);
-  const [logGoal, setLogGoal] = useState<HealthGoal | null>(null);
 
   // Daily log state
   const [foodLogs, setFoodLogs] = useState<FoodLog[]>([]);
   const [marijuanaSessions, setMarijuanaSessions] = useState<MarijuanaSession[]>([]);
   const [sleepLogs, setSleepLogs] = useState<SleepLog[]>([]);
-
-  const loadGoals = useCallback(() => {
-    const from = new Date();
-    from.setDate(from.getDate() - 30);
-    const fromStr = from.toISOString().slice(0, 10);
-    api.get<HealthGoal[]>('/api/health/goals').then(setGoals).catch(() => {});
-    api.get<HealthEntry[]>(`/api/health/entries?from=${fromStr}`).then(setEntries).catch(() => {});
-  }, []);
 
   const loadWellness = useCallback(() => {
     const from = new Date();
@@ -1002,28 +1071,13 @@ export default function Health() {
   }, []);
 
   useEffect(() => {
-    loadGoals();
     loadWellness();
-  }, [loadGoals, loadWellness]);
+  }, [loadWellness]);
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold mb-4">Health</h1>
+      <h1 className="text-2xl font-semibold mb-4">Wellness</h1>
       <Tabs active={tab} onChange={setTab} />
-
-      {tab === 'goals' && (
-        <div>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {goals.map((g) => (
-              <GoalCard key={g.id} goal={g} entries={entries} onLog={setLogGoal} />
-            ))}
-            {goals.length === 0 && <p className="text-gray-500">No health goals yet.</p>}
-          </div>
-          {logGoal && (
-            <LogModal goal={logGoal} onClose={() => setLogGoal(null)} onSaved={loadGoals} />
-          )}
-        </div>
-      )}
 
       {tab === 'log' && (
         <div className="max-w-2xl space-y-4">
@@ -1058,7 +1112,13 @@ export default function Health() {
         </div>
       )}
 
-      {tab === 'analysis' && <AnalysisTab />}
+      {tab === 'insights' && (
+        <AnalysisTab
+          sleepLogs={sleepLogs}
+          foodLogs={foodLogs}
+          marijuanaSessions={marijuanaSessions}
+        />
+      )}
     </div>
   );
 }

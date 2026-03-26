@@ -115,6 +115,12 @@ export interface SleepLog {
 export interface HealthAnalysis {
   insights: string;
   generatedAt: string;
+  goal?: string;
+}
+
+export interface HealthAnalysisRequest {
+  goal: string;
+  goals?: string[];
 }
 
 // Chat types

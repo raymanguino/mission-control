@@ -18,9 +18,13 @@ function durationHours(start: string | Date | null, end: string | Date | null): 
   return `${diff.toFixed(1)}h`;
 }
 
-export async function analyzeHealthData(): Promise<{
+export async function analyzeHealthData(params: {
+  goal: string;
+  goals?: string[];
+}): Promise<{
   insights: string;
   generatedAt: string;
+  goal: string;
 }> {
   const anthropicApiKey = process.env['ANTHROPIC_API_KEY'];
   const openAiKeyFromEnv = process.env['OPENAI_API_KEY'];
@@ -47,8 +51,9 @@ export async function analyzeHealthData(): Promise<{
   if (sleepData.length === 0 && marijuanaData.length === 0 && foodData.length === 0) {
     return {
       insights:
-        'Not enough data yet. Log at least a few days of sleep, cannabis sessions, and meals to get personalized insights.',
+        `Not enough data yet to evaluate this goal: "${params.goal}". Log at least a few days of sleep, cannabis sessions, and meals to get personalized insights.`,
       generatedAt: new Date().toISOString(),
+      goal: params.goal,
     };
   }
 
@@ -95,9 +100,14 @@ export async function analyzeHealthData(): Promise<{
           })
           .join('\n');
 
+  const allGoals = [params.goal, ...(params.goals ?? []).filter((g) => g.trim() && g !== params.goal)];
+  const goalContext = allGoals.map((g, idx) => `${idx + 1}. ${g}`).join('\n');
   const prompt = `You are analyzing 30 days of personal health and lifestyle data for a single user. Your job is to find meaningful, specific correlations and give actionable, personalized recommendations — not generic health advice.
 
 Data period: ${fromStr} to ${toStr}
+Primary goal: ${params.goal}
+All active goals:
+${goalContext}
 
 --- SLEEP LOGS (most recent first) ---
 ${sleepSection}
@@ -110,15 +120,17 @@ ${foodSection}
 
 Analyze this data and respond with:
 
-1. **Sleep Patterns** — summarize the user's sleep quality and duration trends with specific data points (e.g., "Your average sleep duration is X hours, and quality scores average Y/5").
+1. **Goal Answer** — directly answer the primary goal using specific evidence from this data.
 
-2. **Cannabis & Sleep Correlation** — this is the most important section. Look for specific patterns between the timing of the last cannabis session each night and the quality/duration of sleep that followed. Be specific: cite actual dates or counts (e.g., "On 4 of the 6 nights you used after 2am, your quality score was 2 or lower vs. averaging 3.8 when you stopped before midnight"). If there's not enough data to find a pattern, say so honestly.
+2. **Sleep Patterns** — summarize sleep quality and duration trends with specific data points (e.g., "Average sleep duration is X hours, quality scores average Y/5").
 
-3. **Food & Sleep Correlation** — note any patterns between late eating and sleep quality, or meal patterns that seem to correlate with better/worse nights.
+3. **Cannabis & Sleep Correlation** — focus on patterns between timing of the last cannabis session each night and the quality/duration of sleep that followed. Cite dates or counts when possible.
 
-4. **Recommendations** — give 2–4 specific, actionable suggestions based on this person's actual data. Include specific times if the data supports it (e.g., "Try moving your last session to before 11:30pm based on your patterns"). Never recommend stopping use — only timing/moderation adjustments.
+4. **Food & Sleep Correlation** — note patterns between late eating and sleep quality, or meal patterns that correlate with better/worse nights.
 
-5. **What to Track Next** — suggest what additional data would most improve the analysis quality.
+5. **Recommendations For This Goal** — give 2-4 specific, actionable suggestions based on this person's actual data and the primary goal. Include specific times if the data supports it.
+
+6. **What to Track Next** — suggest what additional data would most improve confidence for this goal.
 
 Keep the tone direct and data-driven. Use bullet points within each section. If there are fewer than 5 data points for any correlation, note that you need more data to be confident.`;
 
@@ -174,5 +186,6 @@ Keep the tone direct and data-driven. Use bullet points within each section. If 
   return {
     insights: text,
     generatedAt: new Date().toISOString(),
+    goal: params.goal,
   };
 }

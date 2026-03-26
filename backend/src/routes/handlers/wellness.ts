@@ -44,6 +44,10 @@ const createSleepSchema = z.object({
 });
 
 const updateSleepSchema = createSleepSchema.partial();
+const runAnalysisSchema = z.object({
+  goal: z.string().min(1),
+  goals: z.array(z.string().min(1)).optional(),
+});
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
@@ -181,10 +185,15 @@ const wellnessRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.code(204).send();
   });
 
-  // AI Analysis
-  fastify.get('/analysis', { preHandler: fastify.authenticate }, async (_request, reply) => {
+  // AI Insights analysis
+  fastify.post('/analysis', { preHandler: fastify.authenticate }, async (request, reply) => {
+    const body = runAnalysisSchema.safeParse(request.body);
+    if (!body.success) return reply.code(400).send({ error: 'Invalid body' });
     try {
-      const result = await analyzeHealthData();
+      const result = await analyzeHealthData({
+        goal: body.data.goal.trim(),
+        goals: body.data.goals?.map((goal) => goal.trim()).filter(Boolean),
+      });
       return result;
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Analysis failed';

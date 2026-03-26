@@ -7,7 +7,7 @@ import { useAuth } from '../../contexts/AuthContext.js';
 const navItems = [
   { to: '/agents', label: 'Agents' },
   { to: '/projects', label: 'Projects' },
-  { to: '/health', label: 'Health' },
+  { to: '/wellness', label: 'Wellness' },
   { to: '/chat', label: 'Chat' },
   { to: '/usage', label: 'Usage' },
 ];

@@ -229,15 +229,23 @@ export function registerWellnessTools(server: McpServer) {
 
   server.tool(
     'run_health_analysis',
-    'Run AI analysis on the last 30 days of health data to find correlations between cannabis timing and sleep quality, food patterns, and generate personalized recommendations.',
-    {},
-    async () => {
-      const result = await apiGet<HealthAnalysis>('/api/health/analysis');
+    'Run goal-driven AI insights on the last 30 days of wellness data.',
+    {
+      goal: z
+        .string()
+        .describe('Primary analysis goal in free-form text, e.g. "Improve sleep quality by changing meal/cannabis timing"'),
+      goals: z
+        .array(z.string())
+        .optional()
+        .describe('Optional additional goals; first item should still be the main goal'),
+    },
+    async ({ goal, goals }) => {
+      const result = await apiPost<HealthAnalysis>('/api/health/analysis', { goal, goals });
       return {
         content: [
           {
             type: 'text',
-            text: `Health Analysis (generated ${result.generatedAt})\n\n${result.insights}`,
+            text: `Wellness Insights (generated ${result.generatedAt})\nGoal: ${result.goal ?? goal}\n\n${result.insights}`,
           },
         ],
       };
