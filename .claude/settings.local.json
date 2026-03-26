@@ -12,7 +12,9 @@
       "Bash(pnpm --filter @mission-control/mcp exec tsc --noEmit)",
       "Bash(pnpm --filter @mission-control/mcp add @mission-control/types@workspace:*)",
       "Bash(pnpm --filter backend db:generate)",
-      "Bash(pnpm --filter backend db:migrate)"
+      "Bash(pnpm --filter backend db:migrate)",
+      "WebFetch(domain:openrouter.ai)",
+      "WebSearch"
     ]
   }
 }

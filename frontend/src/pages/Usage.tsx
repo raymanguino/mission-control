@@ -13,45 +13,16 @@ import {
 
 type GroupBy = 'model' | 'apiKey' | 'agent';
 
-interface AiConfigResponse {
-  providers: {
-    openrouter: {
-      configured: boolean;
-      modelEnv: {
-        OPENROUTER_MODEL: string | null;
-        OPENROUTER_CHEAP_MODEL: string | null;
-        OPENROUTER_BALANCED_MODEL: string | null;
-      };
-    };
-    anthropic: {
-      configured: boolean;
-      modelEnv: {
-        ANTHROPIC_MODEL: string | null;
-      };
-    };
-  };
-  workloadSelections: Array<{
-    workload: string;
-    status: 'ok' | 'error';
-    selected: {
-      primary: { provider: string; model: string };
-      fallback: { provider: string; model: string } | null;
-    } | null;
-    error?: string;
-  }>;
-}
-
 export default function Usage() {
   const [groups, setGroups] = useState<UsageGroup[]>([]);
   const [records, setRecords] = useState<UsageRecord[]>([]);
-  const [aiConfig, setAiConfig] = useState<AiConfigResponse | null>(null);
   const [groupBy, setGroupBy] = useState<GroupBy>('model');
   const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<string | null>(null);
 
   const load = (gb: GroupBy = groupBy) => {
     api.get<UsageGroup[]>(`/api/usage?groupBy=${gb}`).then(setGroups).catch(() => {});
     api.get<UsageRecord[]>('/api/usage/records?limit=50').then(setRecords).catch(() => {});
-    api.get<AiConfigResponse>('/api/usage/ai/config').then(setAiConfig).catch(() => {});
   };
 
   useEffect(() => {
@@ -71,10 +42,13 @@ export default function Usage() {
   const totalCacheWrite = groups.reduce((sum, group) => sum + Number(group.cacheWriteTokens), 0);
   const totalAudio = groups.reduce((sum, group) => sum + Number(group.audioTokens), 0);
 
-  const summaryCards = [
+  const primaryCards = [
     { label: 'Total cost', value: `$${totalCost.toFixed(6)}` },
     { label: 'Upstream cost', value: `$${totalUpstreamCost.toFixed(6)}` },
     { label: 'Requests', value: totalRequests.toLocaleString() },
+  ];
+
+  const secondaryMetrics = [
     { label: 'Tokens in', value: totalIn.toLocaleString() },
     { label: 'Tokens out', value: totalOut.toLocaleString() },
     { label: 'Reasoning', value: totalReasoning.toLocaleString() },
@@ -85,11 +59,15 @@ export default function Usage() {
 
   async function syncNow() {
     setSyncing(true);
+    setSyncResult(null);
     try {
-      await api.post('/api/usage/sync');
-      load();
+      const result = await api.post<{ synced: number }>('/api/usage/sync');
+      setSyncResult(`Synced ${result.synced} record${result.synced === 1 ? '' : 's'}`);
+    } catch (err) {
+      setSyncResult(`Sync failed: ${err instanceof Error ? err.message : 'unknown error'}`);
     } finally {
       setSyncing(false);
+      load();
     }
   }
 
@@ -97,21 +75,36 @@ export default function Usage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Usage & Costs</h1>
-        <button
-          onClick={syncNow}
-          disabled={syncing}
-          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm rounded-md"
-        >
-          {syncing ? 'Syncing…' : 'Sync now'}
-        </button>
+        <div className="flex items-center gap-3">
+          {syncResult && (
+            <span className={`text-xs ${syncResult.startsWith('Sync failed') ? 'text-red-400' : 'text-gray-400'}`}>
+              {syncResult}
+            </span>
+          )}
+          <button
+            onClick={syncNow}
+            disabled={syncing}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm rounded-md"
+          >
+            {syncing ? 'Syncing…' : 'Sync now'}
+          </button>
+        </div>
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
-        {summaryCards.map(({ label, value }) => (
+      <div className="grid grid-cols-3 gap-4">
+        {primaryCards.map(({ label, value }) => (
           <div key={label} className="bg-gray-900 rounded-xl p-5 border border-gray-800">
             <p className="text-xs text-gray-500 mb-1">{label}</p>
             <p className="text-2xl font-semibold text-white">{value}</p>
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-6 gap-3">
+        {secondaryMetrics.map(({ label, value }) => (
+          <div key={label} className="bg-gray-900/60 rounded-lg px-3 py-2.5 border border-gray-800/70">
+            <p className="text-[10px] text-gray-600 mb-0.5 uppercase tracking-wide">{label}</p>
+            <p className="text-sm font-medium text-gray-400">{value}</p>
           </div>
         ))}
       </div>
@@ -151,53 +144,6 @@ export default function Usage() {
             <Bar dataKey="costUsd" fill="#6366f1" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
-      </div>
-
-      {/* AI routing config */}
-      <div className="bg-gray-900 rounded-xl p-5 border border-gray-800 space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-white">AI Routing Config</h2>
-          <button
-            onClick={() => load(groupBy)}
-            className="px-2.5 py-1 text-xs rounded-md bg-gray-800 text-gray-300 hover:text-white"
-          >
-            Refresh
-          </button>
-        </div>
-        {!aiConfig && <p className="text-xs text-gray-500">Unable to load AI config diagnostics.</p>}
-        {aiConfig && (
-          <>
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="rounded-lg border border-gray-800 p-3">
-                <div className="text-gray-400 mb-1">OpenRouter</div>
-                <div className="text-gray-200">
-                  {aiConfig.providers.openrouter.configured ? 'Configured' : 'Missing API key'}
-                </div>
-              </div>
-              <div className="rounded-lg border border-gray-800 p-3">
-                <div className="text-gray-400 mb-1">Anthropic</div>
-                <div className="text-gray-200">
-                  {aiConfig.providers.anthropic.configured ? 'Configured' : 'Missing API key'}
-                </div>
-              </div>
-            </div>
-            <div className="space-y-1">
-              {aiConfig.workloadSelections.map((row) => (
-                <div key={row.workload} className="text-xs text-gray-300 border border-gray-800 rounded px-3 py-2">
-                  <span className="text-gray-400">{row.workload}</span>
-                  {' - '}
-                  {row.status === 'ok' && row.selected
-                    ? `${row.selected.primary.provider}/${row.selected.primary.model}${
-                        row.selected.fallback
-                          ? ` (fallback: ${row.selected.fallback.provider}/${row.selected.fallback.model})`
-                          : ''
-                      }`
-                    : row.error ?? 'not configured'}
-                </div>
-              ))}
-            </div>
-          </>
-        )}
       </div>
 
       {/* Records table */}

@@ -29,6 +29,9 @@ export async function syncOpenRouterUsage(): Promise<number> {
     return 0;
   }
 
+  // Derive a short label from the key (last 8 chars) so records are identifiable when grouping by apiKey
+  const apiKeyLabel = `or-...${apiKey.slice(-8)}`;
+
   const res = await fetch('https://openrouter.ai/api/v1/activity', {
     headers: { Authorization: `Bearer ${apiKey}` },
   });
@@ -43,6 +46,7 @@ export async function syncOpenRouterUsage(): Promise<number> {
   for (const item of body.data) {
     await upsertRecord({
       source: 'activity',
+      apiKeyLabel,
       model: item.model ?? item.model_permaslug,
       requestCount: item.requests,
       tokensIn: item.prompt_tokens,

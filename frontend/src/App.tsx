@@ -8,6 +8,7 @@ import Projects from './pages/Projects.js';
 import Wellness from './pages/Health.js';
 import Chat from './pages/Chat.js';
 import Usage from './pages/Usage.js';
+import Settings from './pages/Settings.js';
 
 export default function App() {
   return (
@@ -30,6 +31,7 @@ export default function App() {
             <Route path="wellness" element={<Wellness />} />
             <Route path="chat" element={<Chat />} />
             <Route path="usage" element={<Usage />} />
+            <Route path="settings" element={<Settings />} />
           </Route>
         </Routes>
       </AuthProvider>

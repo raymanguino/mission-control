@@ -30,7 +30,8 @@ const usageRoutes: FastifyPluginAsync = async (fastify) => {
       return { synced: count };
     } catch (err) {
       fastify.log.error(err);
-      return reply.code(500).send({ error: 'Sync failed' });
+      const message = err instanceof Error ? err.message : 'Sync failed';
+      return reply.code(500).send({ error: message });
     }
   });
 };

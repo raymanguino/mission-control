@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, isNull, lte, or, sql } from 'drizzle-orm';
 import { db } from '../index.js';
 import { usageRecords } from '../schema.js';
 
@@ -119,6 +119,9 @@ function getMatchConditions(data: Omit<UsageRecordInput, 'source'> & { source: s
     eq(usageRecords.source, data.source),
     eq(usageRecords.recordedAt, data.recordedAt),
     data.model ? eq(usageRecords.model, data.model) : sql`true`,
-    data.apiKeyLabel ? eq(usageRecords.apiKeyLabel, data.apiKeyLabel) : sql`true`,
+    // Accept exact label match OR null-labeled rows (migrates pre-labeled records on next sync)
+    data.apiKeyLabel
+      ? or(eq(usageRecords.apiKeyLabel, data.apiKeyLabel), isNull(usageRecords.apiKeyLabel))!
+      : sql`true`,
   ];
 }

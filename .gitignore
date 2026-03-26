@@ -5,3 +5,6 @@ dist/
 *.tsbuildinfo
 .supabase/
 supabase/.temp/
+
+# Cursor debug logs
+.cursor/debug-*.log
