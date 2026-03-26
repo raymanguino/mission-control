@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { apiGet, apiPost, apiPatch } from '../client.js';
+import { apiGet, apiPost, apiPatch, apiDelete } from '../client.js';
 import { omitNullValues } from './sanitize.js';
 import type {
   FoodLog,
@@ -87,6 +87,23 @@ export function registerWellnessTools(server: McpServer) {
   );
 
   server.tool(
+    'quick_log_food',
+    'Log food from free text only. The server infers `mealType`, `loggedAt`, `date`, and macros using the same AI stack as other wellness features.\n\nRequired: `text` — what you ate; you may add natural-language time hints (e.g. "yesterday evening", "this morning").',
+    {
+      text: z
+        .string()
+        .min(1)
+        .describe('Free-form text describing the meal and optionally when it was eaten.'),
+    },
+    async ({ text }) => {
+      const log = await apiPost<FoodLog>('/api/health/food/quick', { text });
+      return {
+        content: [{ type: 'text', text: `Food logged (quick).\n\n${JSON.stringify(log, null, 2)}` }],
+      };
+    },
+  );
+
+  server.tool(
     'list_food_logs',
     'List food logs filtered by date or date range.\n\nOptional: `date` OR (`from`, `to`). If omitted, returns all available food logs.',
     {
@@ -102,6 +119,20 @@ export function registerWellnessTools(server: McpServer) {
       const logs = await apiGet<FoodLog[]>(`/api/health/food?${params}`);
       return {
         content: [{ type: 'text', text: JSON.stringify(logs, null, 2) }],
+      };
+    },
+  );
+
+  server.tool(
+    'delete_food_log',
+    'Delete a food log by ID. Use `list_food_logs` first to find the UUID.',
+    {
+      id: z.string().uuid().describe('Food log UUID'),
+    },
+    async ({ id }) => {
+      await apiDelete(`/api/health/food/${id}`);
+      return {
+        content: [{ type: 'text', text: `Food log deleted (id: ${id}).` }],
       };
     },
   );

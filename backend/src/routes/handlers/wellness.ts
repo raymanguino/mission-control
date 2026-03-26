@@ -3,6 +3,7 @@ import { z } from 'zod';
 import * as wellnessDb from '../../db/api/wellness.js';
 import { analyzeHealthData } from '../../services/analysis.js';
 import { estimateNutrition } from '../../services/nutrition.js';
+import { createFoodLogFromQuickText } from '../../services/quick-food-log.js';
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -21,6 +22,10 @@ const createFoodSchema = z.object({
 const updateFoodSchema = createFoodSchema.partial();
 const estimateFoodSchema = z.object({
   description: z.string().min(1),
+});
+
+const quickFoodSchema = z.object({
+  text: z.string().min(1),
 });
 
 const createMarijuanaSchema = z.object({
@@ -88,6 +93,23 @@ const wellnessRoutes: FastifyPluginAsync = async (fastify) => {
     await fastify.finalizeIdempotency(request, 201, log);
     return reply.code(201).send(log);
   });
+
+  fastify.post(
+    '/food/quick',
+    { preHandler: [fastify.authenticate, fastify.enforceIdempotency] },
+    async (request, reply) => {
+      const body = quickFoodSchema.safeParse(request.body);
+      if (!body.success) return reply.code(400).send({ error: 'Invalid body' });
+      try {
+        const log = await createFoodLogFromQuickText(body.data.text);
+        await fastify.finalizeIdempotency(request, 201, log);
+        return reply.code(201).send(log);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Quick food log failed';
+        return reply.code(500).send({ error: msg });
+      }
+    },
+  );
 
   fastify.patch('/food/:id', { preHandler: fastify.authenticate }, async (request, reply) => {
     const { id } = request.params as { id: string };

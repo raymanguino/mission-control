@@ -46,3 +46,11 @@ export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
   if (!res.ok) throw new Error(`Backend PATCH ${path} → ${res.status}: ${await res.text()}`);
   return res.json() as Promise<T>;
 }
+
+export async function apiDelete(path: string): Promise<void> {
+  const res = await fetch(`${backendUrl}${path}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${jwt}` },
+  });
+  if (!res.ok) throw new Error(`Backend DELETE ${path} → ${res.status}: ${await res.text()}`);
+}

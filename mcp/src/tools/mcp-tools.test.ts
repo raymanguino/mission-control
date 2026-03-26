@@ -7,12 +7,13 @@ import { registerProjectTools } from './projects.js';
 import { registerUsageTools } from './usage.js';
 import { registerWellnessTools } from './wellness.js';
 
-import { apiGet, apiPatch, apiPost } from '../client.js';
+import { apiDelete, apiGet, apiPatch, apiPost } from '../client.js';
 
 vi.mock('../client.js', () => ({
   apiGet: vi.fn(),
   apiPost: vi.fn(),
   apiPatch: vi.fn(),
+  apiDelete: vi.fn(),
 }));
 
 type ToolHandler = (args?: unknown) => Promise<unknown>;
@@ -33,6 +34,7 @@ describe('MCP tool unit tests', () => {
   const apiGetMock = vi.mocked(apiGet, true);
   const apiPostMock = vi.mocked(apiPost, true);
   const apiPatchMock = vi.mocked(apiPatch, true);
+  const apiDeleteMock = vi.mocked(apiDelete, true);
 
   it('registerAgentTools: list_agents wraps /api/agents response', async () => {
     const handlers = getHandlers(registerAgentTools as unknown as (server: unknown) => void);
@@ -211,6 +213,32 @@ describe('MCP tool unit tests', () => {
     const text = (res as any).content[0].text as string;
     expect(text).toContain('Deprecated');
     expect(text).toContain('run_health_analysis');
+  });
+
+  it('registerWellnessTools: quick_log_food posts to /api/health/food/quick', async () => {
+    const handlers = getHandlers(registerWellnessTools as unknown as (server: unknown) => void);
+    const log = { id: 'food-quick-1', mealType: 'lunch', description: 'Salad' };
+    apiPostMock.mockResolvedValueOnce(log as any);
+
+    const res = await handlers.quick_log_food({ text: 'big salad' });
+
+    expect(apiPostMock).toHaveBeenCalledWith('/api/health/food/quick', { text: 'big salad' });
+    const text = (res as { content: { text: string }[] }).content[0].text;
+    expect(text).toContain('Food logged (quick).');
+    expect(text).toContain(JSON.stringify(log, null, 2));
+  });
+
+  it('registerWellnessTools: delete_food_log calls DELETE /api/health/food/:id', async () => {
+    const handlers = getHandlers(registerWellnessTools as unknown as (server: unknown) => void);
+    const id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
+    apiDeleteMock.mockResolvedValueOnce(undefined);
+
+    const res = await handlers.delete_food_log({ id });
+
+    expect(apiDeleteMock).toHaveBeenCalledWith(`/api/health/food/${id}`);
+    expect((res as { content: { text: string }[] }).content[0].text).toBe(
+      `Food log deleted (id: ${id}).`,
+    );
   });
 
   it('registerWellnessTools: log_food auto-estimates nutrition when no nutrition fields provided', async () => {
