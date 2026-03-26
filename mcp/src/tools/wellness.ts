@@ -14,22 +14,38 @@ export function registerWellnessTools(server: McpServer) {
 
   server.tool(
     'log_food',
-    'Log a meal or snack with optional nutritional info. Use this when the user reports eating something.',
+    'Log a meal or snack with nutritional details.\n\nRequired: `mealType`, `description`.\nOptional: `loggedAt`, `date`, nutrition fields (`calories`, `protein`, `carbs`, `fat`), `notes`.\nIf ALL nutrition fields are omitted, nutrition is auto-estimated from `description`.\nIf you provide ANY nutrition field, auto-estimation is skipped.\nIf `loggedAt`/`date` are omitted, they default to now/today.',
     {
       mealType: z
         .enum(['breakfast', 'lunch', 'dinner', 'snack'])
-        .describe('Type of meal'),
-      description: z.string().describe('What was eaten, e.g. "Chicken salad with avocado"'),
+        .describe('Meal type: `breakfast`, `lunch`, `dinner`, or `snack` (required).'),
+      description: z
+        .string()
+        .describe('What was eaten (required), e.g. "Chicken salad with avocado".'),
       loggedAt: z
         .string()
         .optional()
-        .describe('ISO datetime of the meal (default: now)'),
-      date: z.string().optional().describe('Date YYYY-MM-DD (default: today)'),
-      calories: z.number().int().positive().optional().describe('Calories (kcal)'),
-      protein: z.string().optional().describe('Protein in grams'),
-      carbs: z.string().optional().describe('Carbohydrates in grams'),
-      fat: z.string().optional().describe('Fat in grams'),
-      notes: z.string().optional().describe('Any additional notes'),
+        .describe('ISO datetime of the meal (default: now).'),
+      date: z.string().optional().describe('Date YYYY-MM-DD (default: today).'),
+      calories: z
+        .number()
+        .int()
+        .positive()
+        .optional()
+        .describe('Calories (kcal) as a positive integer. Omit to allow nutrition auto-estimation.'),
+      protein: z
+        .string()
+        .optional()
+        .describe('Protein grams as a numeric string (e.g. "35"). Omit to allow nutrition auto-estimation.'),
+      carbs: z
+        .string()
+        .optional()
+        .describe('Carbohydrates grams as a numeric string (e.g. "45"). Omit to allow nutrition auto-estimation.'),
+      fat: z
+        .string()
+        .optional()
+        .describe('Fat grams as a numeric string (e.g. "20"). Omit to allow nutrition auto-estimation.'),
+      notes: z.string().optional().describe('Any additional notes (optional).'),
     },
     async ({ mealType, description, loggedAt, date, calories, protein, carbs, fat, notes }) => {
       const now = new Date();
@@ -65,7 +81,7 @@ export function registerWellnessTools(server: McpServer) {
 
   server.tool(
     'list_food_logs',
-    'List food logs filtered by date or date range',
+    'List food logs filtered by date or date range.\n\nOptional: `date` OR (`from`, `to`). If omitted, returns all available food logs.',
     {
       date: z.string().optional().describe('Single date YYYY-MM-DD'),
       from: z.string().optional().describe('Start date YYYY-MM-DD'),
@@ -87,22 +103,22 @@ export function registerWellnessTools(server: McpServer) {
 
   server.tool(
     'log_cannabis_session',
-    'Log a cannabis/marijuana session with the exact time. The sessionAt timestamp is critical for sleep correlation analysis.',
+    'Log a cannabis/marijuana session.\n\nRequired: `form`.\nOptional: `sessionAt` (ISO datetime), `date` (YYYY-MM-DD), `strain`, `amount`, `unit`, `notes`.\nIf `sessionAt` is omitted, it defaults to now.\nProvide an accurate `sessionAt` for sleep-correlation analysis.',
     {
       form: z
         .enum(['flower', 'vape', 'edible', 'tincture', 'other'])
-        .describe('Consumption method'),
+        .describe('Consumption method (required): `flower`, `vape`, `edible`, `tincture`, or `other`.'),
       sessionAt: z
         .string()
         .optional()
-        .describe('ISO datetime of the session (default: now). Be precise — this is used for sleep correlation.'),
-      date: z.string().optional().describe('Date YYYY-MM-DD (default: today)'),
+        .describe('ISO datetime of the session (default: now). Be precise for sleep correlation.'),
+      date: z.string().optional().describe('Date YYYY-MM-DD (default: today).'),
       strain: z.string().optional().describe('Strain name if known'),
-      amount: z.string().optional().describe('Amount consumed as a numeric string'),
+      amount: z.string().optional().describe('Amount consumed as a numeric string (optional)'),
       unit: z
         .string()
         .optional()
-        .describe('Unit: hits, g, mg, ml'),
+        .describe('Unit: `hits`, `g`, `mg`, or `ml` (optional)'),
       notes: z.string().optional().describe('Any notes'),
     },
     async ({ form, sessionAt, date, strain, amount, unit, notes }) => {
@@ -127,7 +143,7 @@ export function registerWellnessTools(server: McpServer) {
 
   server.tool(
     'list_cannabis_sessions',
-    'List cannabis sessions filtered by date or date range',
+    'List cannabis sessions filtered by date or date range.\n\nOptional: `date` OR (`from`, `to`). If omitted, returns all sessions.',
     {
       date: z.string().optional().describe('Single date YYYY-MM-DD'),
       from: z.string().optional().describe('Start date YYYY-MM-DD'),
@@ -149,7 +165,7 @@ export function registerWellnessTools(server: McpServer) {
 
   server.tool(
     'log_sleep',
-    'Log a sleep session with bed time and optional wake time and quality score. Call this when logging bedtime or when waking up.',
+    'Log a sleep session.\n\nRequired: `bedTime`.\nOptional: `wakeTime` (omit if still asleep), `qualityScore` (1-5), `date`, `notes`.\nIf `wakeTime` is omitted, the log is treated as still asleep.\nIf `date` is omitted, it defaults to today.',
     {
       bedTime: z.string().describe('ISO datetime when the user went to bed'),
       wakeTime: z
@@ -163,7 +179,10 @@ export function registerWellnessTools(server: McpServer) {
         .max(5)
         .optional()
         .describe('Subjective sleep quality 1 (terrible) to 5 (excellent)'),
-      date: z.string().optional().describe("Date YYYY-MM-DD (the night's date, default: today)"),
+      date: z
+        .string()
+        .optional()
+        .describe("Date YYYY-MM-DD (night's date, default: today)"),
       notes: z.string().optional().describe('Any notes about sleep'),
     },
     async ({ bedTime, wakeTime, qualityScore, date, notes }) => {
@@ -183,7 +202,7 @@ export function registerWellnessTools(server: McpServer) {
 
   server.tool(
     'update_sleep_log',
-    'Update an existing sleep log — e.g. to add wake time or quality score after waking up. Call list_sleep_logs first to get the ID.',
+    'Update an existing sleep log (e.g. add `wakeTime` and/or `qualityScore` after waking up).\n\nRequired: `id` (UUID). Call `list_sleep_logs` first to find it.',
     {
       id: z.string().uuid().describe('Sleep log UUID'),
       wakeTime: z.string().optional().describe('ISO datetime wake time'),
@@ -204,7 +223,7 @@ export function registerWellnessTools(server: McpServer) {
 
   server.tool(
     'list_sleep_logs',
-    'List sleep logs for a date range',
+    'List sleep logs for a date range.\n\nOptional: `from` (default: 7 days ago) and `to` (default: today).',
     {
       from: z.string().optional().describe('Start date YYYY-MM-DD (default: 7 days ago)'),
       to: z.string().optional().describe('End date YYYY-MM-DD (default: today)'),
@@ -227,7 +246,7 @@ export function registerWellnessTools(server: McpServer) {
 
   server.tool(
     'run_health_analysis',
-    'Run goal-driven AI insights on the last 30 days of wellness data.',
+    'Run goal-driven AI insights on the last 30 days of wellness data.\n\nRequired: `goal` (free-form text). Optional: `goals` (additional goals; first item should still be the main goal).',
     {
       goal: z
         .string()

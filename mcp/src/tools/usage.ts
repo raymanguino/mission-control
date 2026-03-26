@@ -42,14 +42,14 @@ interface AiConfigResponse {
 export function registerUsageTools(server: McpServer) {
   server.tool(
     'get_usage',
-    'Get aggregated LLM usage and cost data from OpenRouter, grouped by model, API key, or agent',
+    'Get aggregated LLM usage and cost data from OpenRouter.\n\nOptional: `groupBy` (default: model), `from`, `to`.',
     {
       groupBy: z
         .enum(['model', 'apiKey', 'agent'])
         .optional()
-        .describe('How to group results (default: model)'),
-      from: z.string().optional().describe('Start date YYYY-MM-DD'),
-      to: z.string().optional().describe('End date YYYY-MM-DD'),
+        .describe('Group results by: `model`, `apiKey`, or `agent` (default: model).'),
+      from: z.string().optional().describe('Start date (YYYY-MM-DD, optional).'),
+      to: z.string().optional().describe('End date (YYYY-MM-DD, optional).'),
     },
     async ({ groupBy = 'model', from, to }) => {
       const params = new URLSearchParams({ groupBy });
@@ -85,10 +85,16 @@ export function registerUsageTools(server: McpServer) {
 
   server.tool(
     'get_usage_records',
-    'Get raw LLM usage records (paginated)',
+    'Get raw LLM usage records (paginated).\n\nOptional: `limit` (default: 20), `offset` (default: 0).',
     {
-      limit: z.number().int().min(1).max(100).optional().describe('Records to return (default 20)'),
-      offset: z.number().int().min(0).optional().describe('Pagination offset'),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(100)
+        .optional()
+        .describe('Records to return (default: 20; 1-100).'),
+      offset: z.number().int().min(0).optional().describe('Pagination offset (default: 0).'),
     },
     async ({ limit = 20, offset = 0 }) => {
       const records = await apiGet<UsageRecord[]>(
@@ -102,7 +108,7 @@ export function registerUsageTools(server: McpServer) {
 
   server.tool(
     'get_ai_config',
-    'Get AI routing diagnostics and selected model/fallback by workload',
+    'Get AI routing diagnostics and selected model/fallback by workload.\n\nNo inputs.',
     {},
     async () => {
       const config = await apiGet<AiConfigResponse>('/api/usage/ai/config');
@@ -114,7 +120,7 @@ export function registerUsageTools(server: McpServer) {
 
   server.tool(
     'sync_usage',
-    'Trigger a manual sync of LLM usage data from OpenRouter',
+    'Trigger a manual sync of LLM usage data from OpenRouter.\n\nNo inputs.',
     {},
     async () => {
       const result = await apiPost<{ synced: number }>('/api/usage/sync');

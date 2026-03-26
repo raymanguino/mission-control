@@ -20,10 +20,19 @@ export interface UsageRecordInput {
   recordedAt: Date;
 }
 
-export async function listRecords(limit: number, offset: number) {
+export async function listRecords(
+  limit: number,
+  offset: number,
+  filters?: { from?: string; to?: string },
+) {
+  const conditions = [];
+  if (filters?.from) conditions.push(gte(usageRecords.recordedAt, new Date(filters.from)));
+  if (filters?.to) conditions.push(lte(usageRecords.recordedAt, new Date(filters.to)));
+
   return db
     .select()
     .from(usageRecords)
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(desc(usageRecords.recordedAt))
     .limit(limit)
     .offset(offset);

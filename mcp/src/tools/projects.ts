@@ -4,18 +4,23 @@ import { apiGet, apiPost, apiPatch } from '../client.js';
 import type { Project, Task } from '@mission-control/types';
 
 export function registerProjectTools(server: McpServer) {
-  server.tool('list_projects', 'List all projects', {}, async () => {
+  server.tool(
+    'list_projects',
+    'List all projects.\n\nNo inputs.',
+    {},
+    async () => {
     const projects = await apiGet<Project[]>('/api/projects');
     return {
       content: [{ type: 'text', text: JSON.stringify(projects, null, 2) }],
     };
-  });
+    },
+  );
 
   server.tool(
     'list_tasks',
-    'List all tasks for a project, grouped by status',
+    'List all tasks for a project, grouped by status.\n\nRequired: `projectId`.',
     {
-      projectId: z.string().describe('The project UUID'),
+      projectId: z.string().describe('Project UUID (required).'),
     },
     async ({ projectId }) => {
       const tasks = await apiGet<Task[]>(`/api/projects/${projectId}/tasks`);
@@ -33,16 +38,22 @@ export function registerProjectTools(server: McpServer) {
 
   server.tool(
     'create_task',
-    'Create a new task in a project',
+    'Create a new task in a project.\n\nRequired: `projectId`, `title`.\nOptional: `description`, `status` (default: backlog), `assignedAgentId`.',
     {
-      projectId: z.string().describe('The project UUID'),
-      title: z.string().describe('Task title'),
-      description: z.string().optional().describe('Optional longer description'),
+      projectId: z.string().describe('Project UUID (required).'),
+      title: z.string().describe('Task title (required).'),
+      description: z
+        .string()
+        .optional()
+        .describe('Optional longer description (omit if not needed).'),
       status: z
         .enum(['backlog', 'doing', 'review', 'done'])
         .optional()
-        .describe('Initial status (default: backlog)'),
-      assignedAgentId: z.string().optional().describe('UUID of the agent to assign'),
+        .describe('Initial status (default: backlog).'),
+      assignedAgentId: z
+        .string()
+        .optional()
+        .describe('Agent UUID to assign (omit to leave unassigned).'),
     },
     async ({ projectId, title, description, status, assignedAgentId }) => {
       const task = await apiPost<Task>('/api/tasks', {
@@ -60,13 +71,20 @@ export function registerProjectTools(server: McpServer) {
 
   server.tool(
     'update_task',
-    'Update a task — change its status, title, description, or assigned agent',
+    'Update a task.\n\nRequired: `taskId`.\nOptional: `status`, `title`, `description`, `assignedAgentId`.\nIf `assignedAgentId` is set to `null`, the task is unassigned.',
     {
-      taskId: z.string().describe('The task UUID'),
+      taskId: z.string().describe('Task UUID (required).'),
       status: z.enum(['backlog', 'doing', 'review', 'done']).optional(),
-      title: z.string().optional(),
-      description: z.string().optional(),
-      assignedAgentId: z.string().nullable().optional().describe('Set to null to unassign'),
+      title: z.string().optional().describe('Updated task title (omit to keep unchanged).'),
+      description: z
+        .string()
+        .optional()
+        .describe('Updated description (omit to keep unchanged).'),
+      assignedAgentId: z
+        .string()
+        .nullable()
+        .optional()
+        .describe('Set to agent UUID to assign, or `null` to unassign (omit to keep unchanged).'),
     },
     async ({ taskId, ...updates }) => {
       const task = await apiPatch<Task>(`/api/tasks/${taskId}`, updates);

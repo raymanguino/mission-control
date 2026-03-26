@@ -4,24 +4,35 @@ import { apiGet, apiPost } from '../client.js';
 import type { Agent, AgentActivity } from '@mission-control/types';
 
 export function registerAgentTools(server: McpServer) {
-  server.tool('list_agents', 'List all registered OpenClaw agents with their status and last seen time', {}, async () => {
-    const agents = await apiGet<Agent[]>('/api/agents');
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify(agents, null, 2),
-        },
-      ],
-    };
-  });
+  server.tool(
+    'list_agents',
+    'List all registered OpenClaw agents with their status and last seen time.\n\nNo inputs.',
+    {},
+    async () => {
+      const agents = await apiGet<Agent[]>('/api/agents');
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(agents, null, 2),
+          },
+        ],
+      };
+    },
+  );
 
   server.tool(
     'get_agent_activity',
-    'Get the recent activity log for a specific agent',
+    'Get the recent activity log for a specific agent.\n\nRequired: `agentId`.\nOptional: `limit` (default: 20).',
     {
-      agentId: z.string().describe('The agent UUID'),
-      limit: z.number().int().min(1).max(100).optional().describe('Number of entries to return (default 20)'),
+      agentId: z.string().describe('Agent UUID (required).'),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(100)
+        .optional()
+        .describe('Number of entries to return (default: 20; 1-100).'),
     },
     async ({ agentId, limit = 20 }) => {
       const result = await apiGet<{ data: AgentActivity[] }>(
@@ -35,11 +46,11 @@ export function registerAgentTools(server: McpServer) {
 
   server.tool(
     'create_agent',
-    'Register a new OpenClaw agent. Returns the agent record plus a one-time plaintext API key.',
+    'Register a new OpenClaw agent.\n\nRequired: `name`.\nOptional: `device`, `ip`.\nReturns the agent record plus a one-time plaintext API key.',
     {
-      name: z.string().describe('Display name for the agent'),
-      device: z.string().optional().describe('Hardware description e.g. "Raspberry Pi 4"'),
-      ip: z.string().optional().describe('IP address of the device'),
+      name: z.string().describe('Display name for the agent (required).'),
+      device: z.string().optional().describe('Hardware description (optional), e.g. "Raspberry Pi 4".'),
+      ip: z.string().optional().describe('Device IP address (optional).'),
     },
     async ({ name, device, ip }) => {
       const agent = await apiPost<Agent & { apiKey: string }>('/api/agents', { name, device, ip });

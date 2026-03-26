@@ -14,10 +14,10 @@ const usageRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   fastify.get('/records', { preHandler: fastify.authenticate }, async (request) => {
-    const q = request.query as { limit?: string; offset?: string };
+    const q = request.query as { limit?: string; offset?: string; from?: string; to?: string };
     const limit = Math.min(Number(q.limit ?? 50), 200);
     const offset = Number(q.offset ?? 0);
-    return usageDb.listRecords(limit, offset);
+    return usageDb.listRecords(limit, offset, { from: q.from, to: q.to });
   });
 
   fastify.get('/ai/config', { preHandler: fastify.authenticate }, async () => {

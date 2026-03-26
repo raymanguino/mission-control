@@ -13,21 +13,43 @@ import {
 
 type GroupBy = 'model' | 'apiKey' | 'agent';
 
+const today = new Date().toISOString().slice(0, 10);
+const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+  .toISOString()
+  .slice(0, 10);
+
 export default function Usage() {
   const [groups, setGroups] = useState<UsageGroup[]>([]);
   const [records, setRecords] = useState<UsageRecord[]>([]);
   const [groupBy, setGroupBy] = useState<GroupBy>('model');
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<string | null>(null);
+  const [fromDate, setFromDate] = useState(firstOfMonth);
+  const [toDate, setToDate] = useState(today);
+
+  const buildDateParams = () => {
+    const params = new URLSearchParams();
+    if (fromDate) params.set('from', new Date(fromDate).toISOString());
+    if (toDate) {
+      const end = new Date(toDate);
+      end.setHours(23, 59, 59, 999);
+      params.set('to', end.toISOString());
+    }
+    return params;
+  };
 
   const load = (gb: GroupBy = groupBy) => {
-    api.get<UsageGroup[]>(`/api/usage?groupBy=${gb}`).then(setGroups).catch(() => {});
-    api.get<UsageRecord[]>('/api/usage/records?limit=50').then(setRecords).catch(() => {});
+    const dateParams = buildDateParams();
+    dateParams.set('groupBy', gb);
+    api.get<UsageGroup[]>(`/api/usage?${dateParams}`).then(setGroups).catch(() => {});
+    const recordParams = buildDateParams();
+    recordParams.set('limit', '50');
+    api.get<UsageRecord[]>(`/api/usage/records?${recordParams}`).then(setRecords).catch(() => {});
   };
 
   useEffect(() => {
     load();
-  }, [groupBy]);
+  }, [groupBy, fromDate, toDate]);
 
   const totalCost = groups.reduce((sum, group) => sum + Number(group.costUsd), 0);
   const totalUpstreamCost = groups.reduce(
@@ -76,6 +98,30 @@ export default function Usage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Usage & Costs</h1>
         <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-500">From</label>
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              className="bg-gray-900 border border-gray-700 text-gray-300 text-xs rounded-md px-2 py-1.5 focus:outline-none focus:border-indigo-500"
+            />
+            <label className="text-xs text-gray-500">To</label>
+            <input
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              className="bg-gray-900 border border-gray-700 text-gray-300 text-xs rounded-md px-2 py-1.5 focus:outline-none focus:border-indigo-500"
+            />
+            <button
+              onClick={() => { setFromDate(''); setToDate(''); }}
+              className="text-xs text-gray-500 hover:text-gray-300 px-1"
+              title="Clear date range"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="w-px h-5 bg-gray-700" />
           {syncResult && (
             <span className={`text-xs ${syncResult.startsWith('Sync failed') ? 'text-red-400' : 'text-gray-400'}`}>
               {syncResult}

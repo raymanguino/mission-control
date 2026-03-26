@@ -2,18 +2,21 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 const deprecationNotice =
-  'Legacy health goal tools are deprecated. Use daily log tools for sleep/food/cannabis and run_health_analysis with a goal string.';
+  'Deprecated. Legacy health goal tools are ignored. Use the daily log tools (`log_sleep`, `log_food`, `log_cannabis_session`) and `run_health_analysis` for goal-driven insights.';
 
 export function registerHealthTools(server: McpServer) {
   server.tool(
     'create_health_goal',
-    'Deprecated. Health goals are now entered in AI Insights at analysis time.',
+    'Deprecated. Inputs are ignored.\n\nUse `run_health_analysis` with a goal string instead.',
     {
-      name: z.string().describe('Display name for the goal'),
-      type: z.enum(['diet', 'exercise', 'sleep', 'other']).describe('Category of the goal'),
-      target: z.string().describe('Target value to aim for (numeric)'),
-      unit: z.string().describe('Unit of measurement e.g. "steps", "kcal", "hours"'),
-      frequency: z.enum(['daily', 'weekly']).optional().describe('Tracking frequency (default: daily)'),
+      name: z.string().optional().describe('Ignored input (deprecated).'),
+      type: z.enum(['diet', 'exercise', 'sleep', 'other']).optional().describe('Ignored input (deprecated).'),
+      target: z.string().optional().describe('Ignored input (deprecated).'),
+      unit: z.string().optional().describe('Ignored input (deprecated).'),
+      frequency: z
+        .enum(['daily', 'weekly'])
+        .optional()
+        .describe('Ignored input (deprecated).'),
     },
     async () => {
       return {
@@ -24,7 +27,7 @@ export function registerHealthTools(server: McpServer) {
 
   server.tool(
     'list_health_goals',
-    'Deprecated. Health goals are now entered in AI Insights at analysis time.',
+    'Deprecated. Inputs are ignored.\n\nUse `run_health_analysis` with a goal string instead.',
     {},
     async () => {
       return {
@@ -35,11 +38,11 @@ export function registerHealthTools(server: McpServer) {
 
   server.tool(
     'get_health_entries',
-    'Get health log entries, optionally filtered by goal and date range',
+    'Deprecated. Inputs are ignored.\n\nUse daily log tools for sleep/food/cannabis and/or `run_health_analysis`.',
     {
-      goalId: z.string().nullish().describe('Filter by goal UUID'),
-      from: z.string().optional().describe('Start date YYYY-MM-DD (default: last 7 days)'),
-      to: z.string().optional().describe('End date YYYY-MM-DD (default: today)'),
+      goalId: z.string().nullish().optional().describe('Ignored (deprecated).'),
+      from: z.string().optional().describe('Ignored (deprecated).'),
+      to: z.string().optional().describe('Ignored (deprecated).'),
     },
     async () => {
       return {
@@ -50,15 +53,15 @@ export function registerHealthTools(server: McpServer) {
 
   server.tool(
     'log_health_entry',
-    'Log a value against a health goal (e.g. steps walked, calories eaten, hours slept). IMPORTANT: call list_health_goals first to obtain a real goal UUID — do not guess or fabricate the goalId.',
+    'Deprecated. Inputs are ignored.\n\nUse `log_sleep`, `log_food`, or `log_cannabis_session` for daily logs instead.',
     {
-      goalId: z.string().uuid().describe('The UUID of the health goal — must be a real UUID obtained from list_health_goals, e.g. "a1b2c3d4-e5f6-7890-abcd-ef1234567890"'),
-      value: z.string().describe('The numeric value to log as a string, e.g. "10000"'),
+      goalId: z.string().uuid().optional().describe('Ignored (deprecated).'),
+      value: z.string().optional().describe('Ignored (deprecated).'),
       date: z
         .string()
         .optional()
-        .describe('Date YYYY-MM-DD (default: today)'),
-      notes: z.string().optional().describe('Optional notes'),
+        .describe('Ignored (deprecated).'),
+      notes: z.string().optional().describe('Ignored (deprecated).'),
     },
     async () => {
       return {
