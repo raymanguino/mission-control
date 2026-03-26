@@ -8,6 +8,8 @@ import {
   date,
   jsonb,
   smallint,
+  index,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
 export const agents = pgTable('agents', {
@@ -153,3 +155,30 @@ export const sleepLogs = pgTable('sleep_logs', {
   date: date('date').notNull(),              // the night's date (date you went to bed)
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
+
+export const idempotencyKeys = pgTable(
+  'idempotency_keys',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    scope: text('scope').notNull(),
+    idempotencyKey: text('idempotency_key').notNull(),
+    method: text('method').notNull(),
+    path: text('path').notNull(),
+    requestHash: text('request_hash').notNull(),
+    statusCode: integer('status_code'),
+    responseBody: jsonb('response_body'),
+    state: text('state').notNull().default('in_progress'),
+    expiresAt: timestamp('expires_at').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    uniqueScopeKey: uniqueIndex('idempotency_keys_scope_key_method_path_idx').on(
+      table.scope,
+      table.idempotencyKey,
+      table.method,
+      table.path,
+    ),
+    expiresAtIdx: index('idempotency_keys_expires_at_idx').on(table.expiresAt),
+  }),
+);

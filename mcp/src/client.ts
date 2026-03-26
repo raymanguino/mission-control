@@ -13,13 +13,20 @@ export async function apiGet<T>(path: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
+export async function apiPost<T>(
+  path: string,
+  body?: unknown,
+  options?: { headers?: Record<string, string> },
+): Promise<T> {
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${jwt}`,
+    'Content-Type': 'application/json',
+  };
+  if (options?.headers) Object.assign(headers, options.headers);
+
   const res = await fetch(`${backendUrl}${path}`, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${jwt}`,
-      'Content-Type': 'application/json',
-    },
+    headers,
     body: body != null ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) throw new Error(`Backend POST ${path} → ${res.status}: ${await res.text()}`);

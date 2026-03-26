@@ -19,10 +19,11 @@ const channelRoutes: FastifyPluginAsync = async (fastify) => {
     return channelsDb.listChannels();
   });
 
-  fastify.post('/', { preHandler: fastify.authenticate }, async (request, reply) => {
+  fastify.post('/', { preHandler: [fastify.authenticate, fastify.enforceIdempotency] }, async (request, reply) => {
     const body = createChannelSchema.safeParse(request.body);
     if (!body.success) return reply.code(400).send({ error: 'Invalid body' });
     const channel = await channelsDb.createChannel(body.data);
+    await fastify.finalizeIdempotency(request, 201, channel);
     return reply.code(201).send(channel);
   });
 
@@ -39,13 +40,18 @@ const channelRoutes: FastifyPluginAsync = async (fastify) => {
     return channelsDb.listMessages(id, limit, q.before);
   });
 
-  fastify.post('/:id/messages', { preHandler: fastify.authenticate }, async (request, reply) => {
-    const { id } = request.params as { id: string };
-    const body = createMessageSchema.safeParse(request.body);
-    if (!body.success) return reply.code(400).send({ error: 'Invalid body' });
-    const message = await channelsDb.createMessage({ channelId: id, ...body.data });
-    return reply.code(201).send(message);
-  });
+  fastify.post(
+    '/:id/messages',
+    { preHandler: [fastify.authenticate, fastify.enforceIdempotency] },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const body = createMessageSchema.safeParse(request.body);
+      if (!body.success) return reply.code(400).send({ error: 'Invalid body' });
+      const message = await channelsDb.createMessage({ channelId: id, ...body.data });
+      await fastify.finalizeIdempotency(request, 201, message);
+      return reply.code(201).send(message);
+    },
+  );
 };
 
 export default channelRoutes;

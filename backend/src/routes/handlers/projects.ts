@@ -17,10 +17,11 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
     return projectsDb.listProjects();
   });
 
-  fastify.post('/', { preHandler: fastify.authenticate }, async (request, reply) => {
+  fastify.post('/', { preHandler: [fastify.authenticate, fastify.enforceIdempotency] }, async (request, reply) => {
     const body = createProjectSchema.safeParse(request.body);
     if (!body.success) return reply.code(400).send({ error: 'Invalid body' });
     const project = await projectsDb.createProject(body.data);
+    await fastify.finalizeIdempotency(request, 201, project);
     return reply.code(201).send(project);
   });
 

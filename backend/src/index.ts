@@ -3,6 +3,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import authPlugin from './plugins/auth.js';
+import idempotencyPlugin from './plugins/idempotency.js';
 import { registerRoutes } from './routes/index.js';
 import { startCronJobs } from './services/cron.js';
 
@@ -19,6 +20,7 @@ await app.register(cors, {
 
 await app.register(jwt, { secret });
 await app.register(authPlugin);
+await app.register(idempotencyPlugin);
 
 await registerRoutes(app);
 

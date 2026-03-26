@@ -1,6 +1,11 @@
 import type { FastifyPluginAsync, FastifyReply } from 'fastify';
+import { getIdempotencyMetrics } from '../../services/idempotency-metrics.js';
 
 const healthRoutes: FastifyPluginAsync = async (fastify) => {
+  fastify.get('/idempotency-metrics', { preHandler: fastify.authenticate }, async () => {
+    return getIdempotencyMetrics();
+  });
+
   const deprecated = async (_request: unknown, reply: FastifyReply) =>
     reply.code(410).send({
       error:

@@ -27,7 +27,7 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
     return agentsDb.listAgents();
   });
 
-  fastify.post('/', { preHandler: fastify.authenticate }, async (request, reply) => {
+  fastify.post('/', { preHandler: [fastify.authenticate, fastify.enforceIdempotency] }, async (request, reply) => {
     const body = createAgentSchema.safeParse(request.body);
     if (!body.success) return reply.code(400).send({ error: 'Invalid body' });
 
@@ -35,7 +35,9 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
     const apiKeyHash = await bcrypt.hash(rawKey, 10);
 
     const agent = await agentsDb.createAgent({ ...body.data, apiKeyHash });
-    return reply.code(201).send({ ...agent, apiKey: rawKey });
+    const response = { ...agent, apiKey: rawKey };
+    await fastify.finalizeIdempotency(request, 201, response);
+    return reply.code(201).send(response);
   });
 
   fastify.get('/:id', { preHandler: fastify.authenticate }, async (request, reply) => {
@@ -69,13 +71,14 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
     return { data, limit, offset };
   });
 
-  fastify.post('/report', { preHandler: fastify.authenticateAgent }, async (request, reply) => {
+  fastify.post('/report', { preHandler: [fastify.authenticateAgent, fastify.enforceIdempotency] }, async (request, reply) => {
     const agent = (request as FastifyRequest & { agent: { id: string } }).agent;
     const body = reportSchema.safeParse(request.body);
     if (!body.success) return reply.code(400).send({ error: 'Invalid body' });
 
     await agentsDb.updateAgent(agent.id, { lastSeen: new Date(), status: 'online' });
     const activity = await agentsDb.insertActivity({ agentId: agent.id, ...body.data });
+    await fastify.finalizeIdempotency(request, 201, activity);
     return reply.code(201).send(activity);
   });
 };

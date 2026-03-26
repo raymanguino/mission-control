@@ -24,16 +24,22 @@ const usageRoutes: FastifyPluginAsync = async (fastify) => {
     return getAiRoutingDiagnostics();
   });
 
-  fastify.post('/sync', { preHandler: fastify.authenticate }, async (_request, reply) => {
-    try {
-      const count = await syncOpenRouterUsage();
-      return { synced: count };
-    } catch (err) {
-      fastify.log.error(err);
-      const message = err instanceof Error ? err.message : 'Sync failed';
-      return reply.code(500).send({ error: message });
-    }
-  });
+  fastify.post(
+    '/sync',
+    { preHandler: [fastify.authenticate, fastify.enforceIdempotency] },
+    async (request, reply) => {
+      try {
+        const count = await syncOpenRouterUsage();
+        const body = { synced: count };
+        await fastify.finalizeIdempotency(request, 200, body);
+        return body;
+      } catch (err) {
+        fastify.log.error(err);
+        const message = err instanceof Error ? err.message : 'Sync failed';
+        return reply.code(500).send({ error: message });
+      }
+    },
+  );
 };
 
 export default usageRoutes;
