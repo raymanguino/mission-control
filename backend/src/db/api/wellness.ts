@@ -4,6 +4,30 @@ import { foodLogs, marijuanaSessions, sleepLogs } from '../schema.js';
 
 // ─── Food Logs ────────────────────────────────────────────────────────────────
 
+function toOneDecimal(value: number): number {
+  return Math.round(value * 10) / 10;
+}
+
+function normalizeMacroForWrite(value: number | null): string | null {
+  if (value == null) return null;
+  return String(toOneDecimal(value));
+}
+
+function mapFoodLogMacros<T extends { protein: string | number | null; carbs: string | number | null; fat: string | number | null }>(
+  row: T,
+): Omit<T, 'protein' | 'carbs' | 'fat'> & {
+  protein: number | null;
+  carbs: number | null;
+  fat: number | null;
+} {
+  return {
+    ...row,
+    protein: row.protein == null ? null : Number(row.protein),
+    carbs: row.carbs == null ? null : Number(row.carbs),
+    fat: row.fat == null ? null : Number(row.fat),
+  };
+}
+
 export async function listFoodLogs(filters: { date?: string; from?: string; to?: string }) {
   const conditions = [];
   if (filters.date) conditions.push(eq(foodLogs.date, filters.date));
@@ -11,23 +35,31 @@ export async function listFoodLogs(filters: { date?: string; from?: string; to?:
   if (filters.to) conditions.push(lte(foodLogs.date, filters.to));
 
   const query = db.select().from(foodLogs).orderBy(desc(foodLogs.loggedAt));
-  if (conditions.length > 0) return query.where(and(...conditions));
-  return query;
+  const rows = conditions.length > 0 ? await query.where(and(...conditions)) : await query;
+  return rows.map(mapFoodLogMacros);
 }
 
 export async function createFoodLog(data: {
   mealType: string;
   description: string;
   calories?: number | null;
-  protein?: string | null;
-  carbs?: string | null;
-  fat?: string | null;
+  protein?: number | null;
+  carbs?: number | null;
+  fat?: number | null;
   loggedAt: Date;
   date: string;
   notes?: string | null;
 }) {
-  const rows = await db.insert(foodLogs).values(data).returning();
-  return rows[0]!;
+  const rows = await db
+    .insert(foodLogs)
+    .values({
+      ...data,
+      protein: data.protein === undefined ? undefined : normalizeMacroForWrite(data.protein),
+      carbs: data.carbs === undefined ? undefined : normalizeMacroForWrite(data.carbs),
+      fat: data.fat === undefined ? undefined : normalizeMacroForWrite(data.fat),
+    })
+    .returning();
+  return mapFoodLogMacros(rows[0]!);
 }
 
 export async function updateFoodLog(
@@ -36,16 +68,25 @@ export async function updateFoodLog(
     mealType: string;
     description: string;
     calories: number | null;
-    protein: string | null;
-    carbs: string | null;
-    fat: string | null;
+    protein: number | null;
+    carbs: number | null;
+    fat: number | null;
     loggedAt: Date;
     date: string;
     notes: string | null;
   }>,
 ) {
-  const rows = await db.update(foodLogs).set(data).where(eq(foodLogs.id, id)).returning();
-  return rows[0] ?? null;
+  const rows = await db
+    .update(foodLogs)
+    .set({
+      ...data,
+      protein: data.protein === undefined ? undefined : normalizeMacroForWrite(data.protein),
+      carbs: data.carbs === undefined ? undefined : normalizeMacroForWrite(data.carbs),
+      fat: data.fat === undefined ? undefined : normalizeMacroForWrite(data.fat),
+    })
+    .where(eq(foodLogs.id, id))
+    .returning();
+  return rows[0] ? mapFoodLogMacros(rows[0]) : null;
 }
 
 export async function deleteFoodLog(id: string) {

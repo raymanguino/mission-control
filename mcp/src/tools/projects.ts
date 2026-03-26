@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { apiGet, apiPost, apiPatch } from '../client.js';
+import { omitNullValues } from './sanitize.js';
 import type { Project, Task } from '@mission-control/types';
 
 export function registerProjectTools(server: McpServer) {
@@ -56,13 +57,10 @@ export function registerProjectTools(server: McpServer) {
         .describe('Agent UUID to assign (omit to leave unassigned).'),
     },
     async ({ projectId, title, description, status, assignedAgentId }) => {
-      const task = await apiPost<Task>('/api/tasks', {
-        projectId,
-        title,
-        description,
-        status,
-        assignedAgentId,
-      });
+      const task = await apiPost<Task>(
+        '/api/tasks',
+        omitNullValues({ projectId, title, description, status, assignedAgentId }),
+      );
       return {
         content: [{ type: 'text', text: JSON.stringify(task, null, 2) }],
       };
@@ -87,7 +85,7 @@ export function registerProjectTools(server: McpServer) {
         .describe('Set to agent UUID to assign, or `null` to unassign (omit to keep unchanged).'),
     },
     async ({ taskId, ...updates }) => {
-      const task = await apiPatch<Task>(`/api/tasks/${taskId}`, updates);
+      const task = await apiPatch<Task>(`/api/tasks/${taskId}`, omitNullValues(updates));
       return {
         content: [{ type: 'text', text: JSON.stringify(task, null, 2) }],
       };

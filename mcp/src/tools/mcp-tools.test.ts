@@ -128,13 +128,13 @@ describe('MCP tool unit tests', () => {
     });
   });
 
-  it('registerProjectTools: update_task forwards updates (including assignedAgentId: null)', async () => {
+  it('registerProjectTools: update_task omits null optional fields', async () => {
     const handlers = getHandlers(registerProjectTools as unknown as (server: unknown) => void);
     const updated = { id: 't1', status: 'backlog', assignedAgentId: null };
     apiPatchMock.mockResolvedValueOnce(updated as any);
 
     const res = await handlers.update_task({ taskId: 't1', assignedAgentId: null });
-    expect(apiPatchMock).toHaveBeenCalledWith('/api/tasks/t1', { assignedAgentId: null });
+    expect(apiPatchMock).toHaveBeenCalledWith('/api/tasks/t1', {});
 
     const parsed = JSON.parse((res as any).content[0].text as string);
     expect(parsed).toEqual(updated);
@@ -241,10 +241,9 @@ describe('MCP tool unit tests', () => {
       loggedAt: now.toISOString(),
       date: now.toISOString().slice(0, 10),
       calories: 500,
-      protein: '30',
-      carbs: '60',
-      fat: '20',
-      notes: null,
+      protein: 30,
+      carbs: 60,
+      fat: 20,
     });
 
     const text = (res as any).content[0].text as string;
@@ -254,7 +253,28 @@ describe('MCP tool unit tests', () => {
     vi.useRealTimers();
   });
 
-  it('registerWellnessTools: log_cannabis_session defaults sessionAt/date and nulls missing fields', async () => {
+  it('registerWellnessTools: log_food calories schema accepts 0', () => {
+    let logFoodSchema: Record<string, { safeParse: (input: unknown) => { success: boolean } }> | null =
+      null;
+    const server = {
+      tool: (name: string, _desc: string, schema: unknown) => {
+        if (name === 'log_food') {
+          logFoodSchema = schema as Record<
+            string,
+            { safeParse: (input: unknown) => { success: boolean } }
+          >;
+        }
+      },
+    } as unknown;
+
+    registerWellnessTools(server as never);
+
+    expect(logFoodSchema).toBeTruthy();
+    expect(logFoodSchema!['calories'].safeParse(0).success).toBe(true);
+    expect(logFoodSchema!['calories'].safeParse(-1).success).toBe(false);
+  });
+
+  it('registerWellnessTools: log_cannabis_session defaults sessionAt/date and omits null optional fields', async () => {
     const handlers = getHandlers(registerWellnessTools as unknown as (server: unknown) => void);
 
     const now = new Date('2026-03-26T12:34:56.000Z');
@@ -270,10 +290,6 @@ describe('MCP tool unit tests', () => {
       form: 'flower',
       sessionAt: now.toISOString(),
       date: now.toISOString().slice(0, 10),
-      strain: null,
-      amount: null,
-      unit: null,
-      notes: null,
     });
 
     const parsed = JSON.parse((res as any).content[0].text.replace('Session logged.\n\n', ''));

@@ -81,9 +81,9 @@ export interface FoodLog {
   mealType: MealType;
   description: string;
   calories: number | null;
-  protein: string | null;
-  carbs: string | null;
-  fat: string | null;
+  protein: number | null;
+  carbs: number | null;
+  fat: number | null;
   loggedAt: string;
   date: string;
   notes: string | null;

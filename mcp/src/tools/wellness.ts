@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { apiGet, apiPost, apiPatch } from '../client.js';
+import { omitNullValues } from './sanitize.js';
 import type {
   FoodLog,
   MarijuanaSession,
@@ -30,27 +31,33 @@ export function registerWellnessTools(server: McpServer) {
       calories: z
         .number()
         .int()
-        .positive()
+        .min(0)
         .optional()
-        .describe('Calories (kcal) as a positive integer. Omit to allow nutrition auto-estimation.'),
+        .describe('Calories (kcal) as a non-negative integer (0 is allowed). Omit to allow nutrition auto-estimation.'),
       protein: z
-        .string()
+        .coerce.number()
+        .min(0)
         .optional()
-        .describe('Protein grams as a numeric string (e.g. "35"). Omit to allow nutrition auto-estimation.'),
+        .nullable()
+        .describe('Protein grams as a non-negative number (e.g. 35). Omit to allow nutrition auto-estimation.'),
       carbs: z
-        .string()
+        .coerce.number()
+        .min(0)
         .optional()
-        .describe('Carbohydrates grams as a numeric string (e.g. "45"). Omit to allow nutrition auto-estimation.'),
+        .nullable()
+        .describe('Carbohydrates grams as a non-negative number (e.g. 45). Omit to allow nutrition auto-estimation.'),
       fat: z
-        .string()
+        .coerce.number()
+        .min(0)
         .optional()
-        .describe('Fat grams as a numeric string (e.g. "20"). Omit to allow nutrition auto-estimation.'),
+        .nullable()
+        .describe('Fat grams as a non-negative number (e.g. 20). Omit to allow nutrition auto-estimation.'),
       notes: z.string().optional().describe('Any additional notes (optional).'),
     },
     async ({ mealType, description, loggedAt, date, calories, protein, carbs, fat, notes }) => {
       const now = new Date();
-      const shouldEstimate =
-        calories === undefined && protein === undefined && carbs === undefined && fat === undefined;
+      // Treat `null` the same as "not provided" to avoid sending nulls downstream.
+      const shouldEstimate = calories == null && protein == null && carbs == null && fat == null;
 
       const estimate = shouldEstimate
         ? await apiPost<NutritionEstimate>('/api/health/food/estimate', {
@@ -58,17 +65,17 @@ export function registerWellnessTools(server: McpServer) {
           })
         : null;
 
-      const payload = {
+      const payload = omitNullValues({
         mealType,
         description,
         loggedAt: loggedAt ?? now.toISOString(),
         date: date ?? now.toISOString().slice(0, 10),
         calories: calories ?? estimate?.calories ?? null,
-        protein: protein ?? (estimate ? String(estimate.protein) : null),
-        carbs: carbs ?? (estimate ? String(estimate.carbs) : null),
-        fat: fat ?? (estimate ? String(estimate.fat) : null),
+        protein: protein ?? estimate?.protein ?? null,
+        carbs: carbs ?? estimate?.carbs ?? null,
+        fat: fat ?? estimate?.fat ?? null,
         notes: notes ?? null,
-      };
+      });
       const log = await apiPost<FoodLog>('/api/health/food', payload);
       const autoEstimateNote = estimate
         ? `\n\n(nutrition auto-estimated via ${estimate.provider}/${estimate.model})`
@@ -123,7 +130,7 @@ export function registerWellnessTools(server: McpServer) {
     },
     async ({ form, sessionAt, date, strain, amount, unit, notes }) => {
       const now = new Date();
-      const payload = {
+      const payload = omitNullValues({
         form,
         sessionAt: sessionAt ?? now.toISOString(),
         date: date ?? now.toISOString().slice(0, 10),
@@ -131,7 +138,7 @@ export function registerWellnessTools(server: McpServer) {
         amount: amount ?? null,
         unit: unit ?? null,
         notes: notes ?? null,
-      };
+      });
       const session = await apiPost<MarijuanaSession>('/api/health/marijuana', payload);
       return {
         content: [
@@ -186,13 +193,13 @@ export function registerWellnessTools(server: McpServer) {
       notes: z.string().optional().describe('Any notes about sleep'),
     },
     async ({ bedTime, wakeTime, qualityScore, date, notes }) => {
-      const payload = {
+      const payload = omitNullValues({
         bedTime,
         wakeTime: wakeTime ?? null,
         qualityScore: qualityScore ?? null,
         notes: notes ?? null,
         date: date ?? new Date().toISOString().slice(0, 10),
-      };
+      });
       const log = await apiPost<SleepLog>('/api/health/sleep', payload);
       return {
         content: [{ type: 'text', text: `Sleep logged.\n\n${JSON.stringify(log, null, 2)}` }],
@@ -211,9 +218,9 @@ export function registerWellnessTools(server: McpServer) {
     },
     async ({ id, wakeTime, qualityScore, notes }) => {
       const data: Record<string, unknown> = {};
-      if (wakeTime !== undefined) data['wakeTime'] = wakeTime;
-      if (qualityScore !== undefined) data['qualityScore'] = qualityScore;
-      if (notes !== undefined) data['notes'] = notes;
+      if (wakeTime != null) data['wakeTime'] = wakeTime;
+      if (qualityScore != null) data['qualityScore'] = qualityScore;
+      if (notes != null) data['notes'] = notes;
       const log = await apiPatch<SleepLog>(`/api/health/sleep/${id}`, data);
       return {
         content: [{ type: 'text', text: `Sleep log updated.\n\n${JSON.stringify(log, null, 2)}` }],

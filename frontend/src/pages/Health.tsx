@@ -273,9 +273,9 @@ function FoodSection({
             <div className="text-xs text-gray-500 mt-0.5">
               {fmt12(f.loggedAt)}
               {f.calories && <span className="ml-2">{f.calories} kcal</span>}
-              {f.protein && <span className="ml-2">P {f.protein}g</span>}
-              {f.carbs && <span className="ml-2">C {f.carbs}g</span>}
-              {f.fat && <span className="ml-2">F {f.fat}g</span>}
+              {f.protein != null && <span className="ml-2">P {f.protein}g</span>}
+              {f.carbs != null && <span className="ml-2">C {f.carbs}g</span>}
+              {f.fat != null && <span className="ml-2">F {f.fat}g</span>}
             </div>
             {f.notes && (
               <p className="text-xs text-gray-400 mt-0.5 italic">
@@ -379,9 +379,9 @@ function FoodModal({
       mealType,
       description: description.trim(),
       calories: calories ? Number(calories) : null,
-      protein: protein || null,
-      carbs: carbs || null,
-      fat: fat || null,
+      protein: protein !== '' ? Number(protein) : null,
+      carbs: carbs !== '' ? Number(carbs) : null,
+      fat: fat !== '' ? Number(fat) : null,
       loggedAt: new Date(loggedAt).toISOString(),
       date,
       notes: notes || null,

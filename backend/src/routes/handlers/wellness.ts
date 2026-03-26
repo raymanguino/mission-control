@@ -10,9 +10,9 @@ const createFoodSchema = z.object({
   mealType: z.enum(['breakfast', 'lunch', 'dinner', 'snack']),
   description: z.string().min(1),
   calories: z.number().int().positive().optional().nullable(),
-  protein: z.string().optional().nullable(),
-  carbs: z.string().optional().nullable(),
-  fat: z.string().optional().nullable(),
+  protein: z.coerce.number().min(0).optional().nullable(),
+  carbs: z.coerce.number().min(0).optional().nullable(),
+  fat: z.coerce.number().min(0).optional().nullable(),
   loggedAt: z.string(), // ISO datetime
   date: z.string(),     // YYYY-MM-DD
   notes: z.string().optional().nullable(),
