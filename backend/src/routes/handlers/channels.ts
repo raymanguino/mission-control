@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import * as channelsDb from '../../db/api/channels.js';
+import { parseBody } from '../../lib/errors.js';
 
 const createChannelSchema = z.object({
   name: z.string(),
@@ -20,9 +21,8 @@ const channelRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   fastify.post('/', { preHandler: [fastify.authenticate, fastify.enforceIdempotency] }, async (request, reply) => {
-    const body = createChannelSchema.safeParse(request.body);
-    if (!body.success) return reply.code(400).send({ error: 'Invalid body' });
-    const channel = await channelsDb.createChannel(body.data);
+    const body = parseBody(createChannelSchema, request.body);
+    const channel = await channelsDb.createChannel(body);
     await fastify.finalizeIdempotency(request, 201, channel);
     return reply.code(201).send(channel);
   });
@@ -45,9 +45,8 @@ const channelRoutes: FastifyPluginAsync = async (fastify) => {
     { preHandler: [fastify.authenticate, fastify.enforceIdempotency] },
     async (request, reply) => {
       const { id } = request.params as { id: string };
-      const body = createMessageSchema.safeParse(request.body);
-      if (!body.success) return reply.code(400).send({ error: 'Invalid body' });
-      const message = await channelsDb.createMessage({ channelId: id, ...body.data });
+      const body = parseBody(createMessageSchema, request.body);
+      const message = await channelsDb.createMessage({ channelId: id, ...body });
       await fastify.finalizeIdempotency(request, 201, message);
       return reply.code(201).send(message);
     },

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import * as agentsDb from '../../db/api/agents.js';
+import { ApiError, parseBody } from '../../lib/errors.js';
 
 const createAgentSchema = z.object({
   name: z.string(),
@@ -28,13 +29,12 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   fastify.post('/', { preHandler: [fastify.authenticate, fastify.enforceIdempotency] }, async (request, reply) => {
-    const body = createAgentSchema.safeParse(request.body);
-    if (!body.success) return reply.code(400).send({ error: 'Invalid body' });
+    const body = parseBody(createAgentSchema, request.body);
 
     const rawKey = crypto.randomBytes(32).toString('hex');
     const apiKeyHash = await bcrypt.hash(rawKey, 10);
 
-    const agent = await agentsDb.createAgent({ ...body.data, apiKeyHash });
+    const agent = await agentsDb.createAgent({ ...body, apiKeyHash });
     const response = { ...agent, apiKey: rawKey };
     await fastify.finalizeIdempotency(request, 201, response);
     return reply.code(201).send(response);
@@ -43,16 +43,15 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/:id', { preHandler: fastify.authenticate }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const agent = await agentsDb.getAgent(id);
-    if (!agent) return reply.code(404).send({ error: 'Not found' });
+    if (!agent) throw new ApiError(404, 'NOT_FOUND', 'Not found');
     return agent;
   });
 
   fastify.patch('/:id', { preHandler: fastify.authenticate }, async (request, reply) => {
     const { id } = request.params as { id: string };
-    const body = updateAgentSchema.safeParse(request.body);
-    if (!body.success) return reply.code(400).send({ error: 'Invalid body' });
-    const agent = await agentsDb.updateAgent(id, body.data);
-    if (!agent) return reply.code(404).send({ error: 'Not found' });
+    const body = parseBody(updateAgentSchema, request.body);
+    const agent = await agentsDb.updateAgent(id, body);
+    if (!agent) throw new ApiError(404, 'NOT_FOUND', 'Not found');
     return agent;
   });
 
@@ -73,11 +72,10 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post('/report', { preHandler: [fastify.authenticateAgent, fastify.enforceIdempotency] }, async (request, reply) => {
     const agent = (request as FastifyRequest & { agent: { id: string } }).agent;
-    const body = reportSchema.safeParse(request.body);
-    if (!body.success) return reply.code(400).send({ error: 'Invalid body' });
+    const body = parseBody(reportSchema, request.body);
 
     await agentsDb.updateAgent(agent.id, { lastSeen: new Date(), status: 'online' });
-    const activity = await agentsDb.insertActivity({ agentId: agent.id, ...body.data });
+    const activity = await agentsDb.insertActivity({ agentId: agent.id, ...body });
     await fastify.finalizeIdempotency(request, 201, activity);
     return reply.code(201).send(activity);
   });

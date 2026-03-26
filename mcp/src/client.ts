@@ -1,15 +1,39 @@
 // Thin wrapper for calling the mission-control backend REST API
+import type { ErrorEnvelope } from '@mission-control/types';
 
 const backendUrl = process.env['BACKEND_URL'] ?? 'http://localhost:3001';
 const jwt = process.env['BACKEND_JWT'];
 
 if (!jwt) throw new Error('BACKEND_JWT is required');
 
+export class BackendApiError extends Error {
+  public readonly status: number;
+  public readonly code?: string;
+  public readonly details?: unknown;
+
+  constructor(status: number, code: string | undefined, message: string, details?: unknown) {
+    super(message);
+    this.name = 'BackendApiError';
+    this.status = status;
+    this.code = code;
+    this.details = details;
+  }
+}
+
 export async function apiGet<T>(path: string): Promise<T> {
   const res = await fetch(`${backendUrl}${path}`, {
     headers: { Authorization: `Bearer ${jwt}` },
   });
-  if (!res.ok) throw new Error(`Backend ${path} → ${res.status}: ${await res.text()}`);
+  if (!res.ok) {
+    const text = await res.text();
+    const parsed = parseErrorResponse(text);
+    throw new BackendApiError(
+      res.status,
+      parsed.code ?? fallbackCode(res.status),
+      parsed.message ?? `Backend ${path} failed (${res.status})`,
+      parsed.details,
+    );
+  }
   return res.json() as Promise<T>;
 }
 
@@ -29,7 +53,16 @@ export async function apiPost<T>(
     headers,
     body: body != null ? JSON.stringify(body) : undefined,
   });
-  if (!res.ok) throw new Error(`Backend POST ${path} → ${res.status}: ${await res.text()}`);
+  if (!res.ok) {
+    const text = await res.text();
+    const parsed = parseErrorResponse(text);
+    throw new BackendApiError(
+      res.status,
+      parsed.code ?? fallbackCode(res.status),
+      parsed.message ?? `Backend POST ${path} failed (${res.status})`,
+      parsed.details,
+    );
+  }
   if (res.status === 204) return undefined as unknown as T;
   return res.json() as Promise<T>;
 }
@@ -43,7 +76,16 @@ export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
     },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`Backend PATCH ${path} → ${res.status}: ${await res.text()}`);
+  if (!res.ok) {
+    const text = await res.text();
+    const parsed = parseErrorResponse(text);
+    throw new BackendApiError(
+      res.status,
+      parsed.code ?? fallbackCode(res.status),
+      parsed.message ?? `Backend PATCH ${path} failed (${res.status})`,
+      parsed.details,
+    );
+  }
   return res.json() as Promise<T>;
 }
 
@@ -52,5 +94,66 @@ export async function apiDelete(path: string): Promise<void> {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${jwt}` },
   });
-  if (!res.ok) throw new Error(`Backend DELETE ${path} → ${res.status}: ${await res.text()}`);
+  if (!res.ok) {
+    const text = await res.text();
+    const parsed = parseErrorResponse(text);
+    throw new BackendApiError(
+      res.status,
+      parsed.code ?? fallbackCode(res.status),
+      parsed.message ?? `Backend DELETE ${path} failed (${res.status})`,
+      parsed.details,
+    );
+  }
+}
+
+function parseErrorResponse(
+  responseText: string,
+): { message?: string; code?: string; details?: unknown } {
+  if (!responseText) return {};
+  try {
+    const parsed = JSON.parse(responseText) as Partial<ErrorEnvelope> & {
+      error?: string | { message?: string; code?: string; details?: unknown };
+      code?: string;
+      details?: unknown;
+      message?: string;
+    };
+
+    if (typeof parsed.error === 'string') {
+      return {
+        message: parsed.error,
+        code: parsed.code,
+        details: parsed.details,
+      };
+    }
+
+    if (parsed.error && typeof parsed.error === 'object') {
+      return {
+        message: parsed.error.message,
+        code: parsed.error.code,
+        details: parsed.error.details,
+      };
+    }
+
+    if (typeof parsed.message === 'string') {
+      return {
+        message: parsed.message,
+        code: parsed.code,
+        details: parsed.details,
+      };
+    }
+  } catch {
+    // Non-JSON error payloads are surfaced as plain text message fallback.
+  }
+
+  return { message: responseText };
+}
+
+function fallbackCode(status: number): string {
+  if (status === 400) return 'BAD_REQUEST';
+  if (status === 401) return 'UNAUTHORIZED';
+  if (status === 403) return 'FORBIDDEN';
+  if (status === 404) return 'NOT_FOUND';
+  if (status === 409) return 'CONFLICT';
+  if (status >= 500) return 'INTERNAL_ERROR';
+  return 'BAD_REQUEST';
 }

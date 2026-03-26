@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync, FastifyReply } from 'fastify';
 import { getIdempotencyMetrics } from '../../services/idempotency-metrics.js';
+import { sendError } from '../../lib/errors.js';
 
 const healthRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/idempotency-metrics', { preHandler: fastify.authenticate }, async () => {
@@ -7,10 +8,12 @@ const healthRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   const deprecated = async (_request: unknown, reply: FastifyReply) =>
-    reply.code(410).send({
-      error:
-        'Legacy health goals and entries are deprecated. Use /api/health/analysis with goal text and Daily Log data in AI Insights.',
-    });
+    sendError(
+      reply,
+      410,
+      'BAD_REQUEST',
+      'Legacy health goals and entries are deprecated. Use /api/health/analysis with goal text and Daily Log data in AI Insights.',
+    );
 
   fastify.get('/goals', { preHandler: fastify.authenticate }, deprecated);
   fastify.post('/goals', { preHandler: fastify.authenticate }, deprecated);

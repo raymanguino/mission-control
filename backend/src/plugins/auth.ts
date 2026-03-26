@@ -2,6 +2,7 @@ import fp from 'fastify-plugin';
 import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import bcrypt from 'bcryptjs';
 import { listAgents } from '../db/api/agents.js';
+import { sendError } from '../lib/errors.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -17,7 +18,7 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
       try {
         await request.jwtVerify();
       } catch {
-        await reply.code(401).send({ error: 'Unauthorized' });
+        await sendError(reply, 401, 'UNAUTHORIZED', 'Unauthorized');
       }
     },
   );
@@ -27,7 +28,7 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
     async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
       const rawKey = request.headers['x-agent-key'];
       if (!rawKey || typeof rawKey !== 'string') {
-        await reply.code(401).send({ error: 'Missing X-Agent-Key header' });
+        await sendError(reply, 401, 'UNAUTHORIZED', 'Missing X-Agent-Key header');
         return;
       }
 
@@ -39,7 +40,7 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
           return;
         }
       }
-      await reply.code(401).send({ error: 'Invalid agent key' });
+      await sendError(reply, 401, 'UNAUTHORIZED', 'Invalid agent key');
     },
   );
 };

@@ -217,3 +217,24 @@ export interface Paginated<T> {
   limit: number;
   offset: number;
 }
+
+// API error envelope
+export type ApiErrorCode =
+  | 'BAD_REQUEST'
+  | 'UNAUTHORIZED'
+  | 'FORBIDDEN'
+  | 'NOT_FOUND'
+  | 'CONFLICT'
+  | 'VALIDATION_FAILED'
+  | 'INTERNAL_ERROR'
+  | (string & {});
+
+export interface ApiErrorBody {
+  message: string;
+  code: ApiErrorCode;
+  details?: unknown;
+}
+
+export interface ErrorEnvelope {
+  error: ApiErrorBody;
+}

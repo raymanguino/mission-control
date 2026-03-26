@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import * as usageDb from '../../db/api/usage.js';
 import { syncOpenRouterUsage } from '../../services/openrouter.js';
 import { getAiRoutingDiagnostics } from '../../services/ai/diagnostics.js';
+import { ApiError } from '../../lib/errors.js';
 
 const usageRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/', { preHandler: fastify.authenticate }, async (request) => {
@@ -27,16 +28,15 @@ const usageRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post(
     '/sync',
     { preHandler: [fastify.authenticate, fastify.enforceIdempotency] },
-    async (request, reply) => {
+    async (request) => {
       try {
         const count = await syncOpenRouterUsage();
         const body = { synced: count };
         await fastify.finalizeIdempotency(request, 200, body);
         return body;
       } catch (err) {
-        fastify.log.error(err);
-        const message = err instanceof Error ? err.message : 'Sync failed';
-        return reply.code(500).send({ error: message });
+        request.log.error({ err }, 'Usage sync failed');
+        throw new ApiError(500, 'INTERNAL_ERROR', 'Sync failed');
       }
     },
   );

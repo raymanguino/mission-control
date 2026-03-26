@@ -4,6 +4,7 @@ import * as wellnessDb from '../../db/api/wellness.js';
 import { analyzeHealthData } from '../../services/analysis.js';
 import { estimateNutrition } from '../../services/nutrition.js';
 import { createFoodLogFromQuickText } from '../../services/quick-food-log.js';
+import { ApiError, parseBody } from '../../lib/errors.js';
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -62,18 +63,15 @@ const wellnessRoutes: FastifyPluginAsync = async (fastify) => {
     '/food/estimate',
     { preHandler: [fastify.authenticate, fastify.enforceIdempotency] },
     async (request, reply) => {
-      const body = estimateFoodSchema.safeParse(request.body);
-      if (!body.success) {
-        return reply.code(400).send({ error: 'Invalid body' });
-      }
+      const body = parseBody(estimateFoodSchema, request.body);
 
       try {
-        const estimate = await estimateNutrition(body.data.description.trim());
+        const estimate = await estimateNutrition(body.description.trim());
         await fastify.finalizeIdempotency(request, 200, estimate);
         return estimate;
       } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Nutrition estimation failed';
-        return reply.code(500).send({ error: msg });
+        request.log.error({ err }, 'Nutrition estimation failed');
+        throw new ApiError(500, 'INTERNAL_ERROR', 'Nutrition estimation failed');
       }
     },
   );
@@ -84,11 +82,10 @@ const wellnessRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   fastify.post('/food', { preHandler: [fastify.authenticate, fastify.enforceIdempotency] }, async (request, reply) => {
-    const body = createFoodSchema.safeParse(request.body);
-    if (!body.success) return reply.code(400).send({ error: 'Invalid body' });
+    const body = parseBody(createFoodSchema, request.body);
     const log = await wellnessDb.createFoodLog({
-      ...body.data,
-      loggedAt: new Date(body.data.loggedAt),
+      ...body,
+      loggedAt: new Date(body.loggedAt),
     });
     await fastify.finalizeIdempotency(request, 201, log);
     return reply.code(201).send(log);
@@ -98,30 +95,28 @@ const wellnessRoutes: FastifyPluginAsync = async (fastify) => {
     '/food/quick',
     { preHandler: [fastify.authenticate, fastify.enforceIdempotency] },
     async (request, reply) => {
-      const body = quickFoodSchema.safeParse(request.body);
-      if (!body.success) return reply.code(400).send({ error: 'Invalid body' });
+      const body = parseBody(quickFoodSchema, request.body);
       try {
-        const log = await createFoodLogFromQuickText(body.data.text);
+        const log = await createFoodLogFromQuickText(body.text);
         await fastify.finalizeIdempotency(request, 201, log);
         return reply.code(201).send(log);
       } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Quick food log failed';
-        return reply.code(500).send({ error: msg });
+        request.log.error({ err }, 'Quick food log failed');
+        throw new ApiError(500, 'INTERNAL_ERROR', 'Quick food log failed');
       }
     },
   );
 
   fastify.patch('/food/:id', { preHandler: fastify.authenticate }, async (request, reply) => {
     const { id } = request.params as { id: string };
-    const body = updateFoodSchema.safeParse(request.body);
-    if (!body.success) return reply.code(400).send({ error: 'Invalid body' });
-    const { loggedAt, ...rest } = body.data;
+    const body = parseBody(updateFoodSchema, request.body);
+    const { loggedAt, ...rest } = body;
     const data: Parameters<typeof wellnessDb.updateFoodLog>[1] = {
       ...rest,
       ...(loggedAt ? { loggedAt: new Date(loggedAt) } : {}),
     };
     const log = await wellnessDb.updateFoodLog(id, data);
-    if (!log) return reply.code(404).send({ error: 'Not found' });
+    if (!log) throw new ApiError(404, 'NOT_FOUND', 'Not found');
     return log;
   });
 
@@ -138,11 +133,10 @@ const wellnessRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   fastify.post('/marijuana', { preHandler: [fastify.authenticate, fastify.enforceIdempotency] }, async (request, reply) => {
-    const body = createMarijuanaSchema.safeParse(request.body);
-    if (!body.success) return reply.code(400).send({ error: 'Invalid body' });
+    const body = parseBody(createMarijuanaSchema, request.body);
     const session = await wellnessDb.createMarijuanaSession({
-      ...body.data,
-      sessionAt: new Date(body.data.sessionAt),
+      ...body,
+      sessionAt: new Date(body.sessionAt),
     });
     await fastify.finalizeIdempotency(request, 201, session);
     return reply.code(201).send(session);
@@ -153,15 +147,14 @@ const wellnessRoutes: FastifyPluginAsync = async (fastify) => {
     { preHandler: fastify.authenticate },
     async (request, reply) => {
       const { id } = request.params as { id: string };
-      const body = updateMarijuanaSchema.safeParse(request.body);
-      if (!body.success) return reply.code(400).send({ error: 'Invalid body' });
-      const { sessionAt, ...rest } = body.data;
+      const body = parseBody(updateMarijuanaSchema, request.body);
+      const { sessionAt, ...rest } = body;
       const data: Parameters<typeof wellnessDb.updateMarijuanaSession>[1] = {
         ...rest,
         ...(sessionAt ? { sessionAt: new Date(sessionAt) } : {}),
       };
       const session = await wellnessDb.updateMarijuanaSession(id, data);
-      if (!session) return reply.code(404).send({ error: 'Not found' });
+      if (!session) throw new ApiError(404, 'NOT_FOUND', 'Not found');
       return session;
     },
   );
@@ -183,12 +176,11 @@ const wellnessRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   fastify.post('/sleep', { preHandler: [fastify.authenticate, fastify.enforceIdempotency] }, async (request, reply) => {
-    const body = createSleepSchema.safeParse(request.body);
-    if (!body.success) return reply.code(400).send({ error: 'Invalid body' });
+    const body = parseBody(createSleepSchema, request.body);
     const log = await wellnessDb.createSleepLog({
-      ...body.data,
-      bedTime: new Date(body.data.bedTime),
-      wakeTime: body.data.wakeTime ? new Date(body.data.wakeTime) : null,
+      ...body,
+      bedTime: new Date(body.bedTime),
+      wakeTime: body.wakeTime ? new Date(body.wakeTime) : null,
     });
     await fastify.finalizeIdempotency(request, 201, log);
     return reply.code(201).send(log);
@@ -196,16 +188,15 @@ const wellnessRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.patch('/sleep/:id', { preHandler: fastify.authenticate }, async (request, reply) => {
     const { id } = request.params as { id: string };
-    const body = updateSleepSchema.safeParse(request.body);
-    if (!body.success) return reply.code(400).send({ error: 'Invalid body' });
-    const { bedTime, wakeTime, ...rest } = body.data;
+    const body = parseBody(updateSleepSchema, request.body);
+    const { bedTime, wakeTime, ...rest } = body;
     const data: Parameters<typeof wellnessDb.updateSleepLog>[1] = {
       ...rest,
       ...(bedTime ? { bedTime: new Date(bedTime) } : {}),
       ...(wakeTime !== undefined ? { wakeTime: wakeTime ? new Date(wakeTime) : null } : {}),
     };
     const log = await wellnessDb.updateSleepLog(id, data);
-    if (!log) return reply.code(404).send({ error: 'Not found' });
+    if (!log) throw new ApiError(404, 'NOT_FOUND', 'Not found');
     return log;
   });
 
@@ -220,18 +211,17 @@ const wellnessRoutes: FastifyPluginAsync = async (fastify) => {
     '/analysis',
     { preHandler: [fastify.authenticate, fastify.enforceIdempotency] },
     async (request, reply) => {
-      const body = runAnalysisSchema.safeParse(request.body);
-      if (!body.success) return reply.code(400).send({ error: 'Invalid body' });
+      const body = parseBody(runAnalysisSchema, request.body);
       try {
         const result = await analyzeHealthData({
-          goal: body.data.goal.trim(),
-          goals: body.data.goals?.map((goal) => goal.trim()).filter(Boolean),
+          goal: body.goal.trim(),
+          goals: body.goals?.map((goal) => goal.trim()).filter(Boolean),
         });
         await fastify.finalizeIdempotency(request, 200, result);
         return result;
       } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Analysis failed';
-        return reply.code(500).send({ error: msg });
+        request.log.error({ err }, 'Health analysis failed');
+        throw new ApiError(500, 'INTERNAL_ERROR', 'Analysis failed');
       }
     },
   );

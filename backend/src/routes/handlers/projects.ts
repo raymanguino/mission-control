@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import * as projectsDb from '../../db/api/projects.js';
+import { ApiError, parseBody } from '../../lib/errors.js';
 
 const createProjectSchema = z.object({
   name: z.string(),
@@ -18,19 +19,17 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   fastify.post('/', { preHandler: [fastify.authenticate, fastify.enforceIdempotency] }, async (request, reply) => {
-    const body = createProjectSchema.safeParse(request.body);
-    if (!body.success) return reply.code(400).send({ error: 'Invalid body' });
-    const project = await projectsDb.createProject(body.data);
+    const body = parseBody(createProjectSchema, request.body);
+    const project = await projectsDb.createProject(body);
     await fastify.finalizeIdempotency(request, 201, project);
     return reply.code(201).send(project);
   });
 
   fastify.patch('/:id', { preHandler: fastify.authenticate }, async (request, reply) => {
     const { id } = request.params as { id: string };
-    const body = updateProjectSchema.safeParse(request.body);
-    if (!body.success) return reply.code(400).send({ error: 'Invalid body' });
-    const project = await projectsDb.updateProject(id, body.data);
-    if (!project) return reply.code(404).send({ error: 'Not found' });
+    const body = parseBody(updateProjectSchema, request.body);
+    const project = await projectsDb.updateProject(id, body);
+    if (!project) throw new ApiError(404, 'NOT_FOUND', 'Not found');
     return project;
   });
 

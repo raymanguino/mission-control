@@ -6,6 +6,7 @@ import authPlugin from './plugins/auth.js';
 import idempotencyPlugin from './plugins/idempotency.js';
 import { registerRoutes } from './routes/index.js';
 import { startCronJobs } from './services/cron.js';
+import { registerErrorHandling } from './lib/errors.js';
 
 const app = Fastify({ logger: true });
 
@@ -22,6 +23,7 @@ await app.register(jwt, { secret });
 await app.register(authPlugin);
 await app.register(idempotencyPlugin);
 
+registerErrorHandling(app);
 await registerRoutes(app);
 
 app.get('/healthz', async () => ({ ok: true }));

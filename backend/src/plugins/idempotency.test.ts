@@ -107,7 +107,10 @@ describe('idempotency plugin', () => {
 
       expect(res.statusCode).toBe(409);
       expect(res.json()).toEqual({
-        error: 'Idempotency-Key has already been used with a different payload',
+        error: {
+          code: 'CONFLICT',
+          message: 'Idempotency-Key has already been used with a different payload',
+        },
       });
       expect(finalizeMock).not.toHaveBeenCalled();
     } finally {
@@ -136,7 +139,10 @@ describe('idempotency plugin', () => {
 
       expect(res.statusCode).toBe(409);
       expect(res.json()).toEqual({
-        error: 'A request with this Idempotency-Key is already in progress',
+        error: {
+          code: 'CONFLICT',
+          message: 'A request with this Idempotency-Key is already in progress',
+        },
       });
       expect(finalizeMock).not.toHaveBeenCalled();
     } finally {

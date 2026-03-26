@@ -13,6 +13,7 @@ import {
   recordIdempotencyReplayed,
   recordIdempotencyReserved,
 } from '../services/idempotency-metrics.js';
+import { sendError } from '../lib/errors.js';
 
 type IdempotencyContext = {
   recordId: string;
@@ -87,10 +88,15 @@ function getRoutePath(request: FastifyRequest): string {
 
 function sendIdempotencyError(reply: FastifyReply, result: ReserveIdempotencyResult) {
   if (result.kind === 'conflict') {
-    return reply.code(409).send({ error: 'Idempotency-Key has already been used with a different payload' });
+    return sendError(
+      reply,
+      409,
+      'CONFLICT',
+      'Idempotency-Key has already been used with a different payload',
+    );
   }
 
-  return reply.code(409).send({ error: 'A request with this Idempotency-Key is already in progress' });
+  return sendError(reply, 409, 'CONFLICT', 'A request with this Idempotency-Key is already in progress');
 }
 
 const idempotencyPlugin: FastifyPluginAsync = async (fastify) => {
@@ -104,7 +110,7 @@ const idempotencyPlugin: FastifyPluginAsync = async (fastify) => {
 
       const key = rawHeader.trim();
       if (!key) {
-        await reply.code(400).send({ error: 'Idempotency-Key cannot be empty' });
+        await sendError(reply, 400, 'BAD_REQUEST', 'Idempotency-Key cannot be empty');
         return;
       }
 
