@@ -112,15 +112,37 @@ export interface SleepLog {
   createdAt: string;
 }
 
+export type AiProvider = 'openrouter' | 'anthropic' | 'system';
+export type AiWorkload = 'cheap_extract' | 'balanced_analysis' | 'fast_interactive' | 'high_reasoning';
+
+export interface AiSelectionMetadata {
+  provider: AiProvider;
+  model: string;
+  workload: AiWorkload;
+  fallbackUsed?: boolean;
+}
+
 export interface HealthAnalysis {
   insights: string;
   generatedAt: string;
   goal?: string;
+  provider?: AiProvider;
+  model?: string;
+  workload?: AiWorkload;
+  fallbackUsed?: boolean;
 }
 
 export interface HealthAnalysisRequest {
   goal: string;
   goals?: string[];
+}
+
+export interface NutritionEstimate extends AiSelectionMetadata {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  source: 'llm';
 }
 
 // Chat types
@@ -146,26 +168,46 @@ export interface UsageRecord {
   id: string;
   agentId: string | null;
   apiKeyLabel: string | null;
+  source: string;
+  providerRequestId: string | null;
   model: string | null;
+  requestCount: number | null;
   tokensIn: number | null;
   tokensOut: number | null;
+  reasoningTokens: number | null;
+  cachedTokens: number | null;
+  cacheWriteTokens: number | null;
+  audioTokens: number | null;
   costUsd: string | null;
+  upstreamInferenceCostUsd: string | null;
   recordedAt: string;
   createdAt: string;
 }
 
 export interface UsageSummary {
   totalCostUsd: string;
+  totalUpstreamInferenceCostUsd: string;
+  totalRequests: number;
   totalTokensIn: number;
   totalTokensOut: number;
+  totalReasoningTokens: number;
+  totalCachedTokens: number;
+  totalCacheWriteTokens: number;
+  totalAudioTokens: number;
   groups: UsageGroup[];
 }
 
 export interface UsageGroup {
-  key: string;
+  key: string | null;
+  requestCount: number;
   costUsd: string;
+  upstreamInferenceCostUsd: string;
   tokensIn: number;
   tokensOut: number;
+  reasoningTokens: number;
+  cachedTokens: number;
+  cacheWriteTokens: number;
+  audioTokens: number;
 }
 
 // Pagination

@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import * as usageDb from '../../db/api/usage.js';
 import { syncOpenRouterUsage } from '../../services/openrouter.js';
+import { getAiRoutingDiagnostics } from '../../services/ai/diagnostics.js';
 
 const usageRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/', { preHandler: fastify.authenticate }, async (request) => {
@@ -17,6 +18,10 @@ const usageRoutes: FastifyPluginAsync = async (fastify) => {
     const limit = Math.min(Number(q.limit ?? 50), 200);
     const offset = Number(q.offset ?? 0);
     return usageDb.listRecords(limit, offset);
+  });
+
+  fastify.get('/ai/config', { preHandler: fastify.authenticate }, async () => {
+    return getAiRoutingDiagnostics();
   });
 
   fastify.post('/sync', { preHandler: fastify.authenticate }, async (_request, reply) => {

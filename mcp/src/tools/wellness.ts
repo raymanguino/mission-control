@@ -1,15 +1,13 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { apiGet, apiPost, apiPatch } from '../client.js';
-import type { FoodLog, MarijuanaSession, SleepLog, HealthAnalysis } from '@mission-control/types';
-
-type NutritionEstimate = {
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-  source: 'llm';
-};
+import type {
+  FoodLog,
+  MarijuanaSession,
+  SleepLog,
+  HealthAnalysis,
+  NutritionEstimate,
+} from '@mission-control/types';
 
 export function registerWellnessTools(server: McpServer) {
   // ─── Food ──────────────────────────────────────────────────────────────────
@@ -57,7 +55,7 @@ export function registerWellnessTools(server: McpServer) {
       };
       const log = await apiPost<FoodLog>('/api/health/food', payload);
       const autoEstimateNote = estimate
-        ? '\n\n(nutrition auto-estimated via LLM)'
+        ? `\n\n(nutrition auto-estimated via ${estimate.provider}/${estimate.model})`
         : '';
       return {
         content: [{ type: 'text', text: `Food logged.${autoEstimateNote}\n\n${JSON.stringify(log, null, 2)}` }],
@@ -245,7 +243,7 @@ export function registerWellnessTools(server: McpServer) {
         content: [
           {
             type: 'text',
-            text: `Wellness Insights (generated ${result.generatedAt})\nGoal: ${result.goal ?? goal}\n\n${result.insights}`,
+            text: `Wellness Insights (generated ${result.generatedAt})\nGoal: ${result.goal ?? goal}\nModel: ${result.provider ?? 'unknown'}/${result.model ?? 'unknown'}${result.fallbackUsed ? ' (fallback)' : ''}\n\n${result.insights}`,
           },
         ],
       };

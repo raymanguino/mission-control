@@ -1,7 +1,5 @@
-import Anthropic from '@anthropic-ai/sdk';
 import { listFoodLogs, listMarijuanaSessions, listSleepLogs } from '../db/api/wellness.js';
-
-const client = new Anthropic();
+import { generateText } from './ai/generate.js';
 
 function formatTime(ts: string | Date | null): string {
   if (!ts) return 'N/A';
@@ -25,17 +23,11 @@ export async function analyzeHealthData(params: {
   insights: string;
   generatedAt: string;
   goal: string;
+  provider: 'openrouter' | 'anthropic' | 'system';
+  model: string;
+  workload: 'balanced_analysis';
+  fallbackUsed?: boolean;
 }> {
-  const anthropicApiKey = process.env['ANTHROPIC_API_KEY'];
-  const openAiKeyFromEnv = process.env['OPENAI_API_KEY'];
-  const openRouterKey = process.env['OPENROUTER_API_KEY'];
-  const openAiCompatibleFallback =
-    !openAiKeyFromEnv && openRouterKey?.startsWith('sk-proj-') ? openRouterKey : undefined;
-  const effectiveOpenAiKey = openAiKeyFromEnv ?? openAiCompatibleFallback;
-  if (!effectiveOpenAiKey && !anthropicApiKey) {
-    throw new Error('Analysis unavailable: missing OPENAI_API_KEY and ANTHROPIC_API_KEY');
-  }
-
   const now = new Date();
   const from = new Date(now);
   from.setDate(from.getDate() - 30);
@@ -54,6 +46,10 @@ export async function analyzeHealthData(params: {
         `Not enough data yet to evaluate this goal: "${params.goal}". Log at least a few days of sleep, cannabis sessions, and meals to get personalized insights.`,
       generatedAt: new Date().toISOString(),
       goal: params.goal,
+      provider: 'system',
+      model: 'rule-based',
+      workload: 'balanced_analysis',
+      fallbackUsed: false,
     };
   }
 
@@ -134,58 +130,21 @@ Analyze this data and respond with:
 
 Keep the tone direct and data-driven. Use bullet points within each section. If there are fewer than 5 data points for any correlation, note that you need more data to be confident.`;
 
-  let text = '';
-  if (effectiveOpenAiKey) {
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${effectiveOpenAiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: process.env['OPENAI_MODEL'] ?? 'gpt-4o-mini',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.2,
-      }),
-    });
-    if (!res.ok) {
-      const errorText = await res.text();
-      throw new Error(`OpenAI analysis API returned ${res.status}: ${errorText}`);
-    }
-    const body = (await res.json()) as {
-      choices?: Array<{ message?: { content?: string | Array<{ type?: string; text?: string }> } }>;
-    };
-    const content = body.choices?.[0]?.message?.content;
-    text =
-      typeof content === 'string'
-        ? content
-        : Array.isArray(content)
-          ? content
-              .filter((p) => p.type === 'text' && typeof p.text === 'string')
-              .map((p) => p.text)
-              .join('\n')
-          : '';
-  } else {
-    let message: Awaited<ReturnType<typeof client.messages.create>>;
-    try {
-      message = await client.messages.create({
-        model: process.env['ANTHROPIC_MODEL'] ?? 'claude-sonnet-4-6',
-        max_tokens: 1500,
-        messages: [{ role: 'user', content: prompt }],
-      });
-    } catch (err) {
-      throw err;
-    }
-
-    text = message.content
-      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-      .map((b) => b.text)
-      .join('\n');
-  }
+  const generated = await generateText({
+    feature: 'wellness.analysis',
+    workload: 'balanced_analysis',
+    prompt,
+    maxTokens: 1500,
+    temperature: 0.2,
+  });
 
   return {
-    insights: text,
+    insights: generated.text,
     generatedAt: new Date().toISOString(),
     goal: params.goal,
+    provider: generated.provider,
+    model: generated.model,
+    workload: 'balanced_analysis',
+    fallbackUsed: generated.fallbackUsed,
   };
 }

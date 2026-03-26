@@ -1,12 +1,30 @@
-import { gte, lte, and, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
 import { db } from '../index.js';
 import { usageRecords } from '../schema.js';
+
+export interface UsageRecordInput {
+  agentId?: string;
+  apiKeyLabel?: string;
+  source?: string;
+  providerRequestId?: string;
+  model?: string;
+  requestCount?: number;
+  tokensIn?: number;
+  tokensOut?: number;
+  reasoningTokens?: number;
+  cachedTokens?: number;
+  cacheWriteTokens?: number;
+  audioTokens?: number;
+  costUsd?: string;
+  upstreamInferenceCostUsd?: string;
+  recordedAt: Date;
+}
 
 export async function listRecords(limit: number, offset: number) {
   return db
     .select()
     .from(usageRecords)
-    .orderBy(usageRecords.recordedAt)
+    .orderBy(desc(usageRecords.recordedAt))
     .limit(limit)
     .offset(offset);
 }
@@ -32,9 +50,16 @@ export async function getAggregated(filters: {
   const rows = await db
     .select({
       key: groupCol,
-      costUsd: sql<string>`sum(${usageRecords.costUsd})`,
-      tokensIn: sql<number>`sum(${usageRecords.tokensIn})`,
-      tokensOut: sql<number>`sum(${usageRecords.tokensOut})`,
+      requestCount: sql<number>`coalesce(sum(${usageRecords.requestCount}), 0)`,
+      costUsd: sql<string>`coalesce(sum(${usageRecords.costUsd}), 0)::text`,
+      upstreamInferenceCostUsd:
+        sql<string>`coalesce(sum(${usageRecords.upstreamInferenceCostUsd}), 0)::text`,
+      tokensIn: sql<number>`coalesce(sum(${usageRecords.tokensIn}), 0)`,
+      tokensOut: sql<number>`coalesce(sum(${usageRecords.tokensOut}), 0)`,
+      reasoningTokens: sql<number>`coalesce(sum(${usageRecords.reasoningTokens}), 0)`,
+      cachedTokens: sql<number>`coalesce(sum(${usageRecords.cachedTokens}), 0)`,
+      cacheWriteTokens: sql<number>`coalesce(sum(${usageRecords.cacheWriteTokens}), 0)`,
+      audioTokens: sql<number>`coalesce(sum(${usageRecords.audioTokens}), 0)`,
     })
     .from(usageRecords)
     .where(whereClause)
@@ -43,29 +68,57 @@ export async function getAggregated(filters: {
   return rows;
 }
 
-export async function upsertRecord(data: {
-  agentId?: string;
-  apiKeyLabel?: string;
-  model?: string;
-  tokensIn?: number;
-  tokensOut?: number;
-  costUsd?: string;
-  recordedAt: Date;
-}) {
+export async function upsertRecord(data: UsageRecordInput) {
+  const payload: UsageRecordInput & { source: string } = {
+    recordedAt: data.recordedAt,
+    source: data.source ?? 'activity',
+    ...(data.agentId !== undefined ? { agentId: data.agentId } : {}),
+    ...(data.apiKeyLabel !== undefined ? { apiKeyLabel: data.apiKeyLabel } : {}),
+    ...(data.providerRequestId !== undefined ? { providerRequestId: data.providerRequestId } : {}),
+    ...(data.model !== undefined ? { model: data.model } : {}),
+    ...(data.requestCount !== undefined ? { requestCount: data.requestCount } : {}),
+    ...(data.tokensIn !== undefined ? { tokensIn: data.tokensIn } : {}),
+    ...(data.tokensOut !== undefined ? { tokensOut: data.tokensOut } : {}),
+    ...(data.reasoningTokens !== undefined ? { reasoningTokens: data.reasoningTokens } : {}),
+    ...(data.cachedTokens !== undefined ? { cachedTokens: data.cachedTokens } : {}),
+    ...(data.cacheWriteTokens !== undefined
+      ? { cacheWriteTokens: data.cacheWriteTokens }
+      : {}),
+    ...(data.audioTokens !== undefined ? { audioTokens: data.audioTokens } : {}),
+    ...(data.costUsd !== undefined ? { costUsd: data.costUsd } : {}),
+    ...(data.upstreamInferenceCostUsd !== undefined
+      ? { upstreamInferenceCostUsd: data.upstreamInferenceCostUsd }
+      : {}),
+  };
+
   const existing = await db
     .select()
     .from(usageRecords)
-    .where(
-      and(
-        eq(usageRecords.recordedAt, data.recordedAt),
-        data.model ? eq(usageRecords.model, data.model) : sql`true`,
-        data.apiKeyLabel ? eq(usageRecords.apiKeyLabel, data.apiKeyLabel) : sql`true`,
-      ),
-    )
+    .where(and(...getMatchConditions(payload)))
     .limit(1);
 
-  if (existing.length > 0) return existing[0]!;
+  if (existing.length > 0) {
+    const rows = await db
+      .update(usageRecords)
+      .set(payload)
+      .where(eq(usageRecords.id, existing[0]!.id))
+      .returning();
+    return rows[0]!;
+  }
 
-  const rows = await db.insert(usageRecords).values(data).returning();
+  const rows = await db.insert(usageRecords).values(payload).returning();
   return rows[0]!;
+}
+
+function getMatchConditions(data: Omit<UsageRecordInput, 'source'> & { source: string }) {
+  if (data.providerRequestId) {
+    return [eq(usageRecords.providerRequestId, data.providerRequestId)];
+  }
+
+  return [
+    eq(usageRecords.source, data.source),
+    eq(usageRecords.recordedAt, data.recordedAt),
+    data.model ? eq(usageRecords.model, data.model) : sql`true`,
+    data.apiKeyLabel ? eq(usageRecords.apiKeyLabel, data.apiKeyLabel) : sql`true`,
+  ];
 }

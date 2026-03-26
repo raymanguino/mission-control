@@ -5,6 +5,7 @@ import type {
   MarijuanaSession,
   SleepLog,
   HealthAnalysis,
+  NutritionEstimate,
 } from '@mission-control/types';
 import {
   LineChart,
@@ -310,14 +311,6 @@ function FoodModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
-  type NutritionEstimate = {
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-    source: 'llm';
-  };
-
   const [mealType, setMealType] = useState<string>('snack');
   const [description, setDescription] = useState('');
   const [calories, setCalories] = useState('');
@@ -328,7 +321,7 @@ function FoodModal({
   const [notes, setNotes] = useState('');
   const [estimating, setEstimating] = useState(false);
   const [estimateError, setEstimateError] = useState('');
-  const [estimateSource, setEstimateSource] = useState<'llm' | null>(null);
+  const [estimateSource, setEstimateSource] = useState<NutritionEstimate | null>(null);
 
   async function estimate() {
     if (!description.trim()) return;
@@ -343,7 +336,7 @@ function FoodModal({
       setProtein(String(result.protein));
       setCarbs(String(result.carbs));
       setFat(String(result.fat));
-      setEstimateSource(result.source);
+      setEstimateSource(result);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '';
       const apiJsonMatch = errorMessage.match(/API error \d+:\s*(\{[\s\S]*\})/);
@@ -356,13 +349,16 @@ function FoodModal({
           // no-op: fallback to generic parse below
         }
       }
-      if (backendReason.includes('missing OPENAI_API_KEY')) {
+      if (
+        backendReason.includes('missing OPENROUTER_API_KEY') ||
+        backendReason.includes('missing ANTHROPIC_API_KEY')
+      ) {
         setEstimateError(
-          'Nutrition estimation is not configured. Add OPENAI_API_KEY to backend/.env and restart the backend.',
+          'Nutrition estimation is not configured. Add OPENROUTER_API_KEY and/or ANTHROPIC_API_KEY to backend/.env and restart the backend.',
         );
       } else if (backendReason.includes('credit balance is too low')) {
         setEstimateError(
-          'Nutrition estimation is temporarily unavailable because the AI provider account has no credits. Add billing credits or configure OPENAI_API_KEY in backend/.env, then restart backend.',
+          'Nutrition estimation is temporarily unavailable because the AI provider account has no credits. Add billing credits or configure a fallback provider in backend/.env, then restart backend.',
         );
       } else if (backendReason) {
         setEstimateError(backendReason);
@@ -421,7 +417,7 @@ function FoodModal({
         </button>
         {estimateSource && (
           <span className="text-xs text-gray-400">
-            Source: OpenAI estimation
+            Source: {estimateSource.provider}/{estimateSource.model}
           </span>
         )}
       </div>
@@ -830,7 +826,7 @@ function AnalysisTab({
 
       {loading && (
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center text-gray-400 text-sm">
-          Analyzing your data with Claude… this takes a few seconds.
+          Analyzing your data... this takes a few seconds.
         </div>
       )}
 
@@ -841,6 +837,12 @@ function AnalysisTab({
               <div>Generated {new Date(analysis.generatedAt).toLocaleString()}</div>
               {'goal' in analysis && typeof analysis.goal === 'string' && (
                 <div className="text-gray-400">Goal: {analysis.goal}</div>
+              )}
+              {analysis.provider && analysis.model && (
+                <div className="text-gray-400">
+                  Model: {analysis.provider}/{analysis.model}
+                  {analysis.fallbackUsed ? ' (fallback)' : ''}
+                </div>
               )}
             </div>
             <button

@@ -1,0 +1,25 @@
+---
+description: Project coding standards for TypeScript and React
+globs: **/*.ts,**/*.tsx
+alwaysApply: false
+---
+
+# Project Coding Standards for TypeScript and React
+
+The general coding standards also apply to TypeScript and React work.
+
+## TypeScript Guidelines
+
+- Use TypeScript for all new code.
+- Follow functional programming principles where possible.
+- Use interfaces for data structures and type definitions.
+- Prefer immutable data (`const`, `readonly`).
+- Use optional chaining (`?.`) and nullish coalescing (`??`) operators.
+
+## React Guidelines
+
+- Use functional components with hooks.
+- Follow the React hooks rules and never call hooks conditionally.
+- Use `React.FC` for components with children.
+- Keep components small and focused.
+- Use CSS modules for component styling.
