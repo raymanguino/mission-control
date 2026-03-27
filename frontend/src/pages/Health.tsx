@@ -797,7 +797,7 @@ function AnalysisTab({
 
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-white">Run AI Insights</h2>
+          <h2 className="text-lg font-semibold text-white">Get AI Insights</h2>
           <p className="text-sm text-gray-500 mt-0.5">
             Generates analysis using your selected goal and Daily Log trends.
           </p>
