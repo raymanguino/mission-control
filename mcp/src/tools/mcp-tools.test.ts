@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { registerAgentTools } from './agents.js';
 import { registerChatTools } from './chat.js';
-import { registerHealthTools } from './health.js';
 import { registerProjectTools } from './projects.js';
 import { registerUsageTools } from './usage.js';
 import { registerWellnessTools } from './wellness.js';
@@ -204,15 +203,6 @@ describe('MCP tool unit tests', () => {
     const res = await handlers.sync_usage();
     expect(apiPostMock).toHaveBeenCalledWith('/api/usage/sync');
     expect((res as any).content[0].text).toBe('Synced 7 records from OpenRouter.');
-  });
-
-  it('registerHealthTools: deprecated tools return deprecation notice', async () => {
-    const handlers = getHandlers(registerHealthTools as unknown as (server: unknown) => void);
-
-    const res = await handlers.create_health_goal();
-    const text = (res as any).content[0].text as string;
-    expect(text).toContain('Deprecated');
-    expect(text).toContain('run_health_analysis');
   });
 
   it('registerWellnessTools: quick_log_food posts to /api/health/food/quick', async () => {

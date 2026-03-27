@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import * as channelsDb from '../../db/api/channels.js';
+import { backendRequestSchemas } from '../../contracts/mcp-contract.js';
 import { parseBody } from '../../lib/errors.js';
 
 const createChannelSchema = z.object({
@@ -9,11 +10,7 @@ const createChannelSchema = z.object({
   externalId: z.string().optional(),
 });
 
-const createMessageSchema = z.object({
-  author: z.string(),
-  content: z.string(),
-  agentId: z.string().uuid().optional(),
-});
+const createMessageSchema = backendRequestSchemas.createMessage;
 
 const channelRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/', { preHandler: fastify.authenticate }, async () => {

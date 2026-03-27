@@ -20,6 +20,9 @@ export async function createAgent(data: {
   name: string;
   device?: string;
   ip?: string;
+  orgRole?: string;
+  strengths?: string;
+  reportsToAgentId?: string;
   apiKeyHash: string;
 }) {
   const rows = await db.insert(agents).values(data).returning();
@@ -28,7 +31,16 @@ export async function createAgent(data: {
 
 export async function updateAgent(
   id: string,
-  data: Partial<{ name: string; device: string; ip: string; lastSeen: Date; status: string }>,
+  data: Partial<{
+    name: string;
+    device: string;
+    ip: string;
+    orgRole: string;
+    strengths: string;
+    reportsToAgentId: string | null;
+    lastSeen: Date;
+    status: string;
+  }>,
 ) {
   const rows = await db.update(agents).set(data).where(eq(agents.id, id)).returning();
   return rows[0] ?? null;

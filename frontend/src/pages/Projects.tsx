@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   DndContext,
   PointerSensor,
+  useDroppable,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -9,7 +10,7 @@ import {
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { api } from '../utils/api.js';
-import type { Project, Task, TaskStatus, Agent } from '@mission-control/types';
+import type { Project, Task, TaskStatus, Agent, Intent, IntentStatus } from '@mission-control/types';
 
 const COLUMNS: { id: TaskStatus; label: string }[] = [
   { id: 'backlog', label: 'Backlog' },
@@ -17,6 +18,12 @@ const COLUMNS: { id: TaskStatus; label: string }[] = [
   { id: 'review', label: 'Review' },
   { id: 'done', label: 'Done' },
 ];
+
+const INTENT_STATUS_LABELS: Record<IntentStatus, string> = {
+  open: 'Open',
+  converted: 'Converted',
+  cancelled: 'Cancelled',
+};
 
 function TaskCard({
   task,
@@ -54,6 +61,44 @@ function TaskCard({
         <span className="mt-2 inline-block text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded-full">
           {assignedAgent.name}
         </span>
+      )}
+    </div>
+  );
+}
+
+function KanbanColumn({
+  column,
+  tasks,
+  agents,
+  onEdit,
+}: {
+  column: { id: TaskStatus; label: string };
+  tasks: Task[];
+  agents: Agent[];
+  onEdit: (task: Task) => void;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: `column:${column.id}` });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`w-64 flex flex-col gap-2 rounded-lg p-2 transition-colors ${
+        isOver ? 'bg-gray-900/80' : 'bg-transparent'
+      }`}
+    >
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+          {column.label}
+        </span>
+        <span className="text-xs text-gray-600">{tasks.length}</span>
+      </div>
+      <SortableContext items={tasks.map((task) => task.id)} strategy={verticalListSortingStrategy}>
+        {tasks.map((task) => (
+          <TaskCard key={task.id} task={task} agents={agents} onEdit={onEdit} />
+        ))}
+      </SortableContext>
+      {tasks.length === 0 && (
+        <div className="h-16 border border-dashed border-gray-800 rounded-lg" />
       )}
     </div>
   );
@@ -196,23 +241,59 @@ export default function Projects() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [intents, setIntents] = useState<Intent[]>([]);
+  const [intentTitle, setIntentTitle] = useState('');
+  const [intentBody, setIntentBody] = useState('');
   const [slideOver, setSlideOver] = useState<Task | null | 'new'>(null);
+  const [intentSaving, setIntentSaving] = useState(false);
+  const [convertingIntentId, setConvertingIntentId] = useState<string | null>(null);
+
+  const loadProjects = () => {
+    api
+      .get<Project[]>('/api/projects')
+      .then((projectList) => {
+        setProjects(projectList);
+        if (projectList.length === 0) {
+          setSelectedProject(null);
+          return;
+        }
+        setSelectedProject((current) => {
+          if (!current) return projectList[0]!;
+          return projectList.find((project) => project.id === current.id) ?? projectList[0]!;
+        });
+      })
+      .catch(() => {});
+  };
+
+  const loadTasks = (projectId: string) => {
+    api.get<Task[]>(`/api/projects/${projectId}/tasks`).then(setTasks).catch(() => {});
+  };
+
+  const loadIntents = () => {
+    api.get<Intent[]>('/api/intents').then(setIntents).catch(() => {});
+  };
 
   useEffect(() => {
-    api.get<Project[]>('/api/projects').then((p) => {
-      setProjects(p);
-      if (p.length > 0 && !selectedProject) setSelectedProject(p[0]!);
-    });
+    loadProjects();
+    loadIntents();
     api.get<Agent[]>('/api/agents').then(setAgents).catch(() => {});
   }, []);
 
   useEffect(() => {
     if (!selectedProject) return;
-    api
-      .get<Task[]>(`/api/projects/${selectedProject.id}/tasks`)
-      .then(setTasks)
-      .catch(() => {});
+    loadTasks(selectedProject.id);
+
+    const pollId = setInterval(() => {
+      loadTasks(selectedProject.id);
+    }, 10_000);
+
+    return () => clearInterval(pollId);
   }, [selectedProject]);
+
+  useEffect(() => {
+    const pollId = setInterval(loadIntents, 15_000);
+    return () => clearInterval(pollId);
+  }, []);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -220,28 +301,127 @@ export default function Projects() {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    const task = tasks.find((t) => t.id === active.id);
-    const target = tasks.find((t) => t.id === over.id);
-    if (!task || !target || task.status === target.status) return;
+    const activeId = String(active.id);
+    const overId = String(over.id);
+    const task = tasks.find((t) => t.id === activeId);
+    if (!task) return;
+
+    let targetStatus: TaskStatus | null = null;
+    if (overId.startsWith('column:')) {
+      const columnId = overId.replace('column:', '');
+      if (COLUMNS.some((column) => column.id === columnId)) {
+        targetStatus = columnId as TaskStatus;
+      }
+    } else {
+      const targetTask = tasks.find((item) => item.id === overId);
+      targetStatus = targetTask?.status ?? null;
+    }
+
+    if (!targetStatus || task.status === targetStatus) return;
 
     setTasks((prev) =>
-      prev.map((t) => (t.id === task.id ? { ...t, status: target.status } : t)),
+      prev.map((t) => (t.id === task.id ? { ...t, status: targetStatus } : t)),
     );
-    await api.patch(`/api/tasks/${task.id}`, { status: target.status });
+    await api.patch(`/api/tasks/${task.id}`, { status: targetStatus });
   }
 
   const reload = () => {
     if (!selectedProject) return;
-    api
-      .get<Task[]>(`/api/projects/${selectedProject.id}/tasks`)
-      .then(setTasks)
-      .catch(() => {});
+    loadTasks(selectedProject.id);
   };
+
+  async function createIntent() {
+    if (!intentTitle.trim() || !intentBody.trim()) return;
+    setIntentSaving(true);
+    try {
+      await api.post('/api/intents', {
+        title: intentTitle.trim(),
+        body: intentBody.trim(),
+      });
+      setIntentTitle('');
+      setIntentBody('');
+      loadIntents();
+    } finally {
+      setIntentSaving(false);
+    }
+  }
+
+  async function convertIntent(intent: Intent) {
+    setConvertingIntentId(intent.id);
+    try {
+      const result = await api.post<{ intent: Intent; project: Project }>(
+        `/api/intents/${intent.id}/convert`,
+        {
+          projectName: intent.title,
+          projectDescription: intent.body,
+        },
+      );
+      loadIntents();
+      loadProjects();
+      setSelectedProject(result.project);
+    } finally {
+      setConvertingIntentId(null);
+    }
+  }
 
   return (
     <div className="flex h-full gap-0 -mx-6 overflow-hidden">
-      {/* Project sidebar */}
-      <aside className="w-52 shrink-0 bg-gray-900 border-r border-gray-800 flex flex-col">
+      <aside className="w-72 shrink-0 bg-gray-900 border-r border-gray-800 flex flex-col">
+        <div className="px-4 py-3 border-b border-gray-800">
+          <span className="text-sm font-medium text-gray-300">Intents</span>
+        </div>
+        <div className="px-4 py-3 border-b border-gray-800 space-y-2">
+          <input
+            value={intentTitle}
+            onChange={(event) => setIntentTitle(event.target.value)}
+            placeholder="Intent title"
+            className="w-full bg-gray-800 rounded-md px-3 py-2 text-sm text-white border border-gray-700 focus:outline-none"
+          />
+          <textarea
+            value={intentBody}
+            onChange={(event) => setIntentBody(event.target.value)}
+            placeholder="Intent details"
+            rows={3}
+            className="w-full bg-gray-800 rounded-md px-3 py-2 text-sm text-white border border-gray-700 focus:outline-none resize-none"
+          />
+          <button
+            onClick={createIntent}
+            disabled={intentSaving || !intentTitle.trim() || !intentBody.trim()}
+            className="w-full px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm rounded-md"
+          >
+            Add Intent
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2 border-b border-gray-800">
+          {intents.map((intent) => (
+            <div key={intent.id} className="bg-gray-800 rounded-lg p-3 border border-gray-700">
+              <p className="text-sm text-white">{intent.title}</p>
+              <p className="text-xs text-gray-400 mt-1 line-clamp-3">{intent.body}</p>
+              <div className="mt-2 flex items-center justify-between gap-2">
+                <span className="text-[10px] uppercase tracking-wide text-gray-500">
+                  {INTENT_STATUS_LABELS[intent.status]}
+                </span>
+                {intent.status === 'open' ? (
+                  <button
+                    onClick={() => convertIntent(intent)}
+                    disabled={convertingIntentId === intent.id}
+                    className="px-2 py-1 text-xs bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded"
+                  >
+                    Convert
+                  </button>
+                ) : (
+                  <span className="text-[10px] text-gray-500">
+                    {intent.createdProjectId ? 'Linked' : 'No link'}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+          {intents.length === 0 && (
+            <p className="text-xs text-gray-500">No intents yet.</p>
+          )}
+        </div>
+
         <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
           <span className="text-sm font-medium text-gray-300">Projects</span>
         </div>
@@ -259,10 +439,12 @@ export default function Projects() {
               {p.name}
             </button>
           ))}
+          {projects.length === 0 && (
+            <p className="px-4 py-3 text-xs text-gray-500">No projects yet.</p>
+          )}
         </div>
       </aside>
 
-      {/* Kanban board */}
       <div className="flex-1 overflow-x-auto px-6 py-6">
         {selectedProject && (
           <>
@@ -280,35 +462,21 @@ export default function Projects() {
                 {COLUMNS.map((col) => {
                   const colTasks = tasks.filter((t) => t.status === col.id);
                   return (
-                    <div key={col.id} className="w-64 flex flex-col gap-2">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                          {col.label}
-                        </span>
-                        <span className="text-xs text-gray-600">{colTasks.length}</span>
-                      </div>
-                      <SortableContext
-                        items={colTasks.map((t) => t.id)}
-                        strategy={verticalListSortingStrategy}
-                      >
-                        {colTasks.map((t) => (
-                          <TaskCard
-                            key={t.id}
-                            task={t}
-                            agents={agents}
-                            onEdit={(task) => setSlideOver(task)}
-                          />
-                        ))}
-                      </SortableContext>
-                    </div>
+                    <KanbanColumn
+                      key={col.id}
+                      column={col}
+                      tasks={colTasks}
+                      agents={agents}
+                      onEdit={(task) => setSlideOver(task)}
+                    />
                   );
                 })}
               </div>
             </DndContext>
           </>
         )}
-        {projects.length === 0 && (
-          <p className="text-gray-500">No projects yet.</p>
+        {!selectedProject && projects.length > 0 && (
+          <p className="text-gray-500">Select a project to view its board.</p>
         )}
       </div>
 

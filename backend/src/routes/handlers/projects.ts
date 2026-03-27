@@ -1,17 +1,9 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { z } from 'zod';
 import * as projectsDb from '../../db/api/projects.js';
+import { backendRequestSchemas } from '../../contracts/mcp-contract.js';
 import { ApiError, parseBody } from '../../lib/errors.js';
 
-const createProjectSchema = z.object({
-  name: z.string(),
-  description: z.string().optional(),
-});
-
-const updateProjectSchema = z.object({
-  name: z.string().optional(),
-  description: z.string().optional(),
-});
+const updateProjectSchema = backendRequestSchemas.createProject.partial();
 
 const projectRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/', { preHandler: fastify.authenticate }, async () => {
@@ -19,7 +11,7 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   fastify.post('/', { preHandler: [fastify.authenticate, fastify.enforceIdempotency] }, async (request, reply) => {
-    const body = parseBody(createProjectSchema, request.body);
+    const body = parseBody(backendRequestSchemas.createProject, request.body);
     const project = await projectsDb.createProject(body);
     await fastify.finalizeIdempotency(request, 201, project);
     return reply.code(201).send(project);

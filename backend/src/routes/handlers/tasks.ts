@@ -1,24 +1,10 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { z } from 'zod';
 import * as projectsDb from '../../db/api/projects.js';
+import { backendRequestSchemas } from '../../contracts/mcp-contract.js';
 import { ApiError, parseBody } from '../../lib/errors.js';
 
-const createTaskSchema = z.object({
-  projectId: z.string().uuid(),
-  title: z.string(),
-  description: z.string().optional(),
-  status: z.enum(['backlog', 'doing', 'review', 'done']).optional(),
-  assignedAgentId: z.string().uuid().optional(),
-  order: z.number().int().optional(),
-});
-
-const updateTaskSchema = z.object({
-  title: z.string().optional(),
-  description: z.string().optional(),
-  status: z.enum(['backlog', 'doing', 'review', 'done']).optional(),
-  assignedAgentId: z.string().uuid().nullable().optional(),
-  order: z.number().int().optional(),
-});
+const createTaskSchema = backendRequestSchemas.createTask;
+const updateTaskSchema = backendRequestSchemas.updateTask;
 
 const taskRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/', { preHandler: [fastify.authenticate, fastify.enforceIdempotency] }, async (request, reply) => {

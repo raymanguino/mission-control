@@ -8,6 +8,11 @@ const statusColor: Record<string, string> = {
   offline: 'bg-gray-500',
 };
 
+const roleLabel: Record<string, string> = {
+  chief_of_staff: 'Chief of Staff',
+  member: 'Member',
+};
+
 function ActivityFeed({ agentId }: { agentId: string }) {
   const [activities, setActivities] = useState<AgentActivity[]>([]);
 
@@ -65,11 +70,20 @@ export default function Agents() {
                 className={`w-2.5 h-2.5 rounded-full shrink-0 ${statusColor[agent.status] ?? 'bg-gray-500'}`}
               />
               <span className="font-medium text-white">{agent.name}</span>
+              <span className="ml-auto text-[10px] uppercase tracking-wide text-indigo-300 bg-indigo-950/70 px-2 py-0.5 rounded-full">
+                {roleLabel[agent.orgRole] ?? agent.orgRole}
+              </span>
             </div>
             {agent.device && (
               <p className="text-xs text-gray-400 mb-0.5">{agent.device}</p>
             )}
             {agent.ip && <p className="text-xs text-gray-500">{agent.ip}</p>}
+            {agent.strengths && (
+              <p className="text-xs text-gray-300 mt-2 line-clamp-2">{agent.strengths}</p>
+            )}
+            {agent.reportsToAgentId && (
+              <p className="text-xs text-gray-500 mt-1">Reports to: {agent.reportsToAgentId}</p>
+            )}
             {agent.lastSeen && (
               <p className="text-xs text-gray-600 mt-2">
                 Last seen {new Date(agent.lastSeen).toLocaleString()}

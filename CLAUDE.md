@@ -68,6 +68,13 @@ pnpm lint           # eslint across workspace
 pnpm format         # prettier across workspace
 ```
 
+## MCP Contract Sync
+
+- Source of truth: `backend/src/contracts/mcp-contract.ts`
+- Backend handlers use `backendRequestSchemas` from that file for MCP-facing request validation.
+- MCP drift is enforced by `mcp/src/tools/mcp-contract.test.ts`.
+- CI gate: `.github/workflows/mcp-contract-drift.yml` runs MCP tests (including contract conformance).
+
 ## DB
 
 ```sh
@@ -265,14 +272,21 @@ All routes are prefixed with `/api`. All routes except `/api/auth/login` and `PO
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/health/goals` | List goals |
-| POST | `/api/health/goals` | Create goal |
-| PATCH | `/api/health/goals/:id` | Update goal |
-| DELETE | `/api/health/goals/:id` | Delete goal |
-| GET | `/api/health/entries` | List entries (`?goalId&from&to`) |
-| POST | `/api/health/entries` | Log entry |
-| PATCH | `/api/health/entries/:id` | Edit entry |
-| DELETE | `/api/health/entries/:id` | Delete entry |
+| GET | `/api/health/food` | List food logs (`?date` or `?from&to`) |
+| POST | `/api/health/food` | Create food log |
+| PATCH | `/api/health/food/:id` | Update food log |
+| DELETE | `/api/health/food/:id` | Delete food log |
+| POST | `/api/health/food/quick` | Create food log from free text |
+| POST | `/api/health/food/estimate` | Estimate nutrition from description |
+| GET | `/api/health/marijuana` | List cannabis sessions (`?date` or `?from&to`) |
+| POST | `/api/health/marijuana` | Create cannabis session |
+| PATCH | `/api/health/marijuana/:id` | Update cannabis session |
+| DELETE | `/api/health/marijuana/:id` | Delete cannabis session |
+| GET | `/api/health/sleep` | List sleep logs (`?from&to`) |
+| POST | `/api/health/sleep` | Create sleep log |
+| PATCH | `/api/health/sleep/:id` | Update sleep log |
+| DELETE | `/api/health/sleep/:id` | Delete sleep log |
+| POST | `/api/health/analysis` | Generate AI wellness insights |
 
 ### Chat
 

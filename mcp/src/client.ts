@@ -2,9 +2,9 @@
 import type { ErrorEnvelope } from '@mission-control/types';
 
 const backendUrl = process.env['BACKEND_URL'] ?? 'http://localhost:3001';
-const jwt = process.env['BACKEND_JWT'];
+const backendToken = process.env['BACKEND_TOKEN'] ?? process.env['BACKEND_JWT'];
 
-if (!jwt) throw new Error('BACKEND_JWT is required');
+if (!backendToken) throw new Error('BACKEND_TOKEN or BACKEND_JWT is required');
 
 export class BackendApiError extends Error {
   public readonly status: number;
@@ -22,7 +22,7 @@ export class BackendApiError extends Error {
 
 export async function apiGet<T>(path: string): Promise<T> {
   const res = await fetch(`${backendUrl}${path}`, {
-    headers: { Authorization: `Bearer ${jwt}` },
+    headers: { Authorization: `Bearer ${backendToken}` },
   });
   if (!res.ok) {
     const text = await res.text();
@@ -43,7 +43,7 @@ export async function apiPost<T>(
   options?: { headers?: Record<string, string> },
 ): Promise<T> {
   const headers: Record<string, string> = {
-    Authorization: `Bearer ${jwt}`,
+    Authorization: `Bearer ${backendToken}`,
     'Content-Type': 'application/json',
   };
   if (options?.headers) Object.assign(headers, options.headers);
@@ -71,7 +71,7 @@ export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(`${backendUrl}${path}`, {
     method: 'PATCH',
     headers: {
-      Authorization: `Bearer ${jwt}`,
+      Authorization: `Bearer ${backendToken}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),
@@ -92,7 +92,7 @@ export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
 export async function apiDelete(path: string): Promise<void> {
   const res = await fetch(`${backendUrl}${path}`, {
     method: 'DELETE',
-    headers: { Authorization: `Bearer ${jwt}` },
+    headers: { Authorization: `Bearer ${backendToken}` },
   });
   if (!res.ok) {
     const text = await res.text();

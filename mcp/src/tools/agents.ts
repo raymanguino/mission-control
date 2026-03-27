@@ -46,14 +46,27 @@ export function registerAgentTools(server: McpServer) {
 
   server.tool(
     'create_agent',
-    'Register a new OpenClaw agent.\n\nRequired: `name`.\nOptional: `device`, `ip`.\nReturns the agent record plus a one-time plaintext API key.',
+    'Register a new OpenClaw agent.\n\nRequired: `name`.\nOptional: `device`, `ip`, `orgRole`, `strengths`, `reportsToAgentId`.\nReturns the agent record plus a one-time plaintext API key.',
     {
       name: z.string().describe('Display name for the agent (required).'),
       device: z.string().optional().describe('Hardware description (optional), e.g. "Raspberry Pi 4".'),
       ip: z.string().optional().describe('Device IP address (optional).'),
+      orgRole: z
+        .enum(['chief_of_staff', 'member'])
+        .optional()
+        .describe('Org role for this agent (default: member).'),
+      strengths: z.string().optional().describe('Short strengths profile text (optional).'),
+      reportsToAgentId: z.string().optional().describe('Manager agent UUID (optional).'),
     },
-    async ({ name, device, ip }) => {
-      const agent = await apiPost<Agent & { apiKey: string }>('/api/agents', { name, device, ip });
+    async ({ name, device, ip, orgRole, strengths, reportsToAgentId }) => {
+      const agent = await apiPost<Agent & { apiKey: string }>('/api/agents', {
+        name,
+        device,
+        ip,
+        orgRole,
+        strengths,
+        reportsToAgentId,
+      });
       return {
         content: [
           {

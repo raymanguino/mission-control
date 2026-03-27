@@ -1,5 +1,6 @@
 import {
   pgTable,
+  type AnyPgColumn,
   uuid,
   text,
   timestamp,
@@ -18,6 +19,11 @@ export const agents = pgTable('agents', {
   device: text('device'),
   ip: text('ip'),
   apiKeyHash: text('api_key_hash').notNull(),
+  orgRole: text('org_role').notNull().default('member'),
+  strengths: text('strengths'),
+  reportsToAgentId: uuid('reports_to_agent_id').references((): AnyPgColumn => agents.id, {
+    onDelete: 'set null',
+  }),
   lastSeen: timestamp('last_seen'),
   status: text('status').notNull().default('offline'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -54,6 +60,18 @@ export const tasks = pgTable('tasks', {
     onDelete: 'set null',
   }),
   order: integer('order').notNull().default(0),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const intents = pgTable('intents', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  title: text('title').notNull(),
+  body: text('body').notNull(),
+  status: text('status').notNull().default('open'),
+  createdProjectId: uuid('created_project_id').references(() => projects.id, {
+    onDelete: 'set null',
+  }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });

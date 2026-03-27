@@ -3,22 +3,21 @@ import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import * as agentsDb from '../../db/api/agents.js';
+import { backendRequestSchemas } from '../../contracts/mcp-contract.js';
 import { ApiError, parseBody } from '../../lib/errors.js';
-
-const createAgentSchema = z.object({
-  name: z.string(),
-  device: z.string().optional(),
-  ip: z.string().optional(),
-});
 
 const updateAgentSchema = z.object({
   name: z.string().optional(),
   device: z.string().optional(),
   ip: z.string().optional(),
+  orgRole: z.enum(['chief_of_staff', 'member']).optional(),
+  strengths: z.string().optional(),
+  reportsToAgentId: z.string().uuid().nullable().optional(),
 });
 
 const reportSchema = z.object({
   type: z.string(),
+  status: z.enum(['online', 'idle', 'offline']).optional(),
   description: z.string().optional(),
   metadata: z.record(z.unknown()).optional(),
 });
@@ -29,7 +28,7 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   fastify.post('/', { preHandler: [fastify.authenticate, fastify.enforceIdempotency] }, async (request, reply) => {
-    const body = parseBody(createAgentSchema, request.body);
+    const body = parseBody(backendRequestSchemas.createAgent, request.body);
 
     const rawKey = crypto.randomBytes(32).toString('hex');
     const apiKeyHash = await bcrypt.hash(rawKey, 10);
@@ -74,11 +73,21 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
     const agent = (request as FastifyRequest & { agent: { id: string } }).agent;
     const body = parseBody(reportSchema, request.body);
 
-    await agentsDb.updateAgent(agent.id, { lastSeen: new Date(), status: 'online' });
+    await agentsDb.updateAgent(agent.id, {
+      lastSeen: new Date(),
+      status: body.status ?? inferStatusFromType(body.type),
+    });
     const activity = await agentsDb.insertActivity({ agentId: agent.id, ...body });
     await fastify.finalizeIdempotency(request, 201, activity);
     return reply.code(201).send(activity);
   });
 };
+
+function inferStatusFromType(type: string): 'online' | 'idle' | 'offline' {
+  const normalized = type.toLowerCase();
+  if (normalized.includes('offline')) return 'offline';
+  if (normalized.includes('idle') || normalized.includes('waiting')) return 'idle';
+  return 'online';
+}
 
 export default agentRoutes;

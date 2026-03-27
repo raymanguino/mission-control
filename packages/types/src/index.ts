@@ -1,11 +1,15 @@
 // Agent types
 export type AgentStatus = 'online' | 'idle' | 'offline';
+export type AgentOrgRole = 'chief_of_staff' | 'member';
 
 export interface Agent {
   id: string;
   name: string;
   device: string | null;
   ip: string | null;
+  orgRole: AgentOrgRole;
+  strengths: string | null;
+  reportsToAgentId: string | null;
   lastSeen: string | null;
   status: AgentStatus;
   createdAt: string;
@@ -22,6 +26,7 @@ export interface AgentActivity {
 
 export interface AgentReportBody {
   type: string;
+  status?: AgentStatus;
   description?: string;
   metadata?: Record<string, unknown>;
 }
@@ -49,27 +54,16 @@ export interface Task {
   updatedAt: string;
 }
 
-// Health types
-export type GoalType = 'diet' | 'exercise' | 'sleep' | 'other';
-export type GoalFrequency = 'daily' | 'weekly';
+export type IntentStatus = 'open' | 'converted' | 'cancelled';
 
-export interface HealthGoal {
+export interface Intent {
   id: string;
-  name: string;
-  type: GoalType;
-  target: string;
-  unit: string;
-  frequency: GoalFrequency;
+  title: string;
+  body: string;
+  status: IntentStatus;
+  createdProjectId: string | null;
   createdAt: string;
-}
-
-export interface HealthEntry {
-  id: string;
-  goalId: string;
-  value: string;
-  notes: string | null;
-  date: string;
-  createdAt: string;
+  updatedAt: string;
 }
 
 // Wellness tracking types

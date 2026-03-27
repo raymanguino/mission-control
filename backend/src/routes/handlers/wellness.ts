@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { z } from 'zod';
 import * as wellnessDb from '../../db/api/wellness.js';
+import { backendRequestSchemas } from '../../contracts/mcp-contract.js';
 import { analyzeHealthData } from '../../services/analysis.js';
 import { estimateNutrition } from '../../services/nutrition.js';
 import { createFoodLogFromQuickText } from '../../services/quick-food-log.js';
@@ -8,52 +8,17 @@ import { ApiError, parseBody } from '../../lib/errors.js';
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
-const createFoodSchema = z.object({
-  mealType: z.enum(['breakfast', 'lunch', 'dinner', 'snack']),
-  description: z.string().min(1),
-  calories: z.number().int().positive().optional().nullable(),
-  protein: z.coerce.number().min(0).optional().nullable(),
-  carbs: z.coerce.number().min(0).optional().nullable(),
-  fat: z.coerce.number().min(0).optional().nullable(),
-  loggedAt: z.string(), // ISO datetime
-  date: z.string(),     // YYYY-MM-DD
-  notes: z.string().optional().nullable(),
-});
-
+const createFoodSchema = backendRequestSchemas.createFood;
 const updateFoodSchema = createFoodSchema.partial();
-const estimateFoodSchema = z.object({
-  description: z.string().min(1),
-});
-
-const quickFoodSchema = z.object({
-  text: z.string().min(1),
-});
-
-const createMarijuanaSchema = z.object({
-  form: z.enum(['flower', 'vape', 'edible', 'tincture', 'other']),
-  strain: z.string().optional().nullable(),
-  amount: z.string().optional().nullable(),
-  unit: z.string().optional().nullable(),
-  notes: z.string().optional().nullable(),
-  sessionAt: z.string(), // ISO datetime — critical for time-of-day correlation
-  date: z.string(),      // YYYY-MM-DD
-});
+const estimateFoodSchema = backendRequestSchemas.estimateFood;
+const quickFoodSchema = backendRequestSchemas.quickFood;
+const createMarijuanaSchema = backendRequestSchemas.createMarijuana;
 
 const updateMarijuanaSchema = createMarijuanaSchema.partial();
 
-const createSleepSchema = z.object({
-  bedTime: z.string(),  // ISO datetime
-  wakeTime: z.string().optional().nullable(),
-  qualityScore: z.number().int().min(1).max(5).optional().nullable(),
-  notes: z.string().optional().nullable(),
-  date: z.string(),     // YYYY-MM-DD (the night's date)
-});
-
+const createSleepSchema = backendRequestSchemas.createSleep;
 const updateSleepSchema = createSleepSchema.partial();
-const runAnalysisSchema = z.object({
-  goal: z.string().min(1),
-  goals: z.array(z.string().min(1)).optional(),
-});
+const runAnalysisSchema = backendRequestSchemas.runHealthAnalysis;
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 

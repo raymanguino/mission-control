@@ -18,6 +18,24 @@ export function registerProjectTools(server: McpServer) {
   );
 
   server.tool(
+    'create_project',
+    'Create a new project.\n\nRequired: `name`.\nOptional: `description`.',
+    {
+      name: z.string().describe('Project name (required).'),
+      description: z
+        .string()
+        .optional()
+        .describe('Optional longer project description (omit if not needed).'),
+    },
+    async ({ name, description }) => {
+      const project = await apiPost<Project>('/api/projects', omitNullValues({ name, description }));
+      return {
+        content: [{ type: 'text', text: JSON.stringify(project, null, 2) }],
+      };
+    },
+  );
+
+  server.tool(
     'list_tasks',
     'List all tasks for a project, grouped by status.\n\nRequired: `projectId`.',
     {
