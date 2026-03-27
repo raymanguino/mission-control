@@ -3,7 +3,7 @@ import { db } from '../index.js';
 import { agents, agentActivities } from '../schema.js';
 
 export async function listAgents() {
-  return db.select().from(agents).orderBy(agents.createdAt);
+  return await db.select().from(agents).orderBy(agents.createdAt);
 }
 
 export async function getAgent(id: string) {

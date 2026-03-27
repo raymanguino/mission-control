@@ -153,7 +153,11 @@ export interface Message {
   channelId: string;
   author: string;
   content: string;
+  /** True if created via Mission Control API (not ingested from Discord). */
+  fromMissionControl: boolean;
   agentId: string | null;
+  source: string;
+  externalMessageId: string | null;
   createdAt: string;
 }
 

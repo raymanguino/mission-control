@@ -7,5 +7,6 @@ if (!connectionString) throw new Error('DATABASE_URL is required');
 
 const client = postgres(connectionString);
 export const db = drizzle(client, { schema });
+export const rawClient = client;
 
 export type DB = typeof db;

@@ -167,6 +167,9 @@ export async function finalizeIdempotencyKey(
 /** Deletes rows past TTL (global sweep; per-key deletes also run on reserve). */
 export async function deleteExpiredIdempotencyKeys(): Promise<number> {
   const now = new Date();
-  const deleted = await db.delete(idempotencyKeys).where(lt(idempotencyKeys.expiresAt, now)).returning({ id: idempotencyKeys.id });
+  const deleted = await db
+    .delete(idempotencyKeys)
+    .where(lt(idempotencyKeys.expiresAt, now))
+    .returning({ id: idempotencyKeys.id });
   return deleted.length;
 }

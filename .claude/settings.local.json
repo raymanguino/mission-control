@@ -14,7 +14,8 @@
       "Bash(pnpm --filter backend db:generate)",
       "Bash(pnpm --filter backend db:migrate)",
       "WebFetch(domain:openrouter.ai)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(pnpm --filter backend test)"
     ]
   }
 }

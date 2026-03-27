@@ -9,6 +9,7 @@ import {
   date,
   jsonb,
   smallint,
+  boolean,
   index,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
@@ -112,9 +113,15 @@ export const messages = pgTable('messages', {
     .references(() => channels.id, { onDelete: 'cascade' }),
   author: text('author').notNull(),
   content: text('content').notNull(),
+  /** True when the row was created by the Mission Control API (dashboard/MCP), not synced from Discord. */
+  fromMissionControl: boolean('from_mission_control').notNull().default(false),
   agentId: uuid('agent_id').references(() => agents.id, { onDelete: 'set null' }),
+  source: text('source').notNull().default('manual'),
+  externalMessageId: text('external_message_id'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
-});
+}, (table) => ({
+  externalMessageIdUnique: uniqueIndex('messages_external_message_id_idx').on(table.externalMessageId),
+}));
 
 export const usageRecords = pgTable('usage_records', {
   id: uuid('id').primaryKey().defaultRandom(),

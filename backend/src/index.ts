@@ -7,6 +7,7 @@ import idempotencyPlugin from './plugins/idempotency.js';
 import { registerRoutes } from './routes/index.js';
 import { startCronJobs } from './services/cron.js';
 import { registerErrorHandling } from './lib/errors.js';
+import { getDiscordSyncService, startDiscordSync, stopDiscordSync } from './services/discord/index.js';
 
 const app = Fastify({ logger: true });
 
@@ -26,9 +27,23 @@ await app.register(idempotencyPlugin);
 registerErrorHandling(app);
 await registerRoutes(app);
 
-app.get('/healthz', async () => ({ ok: true }));
+app.get('/healthz', async () => ({
+  ok: true,
+  discord: getDiscordSyncService()?.getHealth() ?? { enabled: false, connected: false, guildId: null },
+}));
 
 const port = Number(process.env['PORT'] ?? 3001);
+
+await startDiscordSync(app.log);
 await app.listen({ port, host: '0.0.0.0' });
 
 startCronJobs();
+
+const shutdown = async () => {
+  await stopDiscordSync();
+  await app.close();
+  process.exit(0);
+};
+
+process.on('SIGINT', () => void shutdown());
+process.on('SIGTERM', () => void shutdown());

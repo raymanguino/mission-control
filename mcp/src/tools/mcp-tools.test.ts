@@ -107,6 +107,22 @@ describe('MCP tool unit tests', () => {
     expect(parsed).toEqual(msg);
   });
 
+  it('registerChatTools: post_message sends discordUserId when provided', async () => {
+    const handlers = getHandlers(registerChatTools as unknown as (server: unknown) => void);
+    const msg = { id: 'msg1', author: 'Alice', content: 'hi', createdAt: 't1' };
+    apiPostMock.mockResolvedValueOnce(msg as any);
+
+    await handlers.post_message({
+      channelId: 'ch-1',
+      content: 'hi',
+      discordUserId: '123456789012345678',
+    });
+    expect(apiPostMock).toHaveBeenCalledWith('/api/channels/ch-1/messages', {
+      discordUserId: '123456789012345678',
+      content: 'hi',
+    });
+  });
+
   it('registerProjectTools: list_tasks groups by status', async () => {
     const handlers = getHandlers(registerProjectTools as unknown as (server: unknown) => void);
     const tasks = [
