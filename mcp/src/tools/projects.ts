@@ -6,6 +6,20 @@ import type { Project, Task } from '@mission-control/types';
 
 export function registerProjectTools(server: McpServer) {
   server.tool(
+    'get_task',
+    'Get a single task by ID.\n\nRequired: `taskId`.',
+    {
+      taskId: z.string().describe('Task UUID (required).'),
+    },
+    async ({ taskId }) => {
+      const task = await apiGet<Task>(`/api/tasks/${taskId}`);
+      return {
+        content: [{ type: 'text', text: JSON.stringify(task, null, 2) }],
+      };
+    },
+  );
+
+  server.tool(
     'list_projects',
     'List all projects.\n\nNo inputs.',
     {},

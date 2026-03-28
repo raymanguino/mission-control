@@ -66,3 +66,8 @@ export async function updateTask(
 export async function deleteTask(id: string) {
   await db.delete(tasks).where(eq(tasks.id, id));
 }
+
+export async function getTask(id: string) {
+  const rows = await db.select().from(tasks).where(eq(tasks.id, id)).limit(1);
+  return rows[0] ?? null;
+}

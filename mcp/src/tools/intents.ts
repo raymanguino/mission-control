@@ -6,6 +6,20 @@ import type { Intent, Project } from '@mission-control/types';
 
 export function registerIntentTools(server: McpServer) {
   server.tool(
+    'get_intent',
+    'Get a single intent by ID.\n\nRequired: `intentId`.',
+    {
+      intentId: z.string().describe('Intent UUID (required).'),
+    },
+    async ({ intentId }) => {
+      const intent = await apiGet<Intent>(`/api/intents/${intentId}`);
+      return {
+        content: [{ type: 'text', text: JSON.stringify(intent, null, 2) }],
+      };
+    },
+  );
+
+  server.tool(
     'list_intents',
     'List all intents.\n\nNo inputs.',
     {},

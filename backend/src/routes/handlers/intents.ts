@@ -1,5 +1,8 @@
 import type { FastifyPluginAsync } from 'fastify';
 import * as intentsDb from '../../db/api/intents.js';
+import * as agentsDb from '../../db/api/agents.js';
+import * as settingsDb from '../../db/api/settings.js';
+import * as emailService from '../../services/email.js';
 import { backendRequestSchemas } from '../../contracts/mcp-contract.js';
 import { ApiError, parseBody } from '../../lib/errors.js';
 
@@ -26,6 +29,27 @@ const intentRoutes: FastifyPluginAsync = async (fastify) => {
       const body = parseBody(createIntentSchema, request.body);
       const intent = await intentsDb.createIntent(body);
       await fastify.finalizeIdempotency(request, 201, intent);
+
+      // Notify CoS agents of new intent (fire-and-forget, never fail the request)
+      try {
+        const cosAgents = await agentsDb.getCoSAgents();
+        const cosWithEmail = cosAgents.filter((a) => a.email);
+        if (cosWithEmail.length > 0) {
+          const instructions = (await settingsDb.getSetting('cos_instructions')) ?? '';
+          await Promise.all(
+            cosWithEmail.map((cos) =>
+              emailService.notifyCoSOfIntent(
+                { email: cos.email!, name: cos.name },
+                intent,
+                instructions,
+              ),
+            ),
+          );
+        }
+      } catch (err) {
+        request.log.error({ err }, 'Failed to notify CoS of new intent');
+      }
+
       return reply.code(201).send(intent);
     },
   );

@@ -72,7 +72,7 @@ describe('MCP tool unit tests', () => {
     });
 
     const text = (res as any).content[0].text as string;
-    expect(text).toContain('Agent created. Store the API key now');
+    expect(text).toContain('Agent created. Store the API key');
     expect(text).toContain(JSON.stringify(agent, null, 2));
   });
 

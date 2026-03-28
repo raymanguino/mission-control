@@ -33,6 +33,11 @@ export default function Settings() {
   const [aiConfig, setAiConfig] = useState<AiConfigResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const [settingsLoading, setSettingsLoading] = useState(true);
+  const [cosInstructions, setCosInstructions] = useState('');
+  const [agentInstructions, setAgentInstructions] = useState('');
+  const [saving, setSaving] = useState<string | null>(null);
+
   const load = () => {
     setLoading(true);
     api
@@ -42,13 +47,87 @@ export default function Settings() {
       .finally(() => setLoading(false));
   };
 
+  const loadSettings = () => {
+    setSettingsLoading(true);
+    api
+      .get<Record<string, string>>('/api/settings')
+      .then((s) => {
+        setCosInstructions(s['cos_instructions'] ?? '');
+        setAgentInstructions(s['agent_instructions'] ?? '');
+      })
+      .catch(() => {})
+      .finally(() => setSettingsLoading(false));
+  };
+
   useEffect(() => {
     load();
+    loadSettings();
   }, []);
+
+  const saveSetting = async (key: string, value: string) => {
+    setSaving(key);
+    try {
+      await api.patch('/api/settings', { [key]: value });
+    } finally {
+      setSaving(null);
+    }
+  };
 
   return (
     <div className="space-y-6 max-w-3xl">
       <h1 className="text-2xl font-semibold">Settings</h1>
+
+      {/* Chief of Staff Instructions */}
+      <div className="bg-gray-900 rounded-xl p-5 border border-gray-800 space-y-3">
+        <h2 className="text-sm font-semibold text-white">Chief of Staff Instructions</h2>
+        <p className="text-xs text-gray-500">
+          Sent to the CoS agent on registration and with every report response.
+        </p>
+        {settingsLoading ? (
+          <p className="text-xs text-gray-500">Loading…</p>
+        ) : (
+          <>
+            <textarea
+              className="w-full bg-gray-800 text-gray-200 text-xs rounded-md p-3 border border-gray-700 resize-y min-h-[120px] focus:outline-none focus:border-gray-600"
+              value={cosInstructions}
+              onChange={(e) => setCosInstructions(e.target.value)}
+            />
+            <button
+              onClick={() => saveSetting('cos_instructions', cosInstructions)}
+              disabled={saving === 'cos_instructions'}
+              className="px-3 py-1.5 text-xs rounded-md bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50"
+            >
+              {saving === 'cos_instructions' ? 'Saving…' : 'Save'}
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Agent Instructions */}
+      <div className="bg-gray-900 rounded-xl p-5 border border-gray-800 space-y-3">
+        <h2 className="text-sm font-semibold text-white">Agent Instructions</h2>
+        <p className="text-xs text-gray-500">
+          Sent to member agents on registration, task assignment, and with every report response.
+        </p>
+        {settingsLoading ? (
+          <p className="text-xs text-gray-500">Loading…</p>
+        ) : (
+          <>
+            <textarea
+              className="w-full bg-gray-800 text-gray-200 text-xs rounded-md p-3 border border-gray-700 resize-y min-h-[120px] focus:outline-none focus:border-gray-600"
+              value={agentInstructions}
+              onChange={(e) => setAgentInstructions(e.target.value)}
+            />
+            <button
+              onClick={() => saveSetting('agent_instructions', agentInstructions)}
+              disabled={saving === 'agent_instructions'}
+              className="px-3 py-1.5 text-xs rounded-md bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50"
+            >
+              {saving === 'agent_instructions' ? 'Saving…' : 'Save'}
+            </button>
+          </>
+        )}
+      </div>
 
       {/* AI Routing Config */}
       <div className="bg-gray-900 rounded-xl p-5 border border-gray-800 space-y-3">

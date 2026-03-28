@@ -9,6 +9,7 @@ import { registerIntentTools } from './tools/intents.js';
 import { registerWellnessTools } from './tools/wellness.js';
 import { registerChatTools } from './tools/chat.js';
 import { registerUsageTools } from './tools/usage.js';
+import { registerSettingsTools } from './tools/settings.js';
 
 const MCP_API_KEY = process.env['MCP_API_KEY'];
 if (!MCP_API_KEY) throw new Error('MCP_API_KEY is required');
@@ -24,6 +25,7 @@ function createMcpServer(): McpServer {
   registerWellnessTools(server);
   registerChatTools(server);
   registerUsageTools(server);
+  registerSettingsTools(server);
   return server;
 }
 

@@ -3,15 +3,18 @@ import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import * as agentsDb from '../../db/api/agents.js';
+import * as settingsDb from '../../db/api/settings.js';
 import { backendRequestSchemas } from '../../contracts/mcp-contract.js';
 import { ApiError, parseBody } from '../../lib/errors.js';
 
 const updateAgentSchema = z.object({
   name: z.string().optional(),
+  email: z.string().email().optional(),
   device: z.string().optional(),
   ip: z.string().optional(),
   orgRole: z.enum(['chief_of_staff', 'member']).optional(),
-  strengths: z.string().optional(),
+  specialization: z.string().optional(),
+  description: z.string().optional(),
   reportsToAgentId: z.string().uuid().nullable().optional(),
 });
 
@@ -33,8 +36,16 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
     const rawKey = crypto.randomBytes(32).toString('hex');
     const apiKeyHash = await bcrypt.hash(rawKey, 10);
 
-    const agent = await agentsDb.createAgent({ ...body, apiKeyHash });
-    const response = { ...agent, apiKey: rawKey };
+    // Auto-assign CoS role: first agent becomes Chief of Staff
+    const existingCoS = await agentsDb.getCoSAgents();
+    const orgRole = existingCoS.length === 0 ? 'chief_of_staff' : 'member';
+
+    const agent = await agentsDb.createAgent({ ...body, apiKeyHash, orgRole });
+
+    const instrKey = orgRole === 'chief_of_staff' ? 'cos_instructions' : 'agent_instructions';
+    const instructions = await settingsDb.getSetting(instrKey);
+
+    const response = { ...agent, apiKey: rawKey, instructions };
     await fastify.finalizeIdempotency(request, 201, response);
     return reply.code(201).send(response);
   });
@@ -70,7 +81,7 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   fastify.post('/report', { preHandler: [fastify.authenticateAgent, fastify.enforceIdempotency] }, async (request, reply) => {
-    const agent = (request as FastifyRequest & { agent: { id: string } }).agent;
+    const agent = (request as FastifyRequest & { agent: { id: string; orgRole: string } }).agent;
     const body = parseBody(reportSchema, request.body);
 
     await agentsDb.updateAgent(agent.id, {
@@ -78,8 +89,13 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
       status: body.status ?? inferStatusFromType(body.type),
     });
     const activity = await agentsDb.insertActivity({ agentId: agent.id, ...body });
-    await fastify.finalizeIdempotency(request, 201, activity);
-    return reply.code(201).send(activity);
+
+    const instrKey = agent.orgRole === 'chief_of_staff' ? 'cos_instructions' : 'agent_instructions';
+    const instructions = await settingsDb.getSetting(instrKey);
+
+    const response = { ...activity, instructions };
+    await fastify.finalizeIdempotency(request, 201, response);
+    return reply.code(201).send(response);
   });
 };
 

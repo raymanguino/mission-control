@@ -78,8 +78,8 @@ export default function Agents() {
               <p className="text-xs text-gray-400 mb-0.5">{agent.device}</p>
             )}
             {agent.ip && <p className="text-xs text-gray-500">{agent.ip}</p>}
-            {agent.strengths && (
-              <p className="text-xs text-gray-300 mt-2 line-clamp-2">{agent.strengths}</p>
+            {agent.specialization && (
+              <p className="text-xs text-gray-300 mt-2 line-clamp-2">{agent.specialization}</p>
             )}
             {agent.reportsToAgentId && (
               <p className="text-xs text-gray-500 mt-1">Reports to: {agent.reportsToAgentId}</p>

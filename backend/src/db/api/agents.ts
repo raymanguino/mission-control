@@ -2,6 +2,10 @@ import { eq, desc } from 'drizzle-orm';
 import { db } from '../index.js';
 import { agents, agentActivities } from '../schema.js';
 
+export async function getCoSAgents() {
+  return db.select().from(agents).where(eq(agents.orgRole, 'chief_of_staff'));
+}
+
 export async function listAgents() {
   return await db.select().from(agents).orderBy(agents.createdAt);
 }
@@ -18,10 +22,12 @@ export async function getAgentByKeyHash(_hash: string) {
 
 export async function createAgent(data: {
   name: string;
+  email?: string;
   device?: string;
   ip?: string;
   orgRole?: string;
-  strengths?: string;
+  specialization?: string;
+  description?: string;
   reportsToAgentId?: string;
   apiKeyHash: string;
 }) {
@@ -33,10 +39,12 @@ export async function updateAgent(
   id: string,
   data: Partial<{
     name: string;
+    email: string;
     device: string;
     ip: string;
     orgRole: string;
-    strengths: string;
+    specialization: string;
+    description: string;
     reportsToAgentId: string | null;
     lastSeen: Date;
     status: string;

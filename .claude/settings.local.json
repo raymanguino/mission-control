@@ -15,7 +15,12 @@
       "Bash(pnpm --filter backend db:migrate)",
       "WebFetch(domain:openrouter.ai)",
       "WebSearch",
-      "Bash(pnpm --filter backend test)"
+      "Bash(pnpm --filter backend test)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(pnpm --filter mcp test)",
+      "WebFetch(domain:resend.com)",
+      "WebFetch(domain:docs.railway.com)"
     ]
   }
 }

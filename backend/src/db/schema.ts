@@ -17,11 +17,13 @@ import {
 export const agents = pgTable('agents', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
+  email: text('email'),
   device: text('device'),
   ip: text('ip'),
   apiKeyHash: text('api_key_hash').notNull(),
   orgRole: text('org_role').notNull().default('member'),
-  strengths: text('strengths'),
+  specialization: text('specialization'),
+  description: text('description'),
   reportsToAgentId: uuid('reports_to_agent_id').references((): AnyPgColumn => agents.id, {
     onDelete: 'set null',
   }),
@@ -179,6 +181,12 @@ export const sleepLogs = pgTable('sleep_logs', {
   notes: text('notes'),
   date: date('date').notNull(),              // the night's date (date you went to bed)
   createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const settings = pgTable('settings', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
 export const idempotencyKeys = pgTable(

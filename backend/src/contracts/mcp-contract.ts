@@ -14,11 +14,26 @@ export interface McpToolContract {
 export const backendRequestSchemas = {
   createAgent: z.object({
     name: z.string(),
+    email: z.string().email().optional(),
+    device: z.string().optional(),
+    ip: z.string().optional(),
+    specialization: z.string().optional(),
+    description: z.string().optional(),
+    reportsToAgentId: z.string().uuid().optional(),
+  }),
+  updateAgent: z.object({
+    agentId: z.string().uuid(),
+    name: z.string().optional(),
+    email: z.string().email().optional(),
     device: z.string().optional(),
     ip: z.string().optional(),
     orgRole: z.enum(['chief_of_staff', 'member']).optional(),
-    strengths: z.string().optional(),
-    reportsToAgentId: z.string().uuid().optional(),
+    specialization: z.string().optional(),
+    description: z.string().optional(),
+    reportsToAgentId: z.string().uuid().nullable().optional(),
+  }),
+  updateSettings: z.object({
+    updates: z.record(z.string(), z.string()),
   }),
   createProject: z.object({
     name: z.string(),
@@ -122,12 +137,24 @@ export const mcpToolContracts: Record<string, McpToolContract> = {
     params: 'body',
     input: backendRequestSchemas.createAgent.shape,
   },
+  update_agent: {
+    method: 'PATCH',
+    path: '/api/agents/:agentId',
+    params: 'path+body',
+    input: backendRequestSchemas.updateAgent.shape,
+  },
   list_projects: { method: 'GET', path: '/api/projects', params: 'none', input: {} },
   create_project: {
     method: 'POST',
     path: '/api/projects',
     params: 'body',
     input: backendRequestSchemas.createProject.shape,
+  },
+  get_task: {
+    method: 'GET',
+    path: '/api/tasks/:taskId',
+    params: 'path+query',
+    input: { taskId: z.string() },
   },
   list_tasks: {
     method: 'GET',
@@ -158,6 +185,12 @@ export const mcpToolContracts: Record<string, McpToolContract> = {
       description: backendRequestSchemas.updateTask.shape.description,
       assignedAgentId: z.string().nullable().optional(),
     },
+  },
+  get_intent: {
+    method: 'GET',
+    path: '/api/intents/:intentId',
+    params: 'path+query',
+    input: { intentId: z.string() },
   },
   list_intents: { method: 'GET', path: '/api/intents', params: 'none', input: {} },
   create_intent: {
@@ -329,6 +362,13 @@ export const mcpToolContracts: Record<string, McpToolContract> = {
     path: '/api/health/analysis',
     params: 'body',
     input: backendRequestSchemas.runHealthAnalysis.shape,
+  },
+  get_settings: { method: 'GET', path: '/api/settings', params: 'none', input: {} },
+  update_settings: {
+    method: 'PATCH',
+    path: '/api/settings',
+    params: 'body',
+    input: backendRequestSchemas.updateSettings.shape,
   },
 };
 

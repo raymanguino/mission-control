@@ -7,6 +7,7 @@ import { registerAgentTools } from './agents.js';
 import { registerChatTools } from './chat.js';
 import { registerIntentTools } from './intents.js';
 import { registerProjectTools } from './projects.js';
+import { registerSettingsTools } from './settings.js';
 import { registerUsageTools } from './usage.js';
 import { registerWellnessTools } from './wellness.js';
 import {
@@ -44,6 +45,7 @@ function getRegisteredTools() {
   registerWellnessTools(server as never);
   registerChatTools(server as never);
   registerUsageTools(server as never);
+  registerSettingsTools(server as never);
 
   return tools;
 }
@@ -68,6 +70,7 @@ function extractApiPathsFromToolSources() {
     'wellness.ts',
     'chat.ts',
     'usage.ts',
+    'settings.ts',
   ];
 
   const paths = new Set<string>();

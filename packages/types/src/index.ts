@@ -5,10 +5,12 @@ export type AgentOrgRole = 'chief_of_staff' | 'member';
 export interface Agent {
   id: string;
   name: string;
+  email: string | null;
+  specialization: string | null;
+  description: string | null;
   device: string | null;
   ip: string | null;
   orgRole: AgentOrgRole;
-  strengths: string | null;
   reportsToAgentId: string | null;
   lastSeen: string | null;
   status: AgentStatus;
