@@ -24,6 +24,13 @@ http:
       }
   auth: inherit
 
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const data = res.getBody();
+        bru.setEnvVar('agentId', data.id);
+
 settings:
   encodeUrl: false
   timeout: 0
