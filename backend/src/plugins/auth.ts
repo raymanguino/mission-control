@@ -29,7 +29,7 @@ const authPlugin: FastifyPluginAsync = async (fastify) => {
       try {
         await request.jwtVerify();
       } catch {
-        await sendError(reply, 401, 'UNAUTHORIZED', 'Unauthorized');
+        return sendError(reply, 401, 'UNAUTHORIZED', 'Unauthorized');
       }
     },
   );

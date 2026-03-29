@@ -15,7 +15,7 @@ const secret = process.env['DASHBOARD_SECRET'];
 if (!secret) throw new Error('DASHBOARD_SECRET is required');
 
 await app.register(cors, {
-  origin: process.env['FRONTEND_ORIGIN'] ?? 'http://localhost:5173',
+  origin: true,
   credentials: true,
   methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 });
