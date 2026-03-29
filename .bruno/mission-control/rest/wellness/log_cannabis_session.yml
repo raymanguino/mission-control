@@ -1,11 +1,11 @@
 info:
-  name: create_agent
+  name: log_cannabis_session
   type: http
-  seq: 3
+  seq: 6
 
 http:
   method: post
-  url: http://{{host}}:{{port}}/api/agents
+  url: http://{{host}}:{{port}}/api/health/marijuana
   headers:
     - name: Authorization
       value: Bearer {{token}}
@@ -15,12 +15,13 @@ http:
     type: json
     data: |-
       {
-        "name": "Agent Alpha",
-        "email": "agent@example.com",
-        "specialization": "Frontend React",
-        "description": "Detailed skills profile",
-        "device": "Laptop",
-        "ip": "192.168.1.10"
+        "form": "flower",
+        "sessionAt": "2026-03-28T20:00:00.000Z",
+        "date": "2026-03-28",
+        "strain": "Optional strain",
+        "amount": "0.5",
+        "unit": "g",
+        "notes": "optional"
       }
   auth: inherit
 

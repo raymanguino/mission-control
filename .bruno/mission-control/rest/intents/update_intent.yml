@@ -1,11 +1,11 @@
 info:
-  name: update_settings
+  name: update_intent
   type: http
-  seq: 2
+  seq: 4
 
 http:
   method: patch
-  url: http://{{host}}:{{port}}/api/settings
+  url: http://{{host}}:{{port}}/api/intents/{{intentId}}
   headers:
     - name: Authorization
       value: Bearer {{token}}
@@ -15,7 +15,10 @@ http:
     type: json
     data: |-
       {
-        "some_key": "some_value"
+        "title": "Updated title",
+        "body": "Updated body",
+        "status": "open",
+        "createdProjectId": null
       }
   auth: inherit
 

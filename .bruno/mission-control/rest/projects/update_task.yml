@@ -1,11 +1,11 @@
 info:
-  name: update_settings
+  name: update_task
   type: http
-  seq: 2
+  seq: 6
 
 http:
   method: patch
-  url: http://{{host}}:{{port}}/api/settings
+  url: http://{{host}}:{{port}}/api/tasks/{{taskId}}
   headers:
     - name: Authorization
       value: Bearer {{token}}
@@ -15,7 +15,10 @@ http:
     type: json
     data: |-
       {
-        "some_key": "some_value"
+        "title": "Updated title",
+        "status": "doing",
+        "description": null,
+        "assignedAgentId": "00000000-0000-4000-8000-000000000001"
       }
   auth: inherit
 

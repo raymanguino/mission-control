@@ -1,11 +1,11 @@
 info:
-  name: create_agent
+  name: create_task
   type: http
-  seq: 3
+  seq: 5
 
 http:
   method: post
-  url: http://{{host}}:{{port}}/api/agents
+  url: http://{{host}}:{{port}}/api/tasks
   headers:
     - name: Authorization
       value: Bearer {{token}}
@@ -15,12 +15,11 @@ http:
     type: json
     data: |-
       {
-        "name": "Agent Alpha",
-        "email": "agent@example.com",
-        "specialization": "Frontend React",
-        "description": "Detailed skills profile",
-        "device": "Laptop",
-        "ip": "192.168.1.10"
+        "projectId": "00000000-0000-4000-8000-000000000002",
+        "title": "Implement feature",
+        "description": "Task details",
+        "status": "backlog",
+        "assignedAgentId": "00000000-0000-4000-8000-000000000001"
       }
   auth: inherit
 

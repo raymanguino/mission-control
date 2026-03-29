@@ -1,22 +1,14 @@
 info:
-  name: update_settings
+  name: settings
   type: http
-  seq: 2
+  seq: 1
 
 http:
-  method: patch
+  method: get
   url: http://{{host}}:{{port}}/api/settings
   headers:
     - name: Authorization
       value: Bearer {{token}}
-    - name: Content-Type
-      value: application/json
-  body:
-    type: json
-    data: |-
-      {
-        "some_key": "some_value"
-      }
   auth: inherit
 
 settings:

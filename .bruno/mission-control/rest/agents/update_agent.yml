@@ -1,11 +1,11 @@
 info:
-  name: update_settings
+  name: update_agent
   type: http
-  seq: 2
+  seq: 4
 
 http:
   method: patch
-  url: http://{{host}}:{{port}}/api/settings
+  url: http://{{host}}:{{port}}/api/agents/{{agentId}}
   headers:
     - name: Authorization
       value: Bearer {{token}}
@@ -15,7 +15,11 @@ http:
     type: json
     data: |-
       {
-        "some_key": "some_value"
+        "name": "Updated name",
+        "email": "updated@example.com",
+        "specialization": "Backend",
+        "orgRole": "member",
+        "reportsToAgentId": null
       }
   auth: inherit
 

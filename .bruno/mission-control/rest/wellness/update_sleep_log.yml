@@ -1,11 +1,11 @@
 info:
-  name: update_settings
+  name: update_sleep_log
   type: http
-  seq: 2
+  seq: 9
 
 http:
   method: patch
-  url: http://{{host}}:{{port}}/api/settings
+  url: http://{{host}}:{{port}}/api/health/sleep/{{id}}
   headers:
     - name: Authorization
       value: Bearer {{token}}
@@ -15,7 +15,9 @@ http:
     type: json
     data: |-
       {
-        "some_key": "some_value"
+        "wakeTime": "2026-03-28T09:30:00.000Z",
+        "qualityScore": 5,
+        "notes": "Woke up refreshed"
       }
   auth: inherit
 

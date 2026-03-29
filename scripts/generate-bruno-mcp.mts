@@ -1,6 +1,9 @@
 /**
- * Regenerates Bruno request YAML under .bruno/mission-control/mcp from mcpToolContracts
- * plus estimate_food (POST /api/health/food/estimate).
+ * Regenerates Bruno request YAML:
+ * - `.bruno/mission-control/mcp` — MCP-aligned names (e.g. get_settings.yml)
+ * - `.bruno/mission-control/rest` — raw HTTP API (same routes; e.g. settings.yml for GET /api/settings)
+ *
+ * Sources: mcpToolContracts + estimate_food (POST /api/health/food/estimate).
  *
  * Run from repo root: pnpm gen:bruno
  */
@@ -11,9 +14,11 @@ import { fileURLToPath } from 'node:url';
 import { mcpToolContracts } from '../backend/src/contracts/mcp-contract.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const MCP_BRUNO_ROOT = join(__dirname, '..', '.bruno', 'mission-control', 'mcp');
+const BRUNO_MISSION_CONTROL = join(__dirname, '..', '.bruno', 'mission-control');
+const MCP_BRUNO_ROOT = join(BRUNO_MISSION_CONTROL, 'mcp');
+const REST_BRUNO_ROOT = join(BRUNO_MISSION_CONTROL, 'rest');
 
-/** Tool name → Bruno subfolder (matches MCP modules). */
+/** Tool name → Bruno subfolder (matches MCP modules and backend route groups in routes/index.ts). */
 const FOLDER_TOOLS: Record<string, string[]> = {
   agents: ['list_agents', 'get_agent_activity', 'create_agent', 'update_agent'],
   projects: ['list_projects', 'create_project', 'get_task', 'list_tasks', 'create_task', 'update_task'],
@@ -47,7 +52,7 @@ const QUERY_EXAMPLES: Partial<Record<string, string>> = {
   list_sleep_logs: '?from=2026-03-21&to=2026-03-28',
 };
 
-/** Example JSON bodies for POST/PATCH (path params excluded). */
+/** Example JSON bodies for POST/PATCH (path params excluded). Matches backend HTTP bodies (not MCP tool input wrappers). */
 const BODY_JSON: Partial<Record<string, object>> = {
   create_agent: {
     name: 'Agent Alpha',
@@ -143,9 +148,7 @@ const BODY_JSON: Partial<Record<string, object>> = {
     goals: ['Track meals more consistently'],
   },
   update_settings: {
-    updates: {
-      some_key: 'some_value',
-    },
+    some_key: 'some_value',
   },
 };
 
@@ -154,6 +157,19 @@ const SETTINGS_YAML = `settings:
   timeout: 0
   followRedirects: true
   maxRedirects: 5`;
+
+/** REST collection: Bruno request `info.name` (default: tool name). */
+const REST_INFO_NAMES: Partial<Record<string, string>> = {
+  get_settings: 'settings',
+};
+
+/** REST collection: filename without `.yml` (default: tool name). */
+const REST_FILE_NAMES: Partial<Record<string, string>> = {
+  get_settings: 'settings',
+};
+
+/** Root `rest/folder.yml` seq in the Bruno collection. */
+const REST_ROOT_FOLDER_SEQ = 2;
 
 function pathToBrunoPath(path: string): string {
   return path.replace(/:([a-zA-Z]+)/g, '{{$1}}');
@@ -169,17 +185,32 @@ function buildUrl(toolName: string, contractPath: string): string {
   return `http://{{host}}:{{port}}${base}${q}`;
 }
 
+function renderFolderYml(folderName: string, seq: number): string {
+  return [
+    'info:',
+    `  name: ${folderName}`,
+    '  type: folder',
+    `  seq: ${seq}`,
+    '',
+    'request:',
+    '  auth: inherit',
+    '',
+  ].join('\n');
+}
+
 function renderRequest(
   toolName: string,
   seq: number,
   method: string,
   url: string,
   body?: object,
+  infoName?: string,
 ): string {
   const m = methodToBruno(method);
+  const displayName = infoName ?? toolName;
   const lines: string[] = [
     'info:',
-    `  name: ${toolName}`,
+    `  name: ${displayName}`,
     '  type: http',
     `  seq: ${seq}`,
     '',
@@ -216,9 +247,50 @@ function validateMapping(): void {
   }
 }
 
-function main(): void {
-  validateMapping();
+function writeOneRequest(
+  root: string,
+  folder: string,
+  toolName: string,
+  seq: number,
+  options: { rest: boolean },
+): void {
+  const dir = join(root, folder);
+  mkdirSync(dir, { recursive: true });
 
+  const baseFileName = options.rest ? (REST_FILE_NAMES[toolName] ?? toolName) : toolName;
+  const infoName = options.rest ? (REST_INFO_NAMES[toolName] ?? toolName) : undefined;
+
+  if (toolName === 'estimate_food') {
+    const url = buildUrl('estimate_food', '/api/health/food/estimate');
+    const body = BODY_JSON.estimate_food!;
+    writeFileSync(
+      join(dir, `${baseFileName}.yml`),
+      renderRequest(toolName, seq, 'POST', url, body, infoName),
+    );
+    return;
+  }
+
+  const contract = mcpToolContracts[toolName];
+  if (!contract) throw new Error(`No contract for ${toolName}`);
+
+  const url = buildUrl(toolName, contract.path);
+
+  let body: object | undefined;
+  const wantsJsonBody =
+    (contract.method === 'POST' || contract.method === 'PATCH') &&
+    (contract.params === 'body' || contract.params === 'path+body');
+  if (wantsJsonBody) {
+    body = BODY_JSON[toolName];
+    if (body === undefined) throw new Error(`Missing BODY_JSON for ${toolName}`);
+  }
+
+  writeFileSync(
+    join(dir, `${baseFileName}.yml`),
+    renderRequest(toolName, seq, contract.method, url, body, infoName),
+  );
+}
+
+function generateMcpCollection(): void {
   for (const [folder, tools] of Object.entries(FOLDER_TOOLS)) {
     const dir = join(MCP_BRUNO_ROOT, folder);
     mkdirSync(dir, { recursive: true });
@@ -226,33 +298,37 @@ function main(): void {
     let seq = 0;
     for (const toolName of tools) {
       seq += 1;
-
-      if (toolName === 'estimate_food') {
-        const url = buildUrl('estimate_food', '/api/health/food/estimate');
-        const body = BODY_JSON.estimate_food!;
-        writeFileSync(join(dir, `${toolName}.yml`), renderRequest(toolName, seq, 'POST', url, body));
-        continue;
-      }
-
-      const contract = mcpToolContracts[toolName];
-      if (!contract) throw new Error(`No contract for ${toolName}`);
-
-      const url = buildUrl(toolName, contract.path);
-
-      let body: object | undefined;
-      const wantsJsonBody =
-        (contract.method === 'POST' || contract.method === 'PATCH') &&
-        (contract.params === 'body' || contract.params === 'path+body');
-      if (wantsJsonBody) {
-        body = BODY_JSON[toolName];
-        if (body === undefined) throw new Error(`Missing BODY_JSON for ${toolName}`);
-      }
-
-      writeFileSync(join(dir, `${toolName}.yml`), renderRequest(toolName, seq, contract.method, url, body));
+      writeOneRequest(MCP_BRUNO_ROOT, folder, toolName, seq, { rest: false });
     }
   }
-
   console.log(`Wrote Bruno requests under ${MCP_BRUNO_ROOT}`);
+}
+
+function generateRestCollection(): void {
+  mkdirSync(REST_BRUNO_ROOT, { recursive: true });
+  writeFileSync(join(REST_BRUNO_ROOT, 'folder.yml'), renderFolderYml('rest', REST_ROOT_FOLDER_SEQ));
+
+  const folderNames = Object.keys(FOLDER_TOOLS);
+  folderNames.forEach((folder, i) => {
+    const sub = join(REST_BRUNO_ROOT, folder);
+    mkdirSync(sub, { recursive: true });
+    writeFileSync(join(sub, 'folder.yml'), renderFolderYml(folder, i + 1));
+  });
+
+  for (const [folder, tools] of Object.entries(FOLDER_TOOLS)) {
+    let seq = 0;
+    for (const toolName of tools) {
+      seq += 1;
+      writeOneRequest(REST_BRUNO_ROOT, folder, toolName, seq, { rest: true });
+    }
+  }
+  console.log(`Wrote Bruno requests under ${REST_BRUNO_ROOT}`);
+}
+
+function main(): void {
+  validateMapping();
+  generateMcpCollection();
+  generateRestCollection();
 }
 
 main();

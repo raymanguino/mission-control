@@ -1,0 +1,34 @@
+info:
+  name: log_food
+  type: http
+  seq: 2
+
+http:
+  method: post
+  url: http://{{host}}:{{port}}/api/health/food
+  headers:
+    - name: Authorization
+      value: Bearer {{token}}
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "mealType": "lunch",
+        "description": "Grilled chicken salad with avocado",
+        "loggedAt": "2026-03-28T18:30:00.000Z",
+        "date": "2026-03-28",
+        "calories": 520,
+        "protein": 42,
+        "carbs": 28,
+        "fat": 24,
+        "notes": "optional note"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

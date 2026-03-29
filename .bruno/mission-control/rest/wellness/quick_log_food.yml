@@ -1,11 +1,11 @@
 info:
-  name: update_settings
+  name: quick_log_food
   type: http
-  seq: 2
+  seq: 3
 
 http:
-  method: patch
-  url: http://{{host}}:{{port}}/api/settings
+  method: post
+  url: http://{{host}}:{{port}}/api/health/food/quick
   headers:
     - name: Authorization
       value: Bearer {{token}}
@@ -15,7 +15,7 @@ http:
     type: json
     data: |-
       {
-        "some_key": "some_value"
+        "text": "Oatmeal with berries this morning"
       }
   auth: inherit
 

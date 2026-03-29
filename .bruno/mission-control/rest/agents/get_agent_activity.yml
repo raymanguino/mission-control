@@ -1,0 +1,18 @@
+info:
+  name: get_agent_activity
+  type: http
+  seq: 2
+
+http:
+  method: get
+  url: http://{{host}}:{{port}}/api/agents/{{agentId}}/activity?limit=20
+  headers:
+    - name: Authorization
+      value: Bearer {{token}}
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
