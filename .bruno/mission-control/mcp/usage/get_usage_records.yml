@@ -1,0 +1,18 @@
+info:
+  name: get_usage_records
+  type: http
+  seq: 2
+
+http:
+  method: get
+  url: http://{{host}}:{{port}}/api/usage/records?limit=50&offset=0
+  headers:
+    - name: Authorization
+      value: Bearer {{token}}
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

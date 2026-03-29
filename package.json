@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "predev": "node scripts/ensure-dev-ports.mjs",
+    "gen:bruno": "tsx scripts/generate-bruno-mcp.mts",
     "dev": "pnpm --parallel --filter backend --filter frontend --filter @mission-control/mcp dev",
     "dev:app": "pnpm --parallel --filter backend --filter frontend dev",
     "dev:mcp": "pnpm --filter @mission-control/mcp dev",
@@ -12,7 +13,8 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,json,css}\" --ignore-path .gitignore"
   },
   "devDependencies": {
-    "prettier": "^3.3.3"
+    "prettier": "^3.3.3",
+    "tsx": "^4.19.2"
   },
   "pnpm": {
     "onlyBuiltDependencies": ["esbuild"]

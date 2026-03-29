@@ -1,0 +1,30 @@
+info:
+  name: log_sleep
+  type: http
+  seq: 8
+
+http:
+  method: post
+  url: http://{{host}}:{{port}}/api/health/sleep
+  headers:
+    - name: Authorization
+      value: Bearer {{token}}
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "bedTime": "2026-03-28T01:00:00.000Z",
+        "wakeTime": "2026-03-28T09:00:00.000Z",
+        "qualityScore": 4,
+        "date": "2026-03-28",
+        "notes": "optional"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

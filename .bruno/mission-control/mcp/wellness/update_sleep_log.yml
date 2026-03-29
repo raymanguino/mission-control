@@ -1,0 +1,28 @@
+info:
+  name: update_sleep_log
+  type: http
+  seq: 9
+
+http:
+  method: patch
+  url: http://{{host}}:{{port}}/api/health/sleep/{{id}}
+  headers:
+    - name: Authorization
+      value: Bearer {{token}}
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "wakeTime": "2026-03-28T09:30:00.000Z",
+        "qualityScore": 5,
+        "notes": "Woke up refreshed"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

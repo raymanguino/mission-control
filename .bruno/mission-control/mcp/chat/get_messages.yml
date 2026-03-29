@@ -1,0 +1,18 @@
+info:
+  name: get_messages
+  type: http
+  seq: 2
+
+http:
+  method: get
+  url: http://{{host}}:{{port}}/api/channels/{{channelId}}/messages?limit=50
+  headers:
+    - name: Authorization
+      value: Bearer {{token}}
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

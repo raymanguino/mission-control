@@ -33,6 +33,17 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/', { preHandler: [fastify.authenticate, fastify.enforceIdempotency] }, async (request, reply) => {
     const body = parseBody(backendRequestSchemas.createAgent, request.body);
 
+    if (body.reportsToAgentId) {
+      const manager = await agentsDb.getAgent(body.reportsToAgentId);
+      if (!manager) {
+        throw new ApiError(
+          400,
+          'VALIDATION_FAILED',
+          'reportsToAgentId must reference an existing agent',
+        );
+      }
+    }
+
     const rawKey = crypto.randomBytes(32).toString('hex');
     const apiKeyHash = await bcrypt.hash(rawKey, 10);
 
@@ -60,6 +71,16 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.patch('/:id', { preHandler: fastify.authenticate }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const body = parseBody(updateAgentSchema, request.body);
+    if (body.reportsToAgentId !== undefined && body.reportsToAgentId !== null) {
+      const manager = await agentsDb.getAgent(body.reportsToAgentId);
+      if (!manager) {
+        throw new ApiError(
+          400,
+          'VALIDATION_FAILED',
+          'reportsToAgentId must reference an existing agent',
+        );
+      }
+    }
     const agent = await agentsDb.updateAgent(id, body);
     if (!agent) throw new ApiError(404, 'NOT_FOUND', 'Not found');
     return agent;

@@ -19,7 +19,7 @@ export const backendRequestSchemas = {
     ip: z.string().optional(),
     specialization: z.string().optional(),
     description: z.string().optional(),
-    reportsToAgentId: z.string().uuid().optional(),
+    reportsToAgentId: z.string().uuid().nullable().optional(),
   }),
   updateAgent: z.object({
     agentId: z.string().uuid(),

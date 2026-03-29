@@ -1,0 +1,30 @@
+info:
+  name: update_agent
+  type: http
+  seq: 4
+
+http:
+  method: patch
+  url: http://{{host}}:{{port}}/api/agents/{{agentId}}
+  headers:
+    - name: Authorization
+      value: Bearer {{token}}
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "name": "Updated name",
+        "email": "updated@example.com",
+        "specialization": "Backend",
+        "orgRole": "member",
+        "reportsToAgentId": null
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

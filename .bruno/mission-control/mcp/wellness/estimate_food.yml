@@ -1,0 +1,26 @@
+info:
+  name: estimate_food
+  type: http
+  seq: 1
+
+http:
+  method: post
+  url: http://{{host}}:{{port}}/api/health/food/estimate
+  headers:
+    - name: Authorization
+      value: Bearer {{token}}
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "description": "Grilled chicken salad with avocado"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

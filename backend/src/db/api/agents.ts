@@ -28,7 +28,7 @@ export async function createAgent(data: {
   orgRole?: string;
   specialization?: string;
   description?: string;
-  reportsToAgentId?: string;
+  reportsToAgentId?: string | null;
   apiKeyHash: string;
 }) {
   const rows = await db.insert(agents).values(data).returning();
