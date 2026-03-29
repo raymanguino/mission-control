@@ -49,3 +49,21 @@ export async function notifyAgentOfTask(
   ].join('\n');
   await sendEmail(agent.email, subject, text);
 }
+
+export async function notifyAgentInstructionsUpdated(
+  agent: { email: string; name: string },
+  kind: 'chief_of_staff' | 'member',
+): Promise<void> {
+  const roleLabel = kind === 'chief_of_staff' ? 'Chief of Staff' : 'Task Agent';
+  const subject = '[Mission Control] Instructions updated — refresh your local copy';
+  const text = [
+    `Hello ${agent.name},`,
+    ``,
+    `Your ${roleLabel} playbook (Mission Control settings) was updated.`,
+    `Refresh your local instructions (e.g. MEMORY.md): call GET /api/agents/instructions with your existing X-Agent-Key,`,
+    `using the same API base URL you already use for Mission Control.`,
+    ``,
+    `If you do not rely on email, you can also detect changes via instructionsUpdatedAt on POST /api/agents/report.`,
+  ].join('\n');
+  await sendEmail(agent.email, subject, text);
+}

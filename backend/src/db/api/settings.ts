@@ -12,6 +12,15 @@ export async function getSetting(key: string): Promise<string | null> {
   return rows[0]?.value ?? null;
 }
 
+export async function getSettingRow(
+  key: string,
+): Promise<{ value: string; updatedAt: Date } | null> {
+  const rows = await db.select().from(settings).where(eq(settings.key, key)).limit(1);
+  const row = rows[0];
+  if (!row) return null;
+  return { value: row.value, updatedAt: row.updatedAt };
+}
+
 export async function upsertSettings(data: Record<string, string>): Promise<void> {
   for (const [key, value] of Object.entries(data)) {
     await db

@@ -54,11 +54,24 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
     const agent = await agentsDb.createAgent({ ...body, apiKeyHash, orgRole });
 
     const instrKey = orgRole === 'chief_of_staff' ? 'cos_instructions' : 'agent_instructions';
-    const instructions = await settingsDb.getSetting(instrKey);
+    const agentInstructions = await settingsDb.getSetting(instrKey);
 
-    const response = { ...agent, apiKey: rawKey, instructions };
+    const response = { ...agent, apiKey: rawKey, agentInstructions };
     await fastify.finalizeIdempotency(request, 201, response);
     return reply.code(201).send(response);
+  });
+
+  fastify.get('/instructions', { preHandler: fastify.authenticateAgent }, async (request) => {
+    const agent = (request as FastifyRequest & { agent: { orgRole: string } }).agent;
+    const key = instructionKeyForOrgRole(agent.orgRole);
+    const row = await settingsDb.getSettingRow(key);
+    if (!row) {
+      return { instructions: null as string | null, updatedAt: null as string | null };
+    }
+    return {
+      instructions: row.value,
+      updatedAt: row.updatedAt.toISOString(),
+    };
   });
 
   fastify.get('/:id', { preHandler: fastify.authenticate }, async (request, reply) => {
@@ -111,14 +124,21 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
     });
     const activity = await agentsDb.insertActivity({ agentId: agent.id, ...body });
 
-    const instrKey = agent.orgRole === 'chief_of_staff' ? 'cos_instructions' : 'agent_instructions';
-    const instructions = await settingsDb.getSetting(instrKey);
+    const instrKey = instructionKeyForOrgRole(agent.orgRole);
+    const instrRow = await settingsDb.getSettingRow(instrKey);
 
-    const response = { ...activity, instructions };
+    const response = {
+      ...activity,
+      ...(instrRow ? { instructionsUpdatedAt: instrRow.updatedAt.toISOString() } : {}),
+    };
     await fastify.finalizeIdempotency(request, 201, response);
     return reply.code(201).send(response);
   });
 };
+
+function instructionKeyForOrgRole(orgRole: string): 'cos_instructions' | 'agent_instructions' {
+  return orgRole === 'chief_of_staff' ? 'cos_instructions' : 'agent_instructions';
+}
 
 function inferStatusFromType(type: string): 'online' | 'idle' | 'offline' {
   const normalized = type.toLowerCase();

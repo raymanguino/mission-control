@@ -3,7 +3,8 @@
  * - `.bruno/mission-control/mcp` — MCP-aligned names (e.g. get_settings.yml)
  * - `.bruno/mission-control/rest` — raw HTTP API (same routes; e.g. settings.yml for GET /api/settings)
  *
- * Sources: mcpToolContracts + estimate_food (POST /api/health/food/estimate).
+ * Sources: mcpToolContracts + estimate_food (POST /api/health/food/estimate) +
+ * get_agent_instructions (GET /api/agents/instructions, X-Agent-Key only; no MCP tool).
  *
  * Run from repo root: pnpm gen:bruno
  */
@@ -250,6 +251,28 @@ function renderRequest(
   return lines.join('\n');
 }
 
+/** Agent-authenticated route (X-Agent-Key); no Bearer token. */
+function renderAgentRequest(seq: number, url: string, infoName: string): string {
+  const lines: string[] = [
+    'info:',
+    `  name: ${infoName}`,
+    '  type: http',
+    `  seq: ${seq}`,
+    '',
+    'http:',
+    '  method: get',
+    `  url: ${url}`,
+    '  headers:',
+    '    - name: X-Agent-Key',
+    '      value: {{agentKey}}',
+    '  auth: inherit',
+    '',
+    SETTINGS_YAML,
+    '',
+  ];
+  return lines.join('\n');
+}
+
 function validateMapping(): void {
   const flat = Object.values(FOLDER_TOOLS).flat();
   const contractKeys = Object.keys(mcpToolContracts);
@@ -340,6 +363,16 @@ function generateRestCollection(): void {
       writeOneRequest(REST_BRUNO_ROOT, folder, toolName, seq, { rest: true });
     }
   }
+
+  const agentsDir = join(REST_BRUNO_ROOT, 'agents');
+  const agentsSeq =
+    FOLDER_TOOLS.agents?.length !== undefined ? FOLDER_TOOLS.agents.length + 1 : 1;
+  const agentInstrUrl = buildUrl('get_agent_instructions', '/api/agents/instructions');
+  writeFileSync(
+    join(agentsDir, 'get_agent_instructions.yml'),
+    renderAgentRequest(agentsSeq, agentInstrUrl, 'get_agent_instructions'),
+  );
+
   console.log(`Wrote Bruno requests under ${REST_BRUNO_ROOT}`);
 }
 

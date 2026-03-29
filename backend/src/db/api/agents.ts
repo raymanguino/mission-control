@@ -1,9 +1,16 @@
-import { eq, desc } from 'drizzle-orm';
+import { and, desc, eq, isNotNull } from 'drizzle-orm';
 import { db } from '../index.js';
 import { agents, agentActivities } from '../schema.js';
 
 export async function getCoSAgents() {
   return db.select().from(agents).where(eq(agents.orgRole, 'chief_of_staff'));
+}
+
+export async function listAgentsWithEmailByOrgRole(orgRole: 'chief_of_staff' | 'member') {
+  return db
+    .select()
+    .from(agents)
+    .where(and(eq(agents.orgRole, orgRole), isNotNull(agents.email)));
 }
 
 export async function listAgents() {
