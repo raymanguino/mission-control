@@ -62,6 +62,17 @@ const intentRoutes: FastifyPluginAsync = async (fastify) => {
     return intent;
   });
 
+  fastify.delete('/:id', { preHandler: fastify.authenticate }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const existing = await intentsDb.getIntent(id);
+    if (!existing) throw new ApiError(404, 'NOT_FOUND', 'Not found');
+    if (existing.status === 'converted') {
+      throw new ApiError(409, 'CONFLICT', 'Cannot delete a converted intent');
+    }
+    await intentsDb.deleteIntent(id);
+    return reply.code(204).send();
+  });
+
   fastify.post(
     '/:id/convert',
     { preHandler: [fastify.authenticate, fastify.enforceIdempotency] },

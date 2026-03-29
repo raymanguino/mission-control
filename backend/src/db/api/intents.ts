@@ -28,6 +28,10 @@ export async function updateIntent(
   return rows[0] ?? null;
 }
 
+export async function deleteIntent(id: string) {
+  await db.delete(intents).where(eq(intents.id, id));
+}
+
 export async function convertIntentToProject(
   id: string,
   projectData: { name: string; description?: string },

@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { apiGet, apiPost, apiPatch } from '../client.js';
+import { apiDelete, apiGet, apiPost, apiPatch } from '../client.js';
 import { omitNullValues } from './sanitize.js';
 import type { Project, Task } from '@mission-control/types';
 
@@ -45,6 +45,20 @@ export function registerProjectTools(server: McpServer) {
       const project = await apiPost<Project>('/api/projects', omitNullValues({ name, description }));
       return {
         content: [{ type: 'text', text: JSON.stringify(project, null, 2) }],
+      };
+    },
+  );
+
+  server.tool(
+    'delete_project',
+    'Permanently delete a project and its tasks.\n\nRequired: `projectId`.',
+    {
+      projectId: z.string().uuid().describe('Project UUID (required).'),
+    },
+    async ({ projectId }) => {
+      await apiDelete(`/api/projects/${projectId}`);
+      return {
+        content: [{ type: 'text', text: `Project deleted (id: ${projectId}).` }],
       };
     },
   );
@@ -120,6 +134,20 @@ export function registerProjectTools(server: McpServer) {
       const task = await apiPatch<Task>(`/api/tasks/${taskId}`, omitNullValues(updates));
       return {
         content: [{ type: 'text', text: JSON.stringify(task, null, 2) }],
+      };
+    },
+  );
+
+  server.tool(
+    'delete_task',
+    'Permanently delete a task.\n\nRequired: `taskId`.',
+    {
+      taskId: z.string().uuid().describe('Task UUID (required).'),
+    },
+    async ({ taskId }) => {
+      await apiDelete(`/api/tasks/${taskId}`);
+      return {
+        content: [{ type: 'text', text: `Task deleted (id: ${taskId}).` }],
       };
     },
   );

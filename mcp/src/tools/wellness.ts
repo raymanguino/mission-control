@@ -199,6 +199,20 @@ export function registerWellnessTools(server: McpServer) {
     },
   );
 
+  server.tool(
+    'delete_marijuana_session',
+    'Delete a cannabis session log by ID. Use `list_cannabis_sessions` first to find the UUID.',
+    {
+      id: z.string().uuid().describe('Session UUID'),
+    },
+    async ({ id }) => {
+      await apiDelete(`/api/health/marijuana/${id}`);
+      return {
+        content: [{ type: 'text', text: `Cannabis session deleted (id: ${id}).` }],
+      };
+    },
+  );
+
   // ─── Sleep ─────────────────────────────────────────────────────────────────
 
   server.tool(
@@ -276,6 +290,20 @@ export function registerWellnessTools(server: McpServer) {
       const logs = await apiGet<SleepLog[]>(`/api/health/sleep?${params}`);
       return {
         content: [{ type: 'text', text: JSON.stringify(logs, null, 2) }],
+      };
+    },
+  );
+
+  server.tool(
+    'delete_sleep_log',
+    'Delete a sleep log by ID. Use `list_sleep_logs` first to find the UUID.',
+    {
+      id: z.string().uuid().describe('Sleep log UUID'),
+    },
+    async ({ id }) => {
+      await apiDelete(`/api/health/sleep/${id}`);
+      return {
+        content: [{ type: 'text', text: `Sleep log deleted (id: ${id}).` }],
       };
     },
   );

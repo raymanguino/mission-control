@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { apiGet, apiPost } from '../client.js';
+import { apiDelete, apiGet, apiPost } from '../client.js';
 import type { Channel, Message } from '@mission-control/types';
 
 export function registerChatTools(server: McpServer) {
@@ -61,6 +61,20 @@ export function registerChatTools(server: McpServer) {
       const message = await apiPost<Message>(`/api/channels/${channelId}/messages`, payload);
       return {
         content: [{ type: 'text', text: JSON.stringify(message, null, 2) }],
+      };
+    },
+  );
+
+  server.tool(
+    'delete_channel',
+    'Permanently delete a chat channel and its messages.\n\nRequired: `channelId`.',
+    {
+      channelId: z.string().uuid().describe('Channel UUID (required).'),
+    },
+    async ({ channelId }) => {
+      await apiDelete(`/api/channels/${channelId}`);
+      return {
+        content: [{ type: 'text', text: `Channel deleted (id: ${channelId}).` }],
       };
     },
   );

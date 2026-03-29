@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { apiGet, apiPatch, apiPost } from '../client.js';
+import { apiDelete, apiGet, apiPatch, apiPost } from '../client.js';
 import { omitNullValues } from './sanitize.js';
 import type { Agent, AgentActivity } from '@mission-control/types';
 
@@ -98,6 +98,20 @@ export function registerAgentTools(server: McpServer) {
       const agent = await apiPatch<Agent>(`/api/agents/${agentId}`, omitNullValues(updates));
       return {
         content: [{ type: 'text', text: JSON.stringify(agent, null, 2) }],
+      };
+    },
+  );
+
+  server.tool(
+    'delete_agent',
+    'Permanently remove an agent registration.\n\nRequired: `agentId`.',
+    {
+      agentId: z.string().uuid().describe('Agent UUID (required).'),
+    },
+    async ({ agentId }) => {
+      await apiDelete(`/api/agents/${agentId}`);
+      return {
+        content: [{ type: 'text', text: `Agent deleted (id: ${agentId}).` }],
       };
     },
   );

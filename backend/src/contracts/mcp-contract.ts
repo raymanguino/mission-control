@@ -143,12 +143,24 @@ export const mcpToolContracts: Record<string, McpToolContract> = {
     params: 'path+body',
     input: backendRequestSchemas.updateAgent.shape,
   },
+  delete_agent: {
+    method: 'DELETE',
+    path: '/api/agents/:agentId',
+    params: 'path+query',
+    input: { agentId: z.string().uuid() },
+  },
   list_projects: { method: 'GET', path: '/api/projects', params: 'none', input: {} },
   create_project: {
     method: 'POST',
     path: '/api/projects',
     params: 'body',
     input: backendRequestSchemas.createProject.shape,
+  },
+  delete_project: {
+    method: 'DELETE',
+    path: '/api/projects/:projectId',
+    params: 'path+query',
+    input: { projectId: z.string().uuid() },
   },
   get_task: {
     method: 'GET',
@@ -186,6 +198,12 @@ export const mcpToolContracts: Record<string, McpToolContract> = {
       assignedAgentId: z.string().nullable().optional(),
     },
   },
+  delete_task: {
+    method: 'DELETE',
+    path: '/api/tasks/:taskId',
+    params: 'path+query',
+    input: { taskId: z.string().uuid() },
+  },
   get_intent: {
     method: 'GET',
     path: '/api/intents/:intentId',
@@ -221,6 +239,12 @@ export const mcpToolContracts: Record<string, McpToolContract> = {
       projectDescription: backendRequestSchemas.convertIntent.shape.projectDescription,
     },
   },
+  delete_intent: {
+    method: 'DELETE',
+    path: '/api/intents/:intentId',
+    params: 'path+query',
+    input: { intentId: z.string().uuid() },
+  },
   list_channels: { method: 'GET', path: '/api/channels', params: 'none', input: {} },
   get_messages: {
     method: 'GET',
@@ -241,6 +265,12 @@ export const mcpToolContracts: Record<string, McpToolContract> = {
       author: z.string().optional(),
       discordUserId: z.string().regex(/^\d{17,20}$/).optional(),
     },
+  },
+  delete_channel: {
+    method: 'DELETE',
+    path: '/api/channels/:channelId',
+    params: 'path+query',
+    input: { channelId: z.string().uuid() },
   },
   get_usage: {
     method: 'GET',
@@ -325,6 +355,12 @@ export const mcpToolContracts: Record<string, McpToolContract> = {
       to: z.string().optional(),
     },
   },
+  delete_marijuana_session: {
+    method: 'DELETE',
+    path: '/api/health/marijuana/:id',
+    params: 'path+query',
+    input: { id: z.string().uuid() },
+  },
   log_sleep: {
     method: 'POST',
     path: '/api/health/sleep',
@@ -356,6 +392,12 @@ export const mcpToolContracts: Record<string, McpToolContract> = {
       from: z.string().optional(),
       to: z.string().optional(),
     },
+  },
+  delete_sleep_log: {
+    method: 'DELETE',
+    path: '/api/health/sleep/:id',
+    params: 'path+query',
+    input: { id: z.string().uuid() },
   },
   run_health_analysis: {
     method: 'POST',

@@ -20,10 +20,26 @@ const REST_BRUNO_ROOT = join(BRUNO_MISSION_CONTROL, 'rest');
 
 /** Tool name → Bruno subfolder (matches MCP modules and backend route groups in routes/index.ts). */
 const FOLDER_TOOLS: Record<string, string[]> = {
-  agents: ['list_agents', 'get_agent_activity', 'create_agent', 'update_agent'],
-  projects: ['list_projects', 'create_project', 'get_task', 'list_tasks', 'create_task', 'update_task'],
-  intents: ['list_intents', 'get_intent', 'create_intent', 'update_intent', 'convert_intent_to_project'],
-  chat: ['list_channels', 'get_messages', 'post_message'],
+  agents: ['list_agents', 'get_agent_activity', 'create_agent', 'update_agent', 'delete_agent'],
+  projects: [
+    'list_projects',
+    'create_project',
+    'delete_project',
+    'get_task',
+    'list_tasks',
+    'create_task',
+    'update_task',
+    'delete_task',
+  ],
+  intents: [
+    'list_intents',
+    'get_intent',
+    'create_intent',
+    'update_intent',
+    'convert_intent_to_project',
+    'delete_intent',
+  ],
+  chat: ['list_channels', 'get_messages', 'post_message', 'delete_channel'],
   usage: ['get_usage', 'get_usage_records', 'get_ai_config', 'sync_usage'],
   wellness: [
     'estimate_food',
@@ -33,9 +49,11 @@ const FOLDER_TOOLS: Record<string, string[]> = {
     'delete_food_log',
     'log_cannabis_session',
     'list_cannabis_sessions',
+    'delete_marijuana_session',
     'log_sleep',
     'update_sleep_log',
     'list_sleep_logs',
+    'delete_sleep_log',
     'run_health_analysis',
   ],
   settings: ['get_settings', 'update_settings'],

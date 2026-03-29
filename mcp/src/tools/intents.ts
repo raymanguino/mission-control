@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { apiGet, apiPatch, apiPost } from '../client.js';
+import { apiDelete, apiGet, apiPatch, apiPost } from '../client.js';
 import { omitNullValues } from './sanitize.js';
 import type { Intent, Project } from '@mission-control/types';
 
@@ -87,6 +87,20 @@ export function registerIntentTools(server: McpServer) {
       );
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    },
+  );
+
+  server.tool(
+    'delete_intent',
+    'Delete an intent that is not yet converted to a project.\n\nRequired: `intentId`.\nReturns an error if the intent is already converted.',
+    {
+      intentId: z.string().uuid().describe('Intent UUID (required).'),
+    },
+    async ({ intentId }) => {
+      await apiDelete(`/api/intents/${intentId}`);
+      return {
+        content: [{ type: 'text', text: `Intent deleted (id: ${intentId}).` }],
       };
     },
   );
