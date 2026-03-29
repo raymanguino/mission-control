@@ -1,0 +1,27 @@
+info:
+  name: create_project
+  type: http
+  seq: 2
+
+http:
+  method: post
+  url: http://{{host}}:{{port}}/api/projects
+  headers:
+    - name: Authorization
+      value: Bearer {{token}}
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "name": "New project",
+        "description": "Optional description"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

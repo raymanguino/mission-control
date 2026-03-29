@@ -1,0 +1,29 @@
+info:
+  name: update_task
+  type: http
+  seq: 7
+
+http:
+  method: patch
+  url: http://{{host}}:{{port}}/api/tasks/{{taskId}}
+  headers:
+    - name: Authorization
+      value: Bearer {{token}}
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "title": "Updated title",
+        "status": "doing",
+        "description": null,
+        "assignedAgentId": "00000000-0000-4000-8000-000000000001"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
