@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../utils/api.js';
 import type {
   FoodLog,
@@ -57,14 +57,24 @@ export function SleepSection({
   sleepLogs,
   onUpsert,
   onRefresh,
+  openAddFromUrl,
+  onConsumeOpenAddFromUrl,
 }: {
   date: string;
   sleepLogs: SleepLog[];
   onUpsert: (log: SleepLog) => void;
   onRefresh: () => void;
+  openAddFromUrl?: boolean;
+  onConsumeOpenAddFromUrl?: () => void;
 }) {
   const [showAdd, setShowAdd] = useState(false);
   const [editLog, setEditLog] = useState<SleepLog | null>(null);
+
+  useEffect(() => {
+    if (openAddFromUrl) {
+      setShowAdd(true);
+    }
+  }, [openAddFromUrl]);
   const todayLogs = sleepLogs.filter((s) => s.date === date);
 
   async function handleDelete(id: string) {
@@ -116,9 +126,13 @@ export function SleepSection({
       {showAdd && (
         <SleepModal
           date={date}
-          onClose={() => setShowAdd(false)}
+          onClose={() => {
+            setShowAdd(false);
+            onConsumeOpenAddFromUrl?.();
+          }}
           onSaved={(saved) => {
             setShowAdd(false);
+            onConsumeOpenAddFromUrl?.();
             onUpsert(saved);
             onRefresh();
           }}
@@ -209,12 +223,22 @@ export function FoodSection({
   date,
   foodLogs,
   onRefresh,
+  openAddFromUrl,
+  onConsumeOpenAddFromUrl,
 }: {
   date: string;
   foodLogs: FoodLog[];
   onRefresh: () => void;
+  openAddFromUrl?: boolean;
+  onConsumeOpenAddFromUrl?: () => void;
 }) {
   const [showAdd, setShowAdd] = useState(false);
+
+  useEffect(() => {
+    if (openAddFromUrl) {
+      setShowAdd(true);
+    }
+  }, [openAddFromUrl]);
   const todayLogs = foodLogs.filter((f) => f.date === date);
   const totalCals = todayLogs.reduce((s, f) => s + (f.calories ?? 0), 0);
 
@@ -266,8 +290,15 @@ export function FoodSection({
       {showAdd && (
         <FoodModal
           date={date}
-          onClose={() => setShowAdd(false)}
-          onSaved={() => { setShowAdd(false); onRefresh(); }}
+          onClose={() => {
+            setShowAdd(false);
+            onConsumeOpenAddFromUrl?.();
+          }}
+          onSaved={() => {
+            setShowAdd(false);
+            onConsumeOpenAddFromUrl?.();
+            onRefresh();
+          }}
         />
       )}
     </Section>
@@ -423,12 +454,22 @@ export function CannabisSection({
   date,
   sessions,
   onRefresh,
+  openAddFromUrl,
+  onConsumeOpenAddFromUrl,
 }: {
   date: string;
   sessions: MarijuanaSession[];
   onRefresh: () => void;
+  openAddFromUrl?: boolean;
+  onConsumeOpenAddFromUrl?: () => void;
 }) {
   const [showAdd, setShowAdd] = useState(false);
+
+  useEffect(() => {
+    if (openAddFromUrl) {
+      setShowAdd(true);
+    }
+  }, [openAddFromUrl]);
   const todaySessions = sessions.filter((s) => s.date === date);
 
   async function handleDelete(id: string) {
@@ -437,7 +478,12 @@ export function CannabisSection({
   }
 
   return (
-    <Section title="Cannabis" icon="🌿" onAdd={() => setShowAdd(true)} bodyClassName="max-h-80 overflow-y-auto">
+    <Section
+      title="Greens"
+      icon="🌿"
+      onAdd={() => setShowAdd(true)}
+      bodyClassName="max-h-80 overflow-y-auto"
+    >
       {todaySessions.length === 0 && <Empty>No sessions logged for this date.</Empty>}
       {todaySessions.map((s) => (
         <div
@@ -471,8 +517,15 @@ export function CannabisSection({
       {showAdd && (
         <CannabisModal
           date={date}
-          onClose={() => setShowAdd(false)}
-          onSaved={() => { setShowAdd(false); onRefresh(); }}
+          onClose={() => {
+            setShowAdd(false);
+            onConsumeOpenAddFromUrl?.();
+          }}
+          onSaved={() => {
+            setShowAdd(false);
+            onConsumeOpenAddFromUrl?.();
+            onRefresh();
+          }}
         />
       )}
     </Section>
@@ -672,7 +725,7 @@ export function AnalysisTab({
           <div>
             <h2 className="text-lg font-semibold text-white">AI Insights</h2>
             <p className="text-sm text-gray-500 mt-0.5">
-              Overlayed Daily Log trends for sleep, quality, meals, and cannabis use across 30 days.
+              Overlayed Daily Log trends for sleep, quality, meals, and greens across 30 days.
             </p>
           </div>
         </div>
@@ -719,7 +772,7 @@ export function AnalysisTab({
               yAxisId="events"
               type="monotone"
               dataKey="cannabis"
-              name="Cannabis Sessions"
+              name="Greens sessions"
               stroke="#ef4444"
               dot={false}
               strokeWidth={2}

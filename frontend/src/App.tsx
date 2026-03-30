@@ -7,7 +7,9 @@ import Agents from './pages/Agents.js';
 import AgentDetail from './pages/AgentDetail.js';
 import Projects from './pages/Projects.js';
 import WellnessLayout from './pages/WellnessLayout.js';
-import WellnessDailyLog from './pages/WellnessDailyLog.js';
+import WellnessSleep from './pages/WellnessSleep.js';
+import WellnessFood from './pages/WellnessFood.js';
+import WellnessGreens from './pages/WellnessGreens.js';
 import WellnessInsights from './pages/WellnessInsights.js';
 import Chat from './pages/Chat.js';
 import ChatIndex from './pages/ChatIndex.js';
@@ -34,10 +36,13 @@ export default function App() {
             <Route path="agents/:agentId" element={<AgentDetail />} />
             <Route path="projects" element={<ProjectsIndex />} />
             <Route path="projects/:projectId" element={<Projects />} />
-            <Route path="health" element={<Navigate to="/wellness/log" replace />} />
+            <Route path="health" element={<Navigate to="/wellness/sleep" replace />} />
             <Route path="wellness" element={<WellnessLayout />}>
-              <Route index element={<Navigate to="log" replace />} />
-              <Route path="log" element={<WellnessDailyLog />} />
+              <Route index element={<Navigate to="sleep" replace />} />
+              <Route path="log" element={<Navigate to="/wellness/sleep" replace />} />
+              <Route path="sleep" element={<WellnessSleep />} />
+              <Route path="food" element={<WellnessFood />} />
+              <Route path="greens" element={<WellnessGreens />} />
               <Route path="insights" element={<WellnessInsights />} />
             </Route>
             <Route path="chat" element={<ChatIndex />} />
