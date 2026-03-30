@@ -173,6 +173,11 @@ function CollapsibleNavSection({
   children,
   headerRight,
 }: CollapsibleNavSectionProps) {
+  // When the section is expanded, child NavLinks show the active state; avoid duplicating
+  // that with the same "selected" accent on the section header. When collapsed, the header
+  // still reflects the current route so wayfinding works without visible children.
+  const headerAccent = active && !open;
+
   return (
     <div>
       <div className="flex items-stretch gap-1 min-w-0">
@@ -183,7 +188,7 @@ function CollapsibleNavSection({
           aria-controls={panelId}
           onClick={onToggle}
           className={`flex-1 flex items-center gap-1.5 min-w-0 text-left px-3 py-2 rounded-md transition-colors hover:bg-gray-800/80 ${
-            active ? 'text-indigo-300' : 'text-gray-500'
+            headerAccent ? 'text-indigo-300' : 'text-gray-500'
           }`}
         >
           <svg
@@ -199,7 +204,9 @@ function CollapsibleNavSection({
               clipRule="evenodd"
             />
           </svg>
-          <span className={`text-xs font-semibold uppercase tracking-wider ${active ? 'text-indigo-300' : 'text-gray-500'}`}>
+          <span
+            className={`text-xs font-semibold uppercase tracking-wider ${headerAccent ? 'text-indigo-300' : 'text-gray-500'}`}
+          >
             {title}
           </span>
         </button>
