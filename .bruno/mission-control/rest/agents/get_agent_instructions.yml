@@ -1,0 +1,18 @@
+info:
+  name: get_agent_instructions
+  type: http
+  seq: 6
+
+http:
+  method: get
+  url: http://{{host}}:{{port}}/api/agents/instructions
+  headers:
+    - name: X-Agent-Key
+      value: {{agentKey}}
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
