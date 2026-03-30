@@ -3,6 +3,7 @@ import { z } from 'zod';
 import * as agentsDb from '../../db/api/agents.js';
 import * as settingsDb from '../../db/api/settings.js';
 import * as emailService from '../../services/email.js';
+import { notifyRalphInstructionsUpdated } from '../../services/ralph.js';
 import { parseBody } from '../../lib/errors.js';
 
 const DEFAULT_DASHBOARD_TITLE = 'Mission Control';
@@ -66,6 +67,14 @@ async function notifyAgentsOfInstructionChanges(
     if (prev === next) continue;
 
     const role = key === 'cos_instructions' ? 'chief_of_staff' : 'member';
+
+    // Notify Ralph (OpenClaw CoS) directly over Tailscale when CoS instructions change
+    if (key === 'cos_instructions') {
+      notifyRalphInstructionsUpdated().catch((err) =>
+        request.log.error({ err }, 'Failed to notify Ralph of instructions update'),
+      );
+    }
+
     const agents = await agentsDb.listAgentsWithEmailByOrgRole(role);
     for (const a of agents) {
       if (!a.email) continue;
