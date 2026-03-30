@@ -1,5 +1,6 @@
 import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useEffect, useState, type ReactNode } from 'react';
+import { AgentAvatar } from '../agents/AgentAvatar.js';
 import { api } from '../../utils/api.js';
 import type { Agent, Channel, Project } from '@mission-control/types';
 import { useAuth } from '../../contexts/AuthContext.js';
@@ -459,9 +460,12 @@ export default function Sidebar() {
       <div className="px-4 py-3 border-t border-gray-800 space-y-1">
         {agents.slice(0, 5).map((a) => (
           <div key={a.id} className="flex items-center gap-2 text-xs text-gray-400">
-            <span
-              className={`w-2 h-2 rounded-full shrink-0 ${statusColor[a.status] ?? 'bg-gray-400'}`}
-            />
+            <span className="relative shrink-0">
+              <AgentAvatar avatarId={a.avatarId} size={20} className="rounded-sm" />
+              <span
+                className={`absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full border border-gray-900 ${statusColor[a.status] ?? 'bg-gray-400'}`}
+              />
+            </span>
             <span className="truncate">{a.name}</span>
           </div>
         ))}

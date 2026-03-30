@@ -10,6 +10,7 @@ import {
 } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { AgentAvatar } from '../components/agents/AgentAvatar.js';
 import { api, ApiError } from '../utils/api.js';
 import type { Project, Task, TaskStatus, Agent } from '@mission-control/types';
 import { PROJECT_STATUS_LABELS } from '../utils/projectLabels.js';
@@ -70,7 +71,8 @@ function TaskCard({
         <p className="text-xs text-gray-400 mt-1 line-clamp-2">{task.description}</p>
       )}
       {assignedAgent && (
-        <span className="mt-2 inline-block text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded-full">
+        <span className="mt-2 inline-flex items-center gap-1.5 text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded-full">
+          <AgentAvatar avatarId={assignedAgent.avatarId} size={18} className="rounded-sm" />
           {assignedAgent.name}
         </span>
       )}

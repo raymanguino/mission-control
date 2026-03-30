@@ -1,7 +1,13 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { AgentAvatar } from '../components/agents/AgentAvatar.js';
 import { api } from '../utils/api.js';
-import type { Agent, AgentActivity } from '@mission-control/types';
+import {
+  AGENT_AVATAR_IDS,
+  type Agent,
+  type AgentActivity,
+  type AgentAvatarId,
+} from '@mission-control/types';
 
 const statusColor: Record<string, string> = {
   online: 'bg-green-500',
@@ -13,6 +19,13 @@ const roleLabel: Record<string, string> = {
   chief_of_staff: 'Chief of Staff',
   member: 'Member',
 };
+
+function avatarChoiceLabel(id: AgentAvatarId): string {
+  return id
+    .split('_')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
 
 function ActivityFeed({ agentId }: { agentId: string }) {
   const [activities, setActivities] = useState<AgentActivity[]>([]);
@@ -65,9 +78,27 @@ function DetailRow({ label, value }: { label: string; value: ReactNode }) {
 
 export default function AgentDetail() {
   const { agentId } = useParams<{ agentId: string }>();
+  const navigate = useNavigate();
   const [agent, setAgent] = useState<Agent | null>(null);
   const [reportsToName, setReportsToName] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [avatarSaving, setAvatarSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleAvatarChange = useCallback(async (next: AgentAvatarId | null) => {
+    if (!agentId) return;
+    setAvatarSaving(true);
+    try {
+      const updated = await api.patch<Agent>(`/api/agents/${agentId}`, {
+        avatarId: next,
+      });
+      setAgent(updated);
+    } catch (err) {
+      console.error('Failed to update avatar', { agentId, err });
+    } finally {
+      setAvatarSaving(false);
+    }
+  }, [agentId]);
 
   useEffect(() => {
     if (!agentId) return;
@@ -99,6 +130,26 @@ export default function AgentDetail() {
       cancelled = true;
     };
   }, [agentId]);
+
+  async function handleDeleteAgent() {
+    if (!agent) return;
+    if (
+      !window.confirm(
+        `Remove agent "${agent.name}"? This cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+    setDeleting(true);
+    try {
+      await api.delete(`/api/agents/${agent.id}`);
+      navigate('/agents');
+    } catch (err) {
+      console.error('Failed to delete agent', { agentId: agent.id, err });
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   if (!agentId) {
     return (
@@ -132,16 +183,63 @@ export default function AgentDetail() {
         ← Back to agents
       </Link>
 
-      <div className="flex flex-wrap items-start gap-3 mb-6">
-        <span
-          className={`w-3 h-3 rounded-full shrink-0 mt-1.5 ${statusColor[agent.status] ?? 'bg-gray-500'}`}
-        />
+      <div className="flex flex-wrap items-start gap-4 mb-6">
+        <div className="relative shrink-0">
+          <AgentAvatar avatarId={agent.avatarId} size={64} className="rounded-lg" />
+          <span
+            className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-gray-950 ${statusColor[agent.status] ?? 'bg-gray-500'}`}
+            title={agent.status}
+          />
+        </div>
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-semibold text-white">{agent.name}</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             {roleLabel[agent.orgRole] ?? agent.orgRole} · {agent.status}
           </p>
         </div>
+      </div>
+
+      <div className="bg-gray-900 rounded-xl border border-gray-800 p-5 mb-4">
+        <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wide mb-3">Avatar</h2>
+        <p className="text-xs text-gray-500 mb-3">
+          Block-style preset. Choose one or use the default (stored as unset).
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={avatarSaving}
+            onClick={() => void handleAvatarChange(null)}
+            className={`flex flex-col items-center gap-1 p-2 rounded-lg border transition-colors disabled:opacity-50 ${
+              agent.avatarId === null
+                ? 'border-indigo-500 bg-indigo-950/40'
+                : 'border-gray-700 hover:border-gray-600 bg-gray-800/50'
+            }`}
+          >
+            <AgentAvatar avatarId={null} size={40} />
+            <span className="text-[10px] text-gray-400 max-w-[4.5rem] text-center leading-tight">
+              Default
+            </span>
+          </button>
+          {AGENT_AVATAR_IDS.map((id) => (
+            <button
+              key={id}
+              type="button"
+              disabled={avatarSaving}
+              onClick={() => void handleAvatarChange(id)}
+              className={`flex flex-col items-center gap-1 p-2 rounded-lg border transition-colors disabled:opacity-50 ${
+                agent.avatarId === id
+                  ? 'border-indigo-500 bg-indigo-950/40'
+                  : 'border-gray-700 hover:border-gray-600 bg-gray-800/50'
+              }`}
+            >
+              <AgentAvatar avatarId={id} size={40} />
+              <span className="text-[10px] text-gray-400 max-w-[4.5rem] text-center leading-tight">
+                {avatarChoiceLabel(id)}
+              </span>
+            </button>
+          ))}
+        </div>
+        {avatarSaving && <p className="text-xs text-gray-500 mt-2">Saving…</p>}
       </div>
 
       <div className="bg-gray-900 rounded-xl border border-gray-800 p-5">
@@ -181,6 +279,21 @@ export default function AgentDetail() {
           />
           <DetailRow label="Registered" value={new Date(agent.createdAt).toLocaleString()} />
         </dl>
+      </div>
+
+      <div className="mt-6 rounded-xl border border-red-900/50 bg-red-950/20 p-5">
+        <h2 className="text-sm font-medium text-red-400/90 uppercase tracking-wide mb-2">Danger zone</h2>
+        <p className="text-xs text-gray-500 mb-3">
+          Permanently remove this agent registration. This cannot be undone.
+        </p>
+        <button
+          type="button"
+          disabled={deleting}
+          onClick={() => void handleDeleteAgent()}
+          className="text-sm px-3 py-1.5 rounded-lg border border-red-800 text-red-300 hover:bg-red-950/50 disabled:opacity-50"
+        >
+          {deleting ? 'Removing…' : 'Remove agent'}
+        </button>
       </div>
 
       <ActivityFeed agentId={agent.id} />

@@ -2,10 +2,16 @@ import type { FastifyPluginAsync, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import { AGENT_AVATAR_IDS } from '../../lib/agentAvatarIds.js';
 import * as agentsDb from '../../db/api/agents.js';
 import * as settingsDb from '../../db/api/settings.js';
 import { backendRequestSchemas } from '../../contracts/mcp-contract.js';
 import { ApiError, parseBody } from '../../lib/errors.js';
+
+const agentAvatarIdSchema = z
+  .enum(AGENT_AVATAR_IDS as unknown as [string, ...string[]])
+  .nullable()
+  .optional();
 
 const updateAgentSchema = z.object({
   name: z.string().optional(),
@@ -16,6 +22,7 @@ const updateAgentSchema = z.object({
   specialization: z.string().optional(),
   description: z.string().optional(),
   reportsToAgentId: z.string().uuid().nullable().optional(),
+  avatarId: agentAvatarIdSchema,
 });
 
 const reportSchema = z.object({

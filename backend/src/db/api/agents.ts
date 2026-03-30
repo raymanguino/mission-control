@@ -53,6 +53,7 @@ export async function updateAgent(
     specialization: string;
     description: string;
     reportsToAgentId: string | null;
+    avatarId: string | null;
     lastSeen: Date;
     status: string;
   }>,

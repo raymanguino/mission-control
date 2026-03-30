@@ -31,6 +31,7 @@ export const backendRequestSchemas = {
     specialization: z.string().optional(),
     description: z.string().optional(),
     reportsToAgentId: z.string().uuid().nullable().optional(),
+    avatarId: z.string().nullable().optional(),
   }),
   updateSettings: z.object({
     updates: z.record(z.string(), z.string()),

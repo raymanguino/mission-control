@@ -1,8 +1,14 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
+import { AGENT_AVATAR_IDS } from '@mission-control/types';
 import { apiDelete, apiGet, apiPatch, apiPost } from '../client.js';
 import { omitNullValues } from './sanitize.js';
 import type { Agent, AgentActivity } from '@mission-control/types';
+
+const agentAvatarIdSchema = z
+  .enum(AGENT_AVATAR_IDS as unknown as [string, ...string[]])
+  .nullable()
+  .optional();
 
 export function registerAgentTools(server: McpServer) {
   server.tool(
@@ -75,7 +81,7 @@ export function registerAgentTools(server: McpServer) {
 
   server.tool(
     'update_agent',
-    'Update an existing agent\'s profile.\n\nRequired: `agentId`.\nOptional: `name`, `email`, `specialization`, `description`, `device`, `ip`, `orgRole`, `reportsToAgentId`.',
+    'Update an existing agent\'s profile.\n\nRequired: `agentId`.\nOptional: `name`, `email`, `specialization`, `description`, `device`, `ip`, `orgRole`, `reportsToAgentId`, `avatarId` (preset block-style sprite).',
     {
       agentId: z.string().describe('Agent UUID (required).'),
       name: z.string().optional().describe('Updated display name (omit to keep unchanged).'),
@@ -93,6 +99,9 @@ export function registerAgentTools(server: McpServer) {
         .nullable()
         .optional()
         .describe('Set to agent UUID to set manager, or null to clear (omit to keep unchanged).'),
+      avatarId: agentAvatarIdSchema.describe(
+        'Preset avatar id (grass_block, creeper_face, etc.), or null to clear to default (omit to keep unchanged).',
+      ),
     },
     async ({ agentId, ...updates }) => {
       const agent = await apiPatch<Agent>(`/api/agents/${agentId}`, omitNullValues(updates));

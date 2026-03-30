@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AgentAvatar } from '../components/agents/AgentAvatar.js';
 import { api } from '../utils/api.js';
 import type { Agent } from '@mission-control/types';
 
@@ -17,30 +18,10 @@ const roleLabel: Record<string, string> = {
 export default function Agents() {
   const navigate = useNavigate();
   const [agents, setAgents] = useState<Agent[]>([]);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     api.get<Agent[]>('/api/agents').then(setAgents).catch(() => {});
   }, []);
-
-  async function handleDeleteAgent(agent: Agent) {
-    if (
-      !window.confirm(
-        `Remove agent "${agent.name}"? This cannot be undone.`,
-      )
-    ) {
-      return;
-    }
-    setDeletingId(agent.id);
-    try {
-      await api.delete(`/api/agents/${agent.id}`);
-      setAgents((prev) => prev.filter((a) => a.id !== agent.id));
-    } catch (err) {
-      console.error('Failed to delete agent', { agentId: agent.id, err });
-    } finally {
-      setDeletingId(null);
-    }
-  }
 
   return (
     <div>
@@ -58,46 +39,41 @@ export default function Agents() {
                 navigate(`/agents/${agent.id}`);
               }
             }}
-            className="text-left bg-gray-900 rounded-xl p-5 border border-gray-800 hover:border-gray-700 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/80"
+            className="flex gap-4 text-left bg-gray-900 rounded-xl p-5 border border-gray-800 hover:border-gray-700 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/80"
           >
-            <div className="flex items-start gap-3 mb-3">
-              <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="flex shrink-0 flex-col items-center justify-center self-stretch border-r border-gray-800 pr-4">
+              <span className="relative inline-block">
+                <AgentAvatar avatarId={agent.avatarId} size={52} />
                 <span
-                  className={`w-2.5 h-2.5 rounded-full shrink-0 mt-1.5 ${statusColor[agent.status] ?? 'bg-gray-500'}`}
+                  className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-gray-900 ${statusColor[agent.status] ?? 'bg-gray-500'}`}
+                  title={agent.status}
                 />
-                <span className="font-medium text-white truncate">{agent.name}</span>
-                <span className="ml-auto shrink-0 text-[10px] uppercase tracking-wide text-indigo-300 bg-indigo-950/70 px-2 py-0.5 rounded-full">
+              </span>
+            </div>
+            <div className="min-w-0 flex-1 flex flex-col gap-2">
+              <div className="flex items-start justify-between gap-2">
+                <span className="font-medium text-white truncate min-w-0">{agent.name}</span>
+                <span className="shrink-0 text-[10px] uppercase tracking-wide text-indigo-300 bg-indigo-950/70 px-2 py-0.5 rounded-full">
                   {roleLabel[agent.orgRole] ?? agent.orgRole}
                 </span>
               </div>
-              <button
-                type="button"
-                disabled={deletingId === agent.id}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  void handleDeleteAgent(agent);
-                }}
-                className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50 shrink-0 pt-0.5"
-              >
-                {deletingId === agent.id ? 'Removing…' : 'Delete'}
-              </button>
-            </div>
-            <div>
-              {agent.device && (
-                <p className="text-xs text-gray-400 mb-0.5">{agent.device}</p>
-              )}
-              {agent.ip && <p className="text-xs text-gray-500">{agent.ip}</p>}
               {agent.specialization && (
-                <p className="text-xs text-gray-300 mt-2 line-clamp-2">{agent.specialization}</p>
+                <p className="text-xs text-gray-300 line-clamp-2">{agent.specialization}</p>
               )}
-              {agent.reportsToAgentId && (
-                <p className="text-xs text-gray-500 mt-1">Reports to: {agent.reportsToAgentId}</p>
-              )}
-              {agent.lastSeen && (
-                <p className="text-xs text-gray-600 mt-2">
-                  Last seen {new Date(agent.lastSeen).toLocaleString()}
-                </p>
-              )}
+              <div className="space-y-0.5 mt-0.5">
+                {agent.device && (
+                  <p className="text-xs text-gray-400">{agent.device}</p>
+                )}
+                {agent.ip && <p className="text-xs text-gray-500">{agent.ip}</p>}
+                {agent.reportsToAgentId && (
+                  <p className="text-xs text-gray-500">Reports to: {agent.reportsToAgentId}</p>
+                )}
+                {agent.lastSeen && (
+                  <p className="text-xs text-gray-600 mt-1">
+                    Last seen {new Date(agent.lastSeen).toLocaleString()}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         ))}

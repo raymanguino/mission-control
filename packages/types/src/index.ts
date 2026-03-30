@@ -2,6 +2,32 @@
 export type AgentStatus = 'online' | 'idle' | 'offline';
 export type AgentOrgRole = 'chief_of_staff' | 'member';
 
+/** Preset block-style avatars (filenames under `/avatars/{id}.svg`). */
+export const AGENT_AVATAR_IDS = [
+  'grass_block',
+  'stone_block',
+  'cobblestone',
+  'oak_planks',
+  'iron_ore',
+  'gold_block',
+  'diamond_block',
+  'redstone_block',
+  'creeper_face',
+  'steve_face',
+] as const;
+
+export type AgentAvatarId = (typeof AGENT_AVATAR_IDS)[number];
+
+export const DEFAULT_AGENT_AVATAR_ID: AgentAvatarId = 'grass_block';
+
+export function agentAvatarSrc(avatarId: string | null): string {
+  const id =
+    avatarId && (AGENT_AVATAR_IDS as readonly string[]).includes(avatarId)
+      ? avatarId
+      : DEFAULT_AGENT_AVATAR_ID;
+  return `/avatars/${id}.svg`;
+}
+
 export interface Agent {
   id: string;
   name: string;
@@ -12,6 +38,8 @@ export interface Agent {
   ip: string | null;
   orgRole: AgentOrgRole;
   reportsToAgentId: string | null;
+  /** Selected preset id, or null to show the default sprite in the UI. */
+  avatarId: string | null;
   lastSeen: string | null;
   status: AgentStatus;
   createdAt: string;
