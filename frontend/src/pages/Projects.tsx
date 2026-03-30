@@ -9,7 +9,7 @@ import {
 } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { api } from '../utils/api.js';
+import { api, ApiError } from '../utils/api.js';
 import type { Project, Task, TaskStatus, Agent, Intent, IntentStatus } from '@mission-control/types';
 
 const COLUMNS: { id: TaskStatus; label: string }[] = [
@@ -29,10 +29,12 @@ function TaskCard({
   task,
   agents,
   onEdit,
+  onDelete,
 }: {
   task: Task;
   agents: Agent[];
   onEdit: (t: Task) => void;
+  onDelete: (t: Task) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
@@ -53,7 +55,21 @@ function TaskCard({
       className="bg-gray-800 rounded-lg p-3 cursor-grab active:cursor-grabbing border border-gray-700 hover:border-gray-600"
       onDoubleClick={() => onEdit(task)}
     >
-      <p className="text-sm text-white">{task.title}</p>
+      <div className="flex justify-between items-start gap-2">
+        <p className="text-sm text-white min-w-0">{task.title}</p>
+        <button
+          type="button"
+          aria-label="Delete task"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(task);
+          }}
+          className="shrink-0 text-gray-500 hover:text-red-400 text-lg leading-none px-0.5 -mt-0.5"
+        >
+          ×
+        </button>
+      </div>
       {task.description && (
         <p className="text-xs text-gray-400 mt-1 line-clamp-2">{task.description}</p>
       )}
@@ -71,11 +87,13 @@ function KanbanColumn({
   tasks,
   agents,
   onEdit,
+  onDeleteTask,
 }: {
   column: { id: TaskStatus; label: string };
   tasks: Task[];
   agents: Agent[];
   onEdit: (task: Task) => void;
+  onDeleteTask: (task: Task) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: `column:${column.id}` });
 
@@ -94,7 +112,13 @@ function KanbanColumn({
       </div>
       <SortableContext items={tasks.map((task) => task.id)} strategy={verticalListSortingStrategy}>
         {tasks.map((task) => (
-          <TaskCard key={task.id} task={task} agents={agents} onEdit={onEdit} />
+          <TaskCard
+            key={task.id}
+            task={task}
+            agents={agents}
+            onEdit={onEdit}
+            onDelete={onDeleteTask}
+          />
         ))}
       </SortableContext>
       {tasks.length === 0 && (
@@ -145,9 +169,15 @@ function TaskSlideOver({
 
   async function remove() {
     if (!task) return;
-    await api.delete(`/api/tasks/${task.id}`);
-    onSaved();
-    onClose();
+    if (!window.confirm(`Delete task "${task.title}"?`)) return;
+    try {
+      await api.delete(`/api/tasks/${task.id}`);
+      onSaved();
+      onClose();
+    } catch (e) {
+      const message = e instanceof ApiError ? e.message : 'Failed to delete task';
+      window.alert(message);
+    }
   }
 
   return (
@@ -248,7 +278,7 @@ export default function Projects() {
   const [intentSaving, setIntentSaving] = useState(false);
   const [convertingIntentId, setConvertingIntentId] = useState<string | null>(null);
 
-  const loadProjects = () => {
+  const loadProjects = () =>
     api
       .get<Project[]>('/api/projects')
       .then((projectList) => {
@@ -263,7 +293,6 @@ export default function Projects() {
         });
       })
       .catch(() => {});
-  };
 
   const loadTasks = (projectId: string) => {
     api.get<Task[]>(`/api/projects/${projectId}/tasks`).then(setTasks).catch(() => {});
@@ -364,6 +393,47 @@ export default function Projects() {
     }
   }
 
+  async function deleteIntent(intent: Intent) {
+    if (intent.status === 'converted') return;
+    if (!window.confirm(`Delete intent "${intent.title}"?`)) return;
+    try {
+      await api.delete(`/api/intents/${intent.id}`);
+      loadIntents();
+    } catch (e) {
+      const message = e instanceof ApiError ? e.message : 'Failed to delete intent';
+      window.alert(message);
+    }
+  }
+
+  async function deleteSelectedProject() {
+    if (!selectedProject) return;
+    if (
+      !window.confirm(
+        `Delete project "${selectedProject.name}" and all its tasks? This cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+    try {
+      await api.delete(`/api/projects/${selectedProject.id}`);
+      await loadProjects();
+    } catch (e) {
+      const message = e instanceof ApiError ? e.message : 'Failed to delete project';
+      window.alert(message);
+    }
+  }
+
+  async function deleteTaskFromBoard(task: Task) {
+    if (!window.confirm(`Delete task "${task.title}"?`)) return;
+    try {
+      await api.delete(`/api/tasks/${task.id}`);
+      reload();
+    } catch (e) {
+      const message = e instanceof ApiError ? e.message : 'Failed to delete task';
+      window.alert(message);
+    }
+  }
+
   return (
     <div className="flex h-full gap-0 -mx-6 overflow-hidden">
       <aside className="w-72 shrink-0 bg-gray-900 border-r border-gray-800 flex flex-col">
@@ -397,23 +467,35 @@ export default function Projects() {
             <div key={intent.id} className="bg-gray-800 rounded-lg p-3 border border-gray-700">
               <p className="text-sm text-white">{intent.title}</p>
               <p className="text-xs text-gray-400 mt-1 line-clamp-3">{intent.body}</p>
-              <div className="mt-2 flex items-center justify-between gap-2">
+              <div className="mt-2 flex items-center justify-between gap-2 flex-wrap">
                 <span className="text-[10px] uppercase tracking-wide text-gray-500">
                   {INTENT_STATUS_LABELS[intent.status]}
                 </span>
-                {intent.status === 'open' ? (
-                  <button
-                    onClick={() => convertIntent(intent)}
-                    disabled={convertingIntentId === intent.id}
-                    className="px-2 py-1 text-xs bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded"
-                  >
-                    Convert
-                  </button>
-                ) : (
-                  <span className="text-[10px] text-gray-500">
-                    {intent.createdProjectId ? 'Linked' : 'No link'}
-                  </span>
-                )}
+                <div className="flex items-center gap-1.5">
+                  {intent.status !== 'converted' && (
+                    <button
+                      type="button"
+                      onClick={() => deleteIntent(intent)}
+                      className="px-2 py-1 text-xs text-red-400 hover:text-red-300 hover:bg-red-950/40 rounded"
+                    >
+                      Delete
+                    </button>
+                  )}
+                  {intent.status === 'open' ? (
+                    <button
+                      type="button"
+                      onClick={() => convertIntent(intent)}
+                      disabled={convertingIntentId === intent.id}
+                      className="px-2 py-1 text-xs bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded"
+                    >
+                      Convert
+                    </button>
+                  ) : intent.status === 'converted' ? (
+                    <span className="text-[10px] text-gray-500">
+                      {intent.createdProjectId ? 'Linked' : 'No link'}
+                    </span>
+                  ) : null}
+                </div>
               </div>
             </div>
           ))}
@@ -429,6 +511,7 @@ export default function Projects() {
           {projects.map((p) => (
             <button
               key={p.id}
+              type="button"
               onClick={() => setSelectedProject(p)}
               className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
                 selectedProject?.id === p.id
@@ -448,14 +531,24 @@ export default function Projects() {
       <div className="flex-1 overflow-x-auto px-6 py-6">
         {selectedProject && (
           <>
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
               <h1 className="text-xl font-semibold text-white">{selectedProject.name}</h1>
-              <button
-                onClick={() => setSlideOver('new')}
-                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-md"
-              >
-                + Task
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={deleteSelectedProject}
+                  className="px-3 py-1.5 text-red-400 hover:text-red-300 text-sm border border-red-900/60 hover:border-red-800 rounded-md"
+                >
+                  Delete project
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSlideOver('new')}
+                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-md"
+                >
+                  + Task
+                </button>
+              </div>
             </div>
             <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
               <div className="flex gap-4 min-w-max">
@@ -468,6 +561,7 @@ export default function Projects() {
                       tasks={colTasks}
                       agents={agents}
                       onEdit={(task) => setSlideOver(task)}
+                      onDeleteTask={deleteTaskFromBoard}
                     />
                   );
                 })}
