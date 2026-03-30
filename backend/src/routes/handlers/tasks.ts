@@ -3,6 +3,7 @@ import * as projectsDb from '../../db/api/projects.js';
 import * as agentsDb from '../../db/api/agents.js';
 import * as settingsDb from '../../db/api/settings.js';
 import * as emailService from '../../services/email.js';
+import { notifyRalphOfTask } from '../../services/ralph.js';
 import { backendRequestSchemas } from '../../contracts/mcp-contract.js';
 import { ApiError, parseBody } from '../../lib/errors.js';
 
@@ -49,6 +50,11 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
 
     if (body.assignedAgentId) {
       await notifyAssignedAgent(task.id, body.assignedAgentId, request.log);
+      // Notify Ralph (OpenClaw CoS) directly over Tailscale (fire-and-forget)
+      const project = await projectsDb.getProject(task.projectId);
+      notifyRalphOfTask(task, project?.name ?? task.projectId).catch((err) =>
+        request.log.error({ err }, 'Failed to notify Ralph of task assignment'),
+      );
     }
 
     return reply.code(201).send(task);
@@ -68,6 +74,11 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
     // Notify newly assigned agent (skip if we're also clearing via review auto-unassign)
     if (body.assignedAgentId && body.status !== 'review') {
       await notifyAssignedAgent(id, body.assignedAgentId, request.log);
+      // Notify Ralph (OpenClaw CoS) directly over Tailscale (fire-and-forget)
+      const project = await projectsDb.getProject(task.projectId);
+      notifyRalphOfTask(task, project?.name ?? task.projectId).catch((err) =>
+        request.log.error({ err }, 'Failed to notify Ralph of task assignment'),
+      );
     }
 
     return task;
