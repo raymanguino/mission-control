@@ -41,8 +41,10 @@ export default function App() {
               <Route index element={<Navigate to="sleep" replace />} />
               <Route path="log" element={<Navigate to="/wellness/sleep" replace />} />
               <Route path="sleep" element={<WellnessSleep />} />
-              <Route path="food" element={<WellnessFood />} />
-              <Route path="greens" element={<WellnessGreens />} />
+              <Route path="food" element={<Navigate to="/wellness/diet" replace />} />
+              <Route path="greens" element={<Navigate to="/wellness/meds" replace />} />
+              <Route path="diet" element={<WellnessFood />} />
+              <Route path="meds" element={<WellnessGreens />} />
               <Route path="insights" element={<WellnessInsights />} />
             </Route>
             <Route path="chat" element={<ChatIndex />} />

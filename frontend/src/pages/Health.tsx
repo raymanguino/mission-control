@@ -249,7 +249,7 @@ export function FoodSection({
 
   return (
     <Section
-      title="Food"
+      title="Diet"
       icon="🍽️"
       onAdd={() => setShowAdd(true)}
       badge={totalCals ? `${totalCals} kcal` : undefined}
@@ -479,7 +479,7 @@ export function CannabisSection({
 
   return (
     <Section
-      title="Greens"
+      title="Meds"
       icon="🌿"
       onAdd={() => setShowAdd(true)}
       bodyClassName="max-h-80 overflow-y-auto"
@@ -611,8 +611,8 @@ function CannabisModal({
 // ─── AI Insights tab ───────────────────────────────────────────────────────────
 
 const presetInsightGoals = [
-  'Understand what sleep and cannabis timing patterns are reducing my sleep quality.',
-  'Find whether meal timing is affecting sleep duration and quality.',
+  'Understand what sleep and meds timing patterns are reducing my sleep quality.',
+  'Find whether diet meal timing is affecting sleep duration and quality.',
   'Identify practical timing changes I can make this week to improve recovery.',
 ];
 
@@ -725,7 +725,7 @@ export function AnalysisTab({
           <div>
             <h2 className="text-lg font-semibold text-white">AI Insights</h2>
             <p className="text-sm text-gray-500 mt-0.5">
-              Overlayed Daily Log trends for sleep, quality, meals, and greens across 30 days.
+              Overlayed Daily Log trends for sleep, quality, diet (meals), and meds across 30 days.
             </p>
           </div>
         </div>
@@ -763,7 +763,7 @@ export function AnalysisTab({
               yAxisId="events"
               type="monotone"
               dataKey="meals"
-              name="Meals"
+              name="Diet (meals)"
               stroke="#10b981"
               dot={false}
               strokeWidth={2}
@@ -772,7 +772,7 @@ export function AnalysisTab({
               yAxisId="events"
               type="monotone"
               dataKey="cannabis"
-              name="Greens sessions"
+              name="Meds sessions"
               stroke="#ef4444"
               dot={false}
               strokeWidth={2}
@@ -792,7 +792,7 @@ export function AnalysisTab({
           <Input
             value={customGoalText}
             onChange={setCustomGoalText}
-            placeholder="e.g. I want to improve deep sleep by adjusting meal and cannabis timing"
+            placeholder="e.g. I want to improve deep sleep by adjusting diet and meds timing"
           />
           <button
             onClick={addCustomGoal}

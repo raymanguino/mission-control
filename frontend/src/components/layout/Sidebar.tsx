@@ -111,8 +111,8 @@ const WELLNESS_NAV_ITEMS: readonly {
     ],
   },
   {
-    to: '/wellness/food',
-    label: 'Food',
+    to: '/wellness/diet',
+    label: 'Diet',
     sidebarAdd: true,
     paths: [
       {
@@ -122,8 +122,8 @@ const WELLNESS_NAV_ITEMS: readonly {
     ],
   },
   {
-    to: '/wellness/greens',
-    label: 'Greens',
+    to: '/wellness/meds',
+    label: 'Meds',
     sidebarAdd: true,
     iconViewBox: '0 0 512 512',
     paths: [
@@ -425,9 +425,9 @@ export default function Sidebar() {
                 <Link
                   to={`${to}?add=1`}
                   className="text-xs text-indigo-400 hover:text-indigo-300 px-2 py-1 rounded shrink-0"
-                  title={`Add ${label}`}
+                  title={`Log ${label}`}
                 >
-                  + Add
+                  + Log
                 </Link>
               </div>
             ) : (
