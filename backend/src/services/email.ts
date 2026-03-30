@@ -7,19 +7,21 @@ export async function sendEmail(to: string, subject: string, text: string): Prom
   await resend.emails.send({ from: FROM, to, subject, text });
 }
 
-export async function notifyCoSOfIntent(
+export async function notifyCoSOfProject(
   cos: { email: string; name: string },
-  intent: { id: string; title: string; body: string },
+  project: { id: string; name: string; description: string | null },
   instructions: string,
 ): Promise<void> {
-  const subject = `[Mission Control] New Intent: ${intent.title}`;
+  const subject = `[Mission Control] New Project Pending Approval: ${project.name}`;
   const text = [
-    `A new intent has been submitted and requires your attention.`,
+    `A new project has been submitted and requires your approval.`,
     ``,
-    `Intent ID: ${intent.id}`,
-    `Title: ${intent.title}`,
-    `Details:`,
-    intent.body,
+    `Project ID: ${project.id}`,
+    `Name: ${project.name}`,
+    `Description: ${project.description ?? '(none)'}`,
+    ``,
+    `To approve: PATCH /api/projects/${project.id} with { "status": "approved" }`,
+    `To deny:    PATCH /api/projects/${project.id} with { "status": "denied" }`,
     ``,
     `---`,
     `Your instructions:`,

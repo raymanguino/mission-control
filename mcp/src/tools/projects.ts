@@ -50,6 +50,26 @@ export function registerProjectTools(server: McpServer) {
   );
 
   server.tool(
+    'update_project',
+    'Update a project name, description, or approval status.\n\nRequired: `projectId`.\nOptional: `name`, `description`, `status` (pending_approval | approved | denied).',
+    {
+      projectId: z.string().uuid().describe('Project UUID (required).'),
+      name: z.string().optional().describe('Updated name (omit to keep unchanged).'),
+      description: z.string().optional().describe('Updated description (omit to keep unchanged).'),
+      status: z
+        .enum(['pending_approval', 'approved', 'denied'])
+        .optional()
+        .describe('Set to approved or denied to action a pending project.'),
+    },
+    async ({ projectId, ...updates }) => {
+      const project = await apiPatch<Project>(`/api/projects/${projectId}`, omitNullValues(updates));
+      return {
+        content: [{ type: 'text', text: JSON.stringify(project, null, 2) }],
+      };
+    },
+  );
+
+  server.tool(
     'delete_project',
     'Permanently delete a project and its tasks.\n\nRequired: `projectId`.',
     {

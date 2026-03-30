@@ -39,6 +39,11 @@ export const backendRequestSchemas = {
     name: z.string(),
     description: z.string().optional(),
   }),
+  updateProject: z.object({
+    name: z.string().optional(),
+    description: z.string().optional(),
+    status: z.enum(['pending_approval', 'approved', 'denied']).optional(),
+  }),
   createTask: z.object({
     projectId: z.string().uuid(),
     title: z.string(),
@@ -53,21 +58,6 @@ export const backendRequestSchemas = {
     status: z.enum(['backlog', 'doing', 'review', 'done']).optional(),
     assignedAgentId: z.string().uuid().nullable().optional(),
     order: z.number().int().optional(),
-  }),
-  createIntent: z.object({
-    title: z.string(),
-    body: z.string(),
-    status: z.enum(['open', 'converted', 'cancelled']).optional(),
-  }),
-  updateIntent: z.object({
-    title: z.string().optional(),
-    body: z.string().optional(),
-    status: z.enum(['open', 'converted', 'cancelled']).optional(),
-    createdProjectId: z.string().uuid().nullable().optional(),
-  }),
-  convertIntent: z.object({
-    projectName: z.string(),
-    projectDescription: z.string().optional(),
   }),
   createMessage: z
     .object({
@@ -156,6 +146,17 @@ export const mcpToolContracts: Record<string, McpToolContract> = {
     params: 'body',
     input: backendRequestSchemas.createProject.shape,
   },
+  update_project: {
+    method: 'PATCH',
+    path: '/api/projects/:projectId',
+    params: 'path+body',
+    input: {
+      projectId: z.string().uuid(),
+      name: backendRequestSchemas.updateProject.shape.name,
+      description: backendRequestSchemas.updateProject.shape.description,
+      status: backendRequestSchemas.updateProject.shape.status,
+    },
+  },
   delete_project: {
     method: 'DELETE',
     path: '/api/projects/:projectId',
@@ -203,47 +204,6 @@ export const mcpToolContracts: Record<string, McpToolContract> = {
     path: '/api/tasks/:taskId',
     params: 'path+query',
     input: { taskId: z.string().uuid() },
-  },
-  get_intent: {
-    method: 'GET',
-    path: '/api/intents/:intentId',
-    params: 'path+query',
-    input: { intentId: z.string() },
-  },
-  list_intents: { method: 'GET', path: '/api/intents', params: 'none', input: {} },
-  create_intent: {
-    method: 'POST',
-    path: '/api/intents',
-    params: 'body',
-    input: backendRequestSchemas.createIntent.shape,
-  },
-  update_intent: {
-    method: 'PATCH',
-    path: '/api/intents/:intentId',
-    params: 'path+body',
-    input: {
-      intentId: z.string(),
-      title: backendRequestSchemas.updateIntent.shape.title,
-      body: backendRequestSchemas.updateIntent.shape.body,
-      status: backendRequestSchemas.updateIntent.shape.status,
-      createdProjectId: z.string().nullable().optional(),
-    },
-  },
-  convert_intent_to_project: {
-    method: 'POST',
-    path: '/api/intents/:intentId/convert',
-    params: 'path+body',
-    input: {
-      intentId: z.string(),
-      projectName: backendRequestSchemas.convertIntent.shape.projectName,
-      projectDescription: backendRequestSchemas.convertIntent.shape.projectDescription,
-    },
-  },
-  delete_intent: {
-    method: 'DELETE',
-    path: '/api/intents/:intentId',
-    params: 'path+query',
-    input: { intentId: z.string().uuid() },
   },
   list_channels: { method: 'GET', path: '/api/channels', params: 'none', input: {} },
   get_messages: {

@@ -5,7 +5,6 @@ import { fileURLToPath } from 'node:url';
 
 import { registerAgentTools } from './agents.js';
 import { registerChatTools } from './chat.js';
-import { registerIntentTools } from './intents.js';
 import { registerProjectTools } from './projects.js';
 import { registerSettingsTools } from './settings.js';
 import { registerUsageTools } from './usage.js';
@@ -41,7 +40,6 @@ function getRegisteredTools() {
 
   registerAgentTools(server as never);
   registerProjectTools(server as never);
-  registerIntentTools(server as never);
   registerWellnessTools(server as never);
   registerChatTools(server as never);
   registerUsageTools(server as never);
@@ -66,7 +64,6 @@ function extractApiPathsFromToolSources() {
   const toolFiles = [
     'agents.ts',
     'projects.ts',
-    'intents.ts',
     'wellness.ts',
     'chat.ts',
     'usage.ts',

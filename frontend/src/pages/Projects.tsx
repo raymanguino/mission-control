@@ -10,7 +10,7 @@ import {
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { api, ApiError } from '../utils/api.js';
-import type { Project, Task, TaskStatus, Agent, Intent, IntentStatus } from '@mission-control/types';
+import type { Project, Task, TaskStatus, Agent, ProjectStatus } from '@mission-control/types';
 
 const COLUMNS: { id: TaskStatus; label: string }[] = [
   { id: 'backlog', label: 'Backlog' },
@@ -19,10 +19,16 @@ const COLUMNS: { id: TaskStatus; label: string }[] = [
   { id: 'done', label: 'Done' },
 ];
 
-const INTENT_STATUS_LABELS: Record<IntentStatus, string> = {
-  open: 'Open',
-  converted: 'Converted',
-  cancelled: 'Cancelled',
+const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
+  pending_approval: 'Pending Approval',
+  approved: 'Approved',
+  denied: 'Denied',
+};
+
+const PROJECT_STATUS_BADGE_CLASS: Record<ProjectStatus, string> = {
+  pending_approval: 'text-yellow-400 bg-yellow-950/40',
+  approved: 'text-green-400 bg-green-950/40',
+  denied: 'text-red-400 bg-red-950/40',
 };
 
 function TaskCard({
@@ -271,12 +277,11 @@ export default function Projects() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
-  const [intents, setIntents] = useState<Intent[]>([]);
-  const [intentTitle, setIntentTitle] = useState('');
-  const [intentBody, setIntentBody] = useState('');
   const [slideOver, setSlideOver] = useState<Task | null | 'new'>(null);
-  const [intentSaving, setIntentSaving] = useState(false);
-  const [convertingIntentId, setConvertingIntentId] = useState<string | null>(null);
+  const [showAddProject, setShowAddProject] = useState(false);
+  const [newProjectName, setNewProjectName] = useState('');
+  const [newProjectDescription, setNewProjectDescription] = useState('');
+  const [projectSaving, setProjectSaving] = useState(false);
 
   const loadProjects = () =>
     api
@@ -298,13 +303,8 @@ export default function Projects() {
     api.get<Task[]>(`/api/projects/${projectId}/tasks`).then(setTasks).catch(() => {});
   };
 
-  const loadIntents = () => {
-    api.get<Intent[]>('/api/intents').then(setIntents).catch(() => {});
-  };
-
   useEffect(() => {
     loadProjects();
-    loadIntents();
     api.get<Agent[]>('/api/agents').then(setAgents).catch(() => {});
   }, []);
 
@@ -318,11 +318,6 @@ export default function Projects() {
 
     return () => clearInterval(pollId);
   }, [selectedProject]);
-
-  useEffect(() => {
-    const pollId = setInterval(loadIntents, 15_000);
-    return () => clearInterval(pollId);
-  }, []);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -359,49 +354,21 @@ export default function Projects() {
     loadTasks(selectedProject.id);
   };
 
-  async function createIntent() {
-    if (!intentTitle.trim() || !intentBody.trim()) return;
-    setIntentSaving(true);
+  async function createProject() {
+    if (!newProjectName.trim()) return;
+    setProjectSaving(true);
     try {
-      await api.post('/api/intents', {
-        title: intentTitle.trim(),
-        body: intentBody.trim(),
+      const project = await api.post<Project>('/api/projects', {
+        name: newProjectName.trim(),
+        description: newProjectDescription.trim() || undefined,
       });
-      setIntentTitle('');
-      setIntentBody('');
-      loadIntents();
+      setNewProjectName('');
+      setNewProjectDescription('');
+      setShowAddProject(false);
+      await loadProjects();
+      setSelectedProject(project);
     } finally {
-      setIntentSaving(false);
-    }
-  }
-
-  async function convertIntent(intent: Intent) {
-    setConvertingIntentId(intent.id);
-    try {
-      const result = await api.post<{ intent: Intent; project: Project }>(
-        `/api/intents/${intent.id}/convert`,
-        {
-          projectName: intent.title,
-          projectDescription: intent.body,
-        },
-      );
-      loadIntents();
-      loadProjects();
-      setSelectedProject(result.project);
-    } finally {
-      setConvertingIntentId(null);
-    }
-  }
-
-  async function deleteIntent(intent: Intent) {
-    if (intent.status === 'converted') return;
-    if (!window.confirm(`Delete intent "${intent.title}"?`)) return;
-    try {
-      await api.delete(`/api/intents/${intent.id}`);
-      loadIntents();
-    } catch (e) {
-      const message = e instanceof ApiError ? e.message : 'Failed to delete intent';
-      window.alert(message);
+      setProjectSaving(false);
     }
   }
 
@@ -437,75 +404,15 @@ export default function Projects() {
   return (
     <div className="flex h-full gap-0 -mx-6 overflow-hidden">
       <aside className="w-72 shrink-0 bg-gray-900 border-r border-gray-800 flex flex-col">
-        <div className="px-4 py-3 border-b border-gray-800">
-          <span className="text-sm font-medium text-gray-300">Intents</span>
-        </div>
-        <div className="px-4 py-3 border-b border-gray-800 space-y-2">
-          <input
-            value={intentTitle}
-            onChange={(event) => setIntentTitle(event.target.value)}
-            placeholder="Intent title"
-            className="w-full bg-gray-800 rounded-md px-3 py-2 text-sm text-white border border-gray-700 focus:outline-none"
-          />
-          <textarea
-            value={intentBody}
-            onChange={(event) => setIntentBody(event.target.value)}
-            placeholder="Intent details"
-            rows={3}
-            className="w-full bg-gray-800 rounded-md px-3 py-2 text-sm text-white border border-gray-700 focus:outline-none resize-none"
-          />
-          <button
-            onClick={createIntent}
-            disabled={intentSaving || !intentTitle.trim() || !intentBody.trim()}
-            className="w-full px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm rounded-md"
-          >
-            Add Intent
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2 border-b border-gray-800">
-          {intents.map((intent) => (
-            <div key={intent.id} className="bg-gray-800 rounded-lg p-3 border border-gray-700">
-              <p className="text-sm text-white">{intent.title}</p>
-              <p className="text-xs text-gray-400 mt-1 line-clamp-3">{intent.body}</p>
-              <div className="mt-2 flex items-center justify-between gap-2 flex-wrap">
-                <span className="text-[10px] uppercase tracking-wide text-gray-500">
-                  {INTENT_STATUS_LABELS[intent.status]}
-                </span>
-                <div className="flex items-center gap-1.5">
-                  {intent.status !== 'converted' && (
-                    <button
-                      type="button"
-                      onClick={() => deleteIntent(intent)}
-                      className="px-2 py-1 text-xs text-red-400 hover:text-red-300 hover:bg-red-950/40 rounded"
-                    >
-                      Delete
-                    </button>
-                  )}
-                  {intent.status === 'open' ? (
-                    <button
-                      type="button"
-                      onClick={() => convertIntent(intent)}
-                      disabled={convertingIntentId === intent.id}
-                      className="px-2 py-1 text-xs bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded"
-                    >
-                      Convert
-                    </button>
-                  ) : intent.status === 'converted' ? (
-                    <span className="text-[10px] text-gray-500">
-                      {intent.createdProjectId ? 'Linked' : 'No link'}
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-          ))}
-          {intents.length === 0 && (
-            <p className="text-xs text-gray-500">No intents yet.</p>
-          )}
-        </div>
-
         <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
           <span className="text-sm font-medium text-gray-300">Projects</span>
+          <button
+            type="button"
+            onClick={() => setShowAddProject(true)}
+            className="px-2 py-1 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-md"
+          >
+            + Add
+          </button>
         </div>
         <div className="flex-1 overflow-y-auto">
           {projects.map((p) => (
@@ -519,7 +426,12 @@ export default function Projects() {
                   : 'text-gray-400 hover:bg-gray-800 hover:text-white'
               }`}
             >
-              {p.name}
+              <span className="block">{p.name}</span>
+              <span
+                className={`mt-0.5 inline-block text-[10px] px-1.5 py-0.5 rounded-full ${PROJECT_STATUS_BADGE_CLASS[p.status]}`}
+              >
+                {PROJECT_STATUS_LABELS[p.status]}
+              </span>
             </button>
           ))}
           {projects.length === 0 && (
@@ -529,7 +441,7 @@ export default function Projects() {
       </aside>
 
       <div className="flex-1 overflow-x-auto px-6 py-6">
-        {selectedProject && (
+        {selectedProject && selectedProject.status === 'approved' && (
           <>
             <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
               <h1 className="text-xl font-semibold text-white">{selectedProject.name}</h1>
@@ -569,6 +481,29 @@ export default function Projects() {
             </DndContext>
           </>
         )}
+        {selectedProject && selectedProject.status !== 'approved' && (
+          <>
+            <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
+              <h1 className="text-xl font-semibold text-white">{selectedProject.name}</h1>
+              <button
+                type="button"
+                onClick={deleteSelectedProject}
+                className="px-3 py-1.5 text-red-400 hover:text-red-300 text-sm border border-red-900/60 hover:border-red-800 rounded-md"
+              >
+                Delete project
+              </button>
+            </div>
+            <div className="flex flex-col items-center justify-center h-64 text-center">
+              <p className="text-gray-400 text-sm">
+                This project is{' '}
+                <span className="font-medium">{PROJECT_STATUS_LABELS[selectedProject.status]}</span>.
+              </p>
+              <p className="text-gray-500 text-xs mt-1">
+                Task management is only available for approved projects.
+              </p>
+            </div>
+          </>
+        )}
         {!selectedProject && projects.length > 0 && (
           <p className="text-gray-500">Select a project to view its board.</p>
         )}
@@ -582,6 +517,56 @@ export default function Projects() {
           onClose={() => setSlideOver(null)}
           onSaved={reload}
         />
+      )}
+
+      {showAddProject && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="w-96 bg-gray-900 rounded-lg border border-gray-700 p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-white">New Project</h2>
+              <button
+                onClick={() => setShowAddProject(false)}
+                className="text-gray-500 hover:text-white text-xl"
+              >
+                ×
+              </button>
+            </div>
+            <div>
+              <label className="text-xs text-gray-400">Project Name</label>
+              <input
+                value={newProjectName}
+                onChange={(e) => setNewProjectName(e.target.value)}
+                className="w-full mt-1 bg-gray-800 rounded-md px-3 py-2 text-sm text-white border border-gray-700 focus:outline-none"
+                autoFocus
+                onKeyDown={(e) => e.key === 'Enter' && createProject()}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-400">Description</label>
+              <textarea
+                value={newProjectDescription}
+                onChange={(e) => setNewProjectDescription(e.target.value)}
+                rows={3}
+                className="w-full mt-1 bg-gray-800 rounded-md px-3 py-2 text-sm text-white border border-gray-700 focus:outline-none resize-none"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowAddProject(false)}
+                className="px-3 py-1.5 text-sm text-gray-400 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={createProject}
+                disabled={projectSaving || !newProjectName.trim()}
+                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm rounded-md"
+              >
+                {projectSaving ? 'Creating…' : 'Create Project'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

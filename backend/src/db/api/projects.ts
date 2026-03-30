@@ -16,7 +16,10 @@ export async function createProject(data: { name: string; description?: string }
   return rows[0]!;
 }
 
-export async function updateProject(id: string, data: Partial<{ name: string; description: string }>) {
+export async function updateProject(
+  id: string,
+  data: Partial<{ name: string; description: string; status: string }>,
+) {
   const rows = await db
     .update(projects)
     .set({ ...data, updatedAt: new Date() })

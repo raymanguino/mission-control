@@ -34,10 +34,13 @@ export interface AgentReportBody {
 }
 
 // Project types
+export type ProjectStatus = 'pending_approval' | 'approved' | 'denied';
+
 export interface Project {
   id: string;
   name: string;
   description: string | null;
+  status: ProjectStatus;
   createdAt: string;
   updatedAt: string;
 }
@@ -56,17 +59,6 @@ export interface Task {
   updatedAt: string;
 }
 
-export type IntentStatus = 'open' | 'converted' | 'cancelled';
-
-export interface Intent {
-  id: string;
-  title: string;
-  body: string;
-  status: IntentStatus;
-  createdProjectId: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
 
 // Wellness tracking types
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';

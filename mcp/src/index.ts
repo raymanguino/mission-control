@@ -5,7 +5,6 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 
 import { registerAgentTools } from './tools/agents.js';
 import { registerProjectTools } from './tools/projects.js';
-import { registerIntentTools } from './tools/intents.js';
 import { registerWellnessTools } from './tools/wellness.js';
 import { registerChatTools } from './tools/chat.js';
 import { registerUsageTools } from './tools/usage.js';
@@ -21,7 +20,6 @@ function createMcpServer(): McpServer {
   });
   registerAgentTools(server);
   registerProjectTools(server);
-  registerIntentTools(server);
   registerWellnessTools(server);
   registerChatTools(server);
   registerUsageTools(server);

@@ -6,7 +6,6 @@ import taskRoutes from './handlers/tasks.js';
 import wellnessRoutes from './handlers/wellness.js';
 import channelRoutes from './handlers/channels.js';
 import usageRoutes from './handlers/usage.js';
-import intentRoutes from './handlers/intents.js';
 import settingsRoutes from './handlers/settings.js';
 
 export async function registerRoutes(app: FastifyInstance) {
@@ -17,6 +16,5 @@ export async function registerRoutes(app: FastifyInstance) {
   await app.register(wellnessRoutes, { prefix: '/api/health' });
   await app.register(channelRoutes, { prefix: '/api/channels' });
   await app.register(usageRoutes, { prefix: '/api/usage' });
-  await app.register(intentRoutes, { prefix: '/api/intents' });
   await app.register(settingsRoutes, { prefix: '/api/settings' });
 }

@@ -47,6 +47,7 @@ export const projects = pgTable('projects', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
   description: text('description'),
+  status: text('status').notNull().default('pending_approval'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
@@ -67,17 +68,6 @@ export const tasks = pgTable('tasks', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-export const intents = pgTable('intents', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  title: text('title').notNull(),
-  body: text('body').notNull(),
-  status: text('status').notNull().default('open'),
-  createdProjectId: uuid('created_project_id').references(() => projects.id, {
-    onDelete: 'set null',
-  }),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-});
 
 export const healthGoals = pgTable('health_goals', {
   id: uuid('id').primaryKey().defaultRandom(),

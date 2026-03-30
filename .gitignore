@@ -8,3 +8,6 @@ supabase/.temp/
 
 # Cursor debug logs
 .cursor/debug-*.log
+
+# Claude Code local settings
+.claude/settings.local.json
