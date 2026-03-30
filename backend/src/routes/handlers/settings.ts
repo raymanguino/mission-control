@@ -5,17 +5,36 @@ import * as settingsDb from '../../db/api/settings.js';
 import * as emailService from '../../services/email.js';
 import { parseBody } from '../../lib/errors.js';
 
+const DEFAULT_DASHBOARD_TITLE = 'Mission Control';
+const DASHBOARD_TITLE_MAX_LEN = 128;
+
 const updateSettingsSchema = z.record(z.string(), z.string());
 
 const INSTRUCTION_SETTING_KEYS = ['cos_instructions', 'agent_instructions'] as const;
 
+function resolveDashboardTitle(raw: string | null): string {
+  const t = raw?.trim() ?? '';
+  return t.length > 0 ? t.slice(0, DASHBOARD_TITLE_MAX_LEN) : DEFAULT_DASHBOARD_TITLE;
+}
+
 const settingsRoutes: FastifyPluginAsync = async (fastify) => {
+  /** Public: login page and shell need the label without a JWT. */
+  fastify.get('/display', async () => {
+    const raw = await settingsDb.getSetting('dashboard_title');
+    return { dashboardTitle: resolveDashboardTitle(raw) };
+  });
+
   fastify.get('/', { preHandler: fastify.authenticate }, async () => {
     return settingsDb.getAllSettings();
   });
 
   fastify.patch('/', { preHandler: fastify.authenticate }, async (request) => {
     const body = parseBody(updateSettingsSchema, request.body);
+
+    if (Object.prototype.hasOwnProperty.call(body, 'dashboard_title')) {
+      const v = body['dashboard_title'] ?? '';
+      body['dashboard_title'] = v.trim().slice(0, DASHBOARD_TITLE_MAX_LEN);
+    }
 
     const previousByKey: Partial<Record<(typeof INSTRUCTION_SETTING_KEYS)[number], string | null>> =
       {};

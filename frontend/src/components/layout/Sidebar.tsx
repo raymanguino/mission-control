@@ -3,6 +3,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { api } from '../../utils/api.js';
 import type { Agent, Channel, Project } from '@mission-control/types';
 import { useAuth } from '../../contexts/AuthContext.js';
+import { useDashboardTitle } from '../../contexts/DashboardTitleContext.js';
 import { PROJECT_STATUS_BADGE_CLASS, PROJECT_STATUS_LABELS } from '../../utils/projectLabels.js';
 import AddProjectModal from '../AddProjectModal.js';
 
@@ -228,6 +229,7 @@ export default function Sidebar() {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { dashboardTitle } = useDashboardTitle();
   const [searchParams, setSearchParams] = useSearchParams();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [channels, setChannels] = useState<Channel[]>([]);
@@ -292,7 +294,7 @@ export default function Sidebar() {
   return (
     <aside className="w-56 shrink-0 flex flex-col h-full bg-gray-900 text-gray-100 border-r border-gray-800">
       <div className="px-5 py-4 border-b border-gray-800">
-        <span className="text-lg font-semibold tracking-tight">Mission Control</span>
+        <span className="text-lg font-semibold tracking-tight">{dashboardTitle}</span>
       </div>
       <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto">
         <CollapsibleNavSection

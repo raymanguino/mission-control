@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
 import { api } from '../utils/api.js';
+import {
+  DEFAULT_DASHBOARD_TITLE,
+  useDashboardTitle,
+} from '../contexts/DashboardTitleContext.js';
 
 interface AiConfigResponse {
   providers: {
@@ -30,10 +34,12 @@ interface AiConfigResponse {
 }
 
 export default function Settings() {
+  const { refreshDashboardTitle } = useDashboardTitle();
   const [aiConfig, setAiConfig] = useState<AiConfigResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [settingsLoading, setSettingsLoading] = useState(true);
+  const [dashboardTitle, setDashboardTitle] = useState('');
   const [cosInstructions, setCosInstructions] = useState('');
   const [agentInstructions, setAgentInstructions] = useState('');
   const [saving, setSaving] = useState<string | null>(null);
@@ -52,6 +58,7 @@ export default function Settings() {
     api
       .get<Record<string, string>>('/api/settings')
       .then((s) => {
+        setDashboardTitle(s['dashboard_title'] ?? '');
         setCosInstructions(s['cos_instructions'] ?? '');
         setAgentInstructions(s['agent_instructions'] ?? '');
       })
@@ -68,6 +75,9 @@ export default function Settings() {
     setSaving(key);
     try {
       await api.patch('/api/settings', { [key]: value });
+      if (key === 'dashboard_title') {
+        await refreshDashboardTitle();
+      }
     } finally {
       setSaving(null);
     }
@@ -76,6 +86,36 @@ export default function Settings() {
   return (
     <div className="space-y-6 max-w-3xl">
       <h1 className="text-2xl font-semibold">Settings</h1>
+
+      {/* Dashboard title */}
+      <div className="bg-gray-900 rounded-xl p-5 border border-gray-800 space-y-3">
+        <h2 className="text-sm font-semibold text-white">Dashboard title</h2>
+        <p className="text-xs text-gray-500">
+          Shown in the sidebar, login page, and browser tab. Leave blank to use the default (
+          {DEFAULT_DASHBOARD_TITLE}).
+        </p>
+        {settingsLoading ? (
+          <p className="text-xs text-gray-500">Loading…</p>
+        ) : (
+          <>
+            <input
+              type="text"
+              maxLength={128}
+              placeholder={DEFAULT_DASHBOARD_TITLE}
+              className="w-full bg-gray-800 text-gray-200 text-sm rounded-md px-3 py-2 border border-gray-700 focus:outline-none focus:border-gray-600"
+              value={dashboardTitle}
+              onChange={(e) => setDashboardTitle(e.target.value)}
+            />
+            <button
+              onClick={() => saveSetting('dashboard_title', dashboardTitle)}
+              disabled={saving === 'dashboard_title'}
+              className="px-3 py-1.5 text-xs rounded-md bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50"
+            >
+              {saving === 'dashboard_title' ? 'Saving…' : 'Save'}
+            </button>
+          </>
+        )}
+      </div>
 
       {/* Chief of Staff Instructions */}
       <div className="bg-gray-900 rounded-xl p-5 border border-gray-800 space-y-3">

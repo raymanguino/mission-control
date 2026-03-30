@@ -1,9 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { api } from '../utils/api.js';
+import { useDashboardTitle } from '../contexts/DashboardTitleContext.js';
 import type { Channel, Message } from '@mission-control/types';
 
 export default function Chat() {
+  const { dashboardTitle } = useDashboardTitle();
   const { channelId } = useParams<{ channelId: string }>();
   const [channels, setChannels] = useState<Channel[] | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -99,7 +101,7 @@ export default function Chat() {
                 {m.fromMissionControl ? (
                   <span
                     className="text-[10px] uppercase tracking-wide font-semibold px-1.5 py-0.5 rounded bg-amber-900/50 text-amber-200 border border-amber-700/60"
-                    title="Sent from Mission Control (dashboard or API)"
+                    title={`Sent from ${dashboardTitle} (dashboard or API)`}
                   >
                     MC
                   </span>

@@ -1,9 +1,11 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.js';
+import { useDashboardTitle } from '../contexts/DashboardTitleContext.js';
 
 export default function Login() {
   const { login } = useAuth();
+  const { dashboardTitle } = useDashboardTitle();
   const navigate = useNavigate();
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -29,7 +31,7 @@ export default function Login() {
         onSubmit={handleSubmit}
         className="w-80 bg-gray-900 rounded-xl p-8 shadow-lg space-y-5"
       >
-        <h1 className="text-xl font-semibold text-white">Mission Control</h1>
+        <h1 className="text-xl font-semibold text-white">{dashboardTitle}</h1>
         <div>
           <label className="block text-sm text-gray-400 mb-1" htmlFor="password">
             Password
