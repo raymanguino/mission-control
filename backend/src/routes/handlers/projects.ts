@@ -1,9 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import * as projectsDb from '../../db/api/projects.js';
-import * as agentsDb from '../../db/api/agents.js';
-import * as settingsDb from '../../db/api/settings.js';
-import * as emailService from '../../services/email.js';
+import { notifyRalphOfProject } from '../../services/ralph.js';
 import { backendRequestSchemas } from '../../contracts/mcp-contract.js';
 import { ApiError, parseBody } from '../../lib/errors.js';
 
@@ -23,25 +21,10 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
     const project = await projectsDb.createProject(body);
     await fastify.finalizeIdempotency(request, 201, project);
 
-    // Notify CoS agents of new project (fire-and-forget, never fail the request)
-    try {
-      const cosAgents = await agentsDb.getCoSAgents();
-      const cosWithEmail = cosAgents.filter((a) => a.email);
-      if (cosWithEmail.length > 0) {
-        const instructions = (await settingsDb.getSetting('cos_instructions')) ?? '';
-        await Promise.all(
-          cosWithEmail.map((cos) =>
-            emailService.notifyCoSOfProject(
-              { email: cos.email!, name: cos.name },
-              project,
-              instructions,
-            ),
-          ),
-        );
-      }
-    } catch (err) {
-      request.log.error({ err }, 'Failed to notify CoS of new project');
-    }
+    // Notify Ralph (OpenClaw CoS) directly over Tailscale (fire-and-forget, never fail the request)
+    notifyRalphOfProject(project).catch((err) =>
+      request.log.error({ err }, 'Failed to notify Ralph of new project'),
+    );
 
     return reply.code(201).send(project);
   });
