@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState } from 'react';
 import { api } from '../utils/api.js';
 import type {
   FoodLog,
@@ -50,37 +50,9 @@ function sleepDuration(bedTime: string, wakeTime: string | null): string {
   return `${h.toFixed(1)}h`;
 }
 
-// ─── Tab bar ──────────────────────────────────────────────────────────────────
+// ─── Daily Log sections ───────────────────────────────────────────────────────
 
-type Tab = 'log' | 'insights';
-
-function Tabs({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
-  const items: { id: Tab; label: string }[] = [
-    { id: 'log', label: 'Daily Log' },
-    { id: 'insights', label: 'AI Insights' },
-  ];
-  return (
-    <div className="flex gap-1 border-b border-gray-800 mb-6">
-      {items.map((t) => (
-        <button
-          key={t.id}
-          onClick={() => onChange(t.id)}
-          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-            active === t.id
-              ? 'border-indigo-500 text-white'
-              : 'border-transparent text-gray-400 hover:text-gray-200'
-          }`}
-        >
-          {t.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-// ─── Daily Log tab ────────────────────────────────────────────────────────────
-
-function SleepSection({
+export function SleepSection({
   date,
   sleepLogs,
   onUpsert,
@@ -233,7 +205,7 @@ function SleepModal({
   );
 }
 
-function FoodSection({
+export function FoodSection({
   date,
   foodLogs,
   onRefresh,
@@ -447,7 +419,7 @@ function FoodModal({
   );
 }
 
-function CannabisSection({
+export function CannabisSection({
   date,
   sessions,
   onRefresh,
@@ -641,7 +613,7 @@ function buildInsightTrendData(
   return points;
 }
 
-function AnalysisTab({
+export function AnalysisTab({
   sleepLogs,
   foodLogs,
   marijuanaSessions,
@@ -1035,92 +1007,8 @@ function Section({
   );
 }
 
-function Empty({ children }: { children: React.ReactNode }) {
+export function Empty({ children }: { children: React.ReactNode }) {
   return <p className="py-3 text-sm text-gray-600 text-center">{children}</p>;
 }
 
-// ─── Page root ────────────────────────────────────────────────────────────────
-
-export default function Wellness() {
-  const [tab, setTab] = useState<Tab>('log');
-  const [selectedDate, setSelectedDate] = useState(todayStr);
-
-  // Daily log state
-  const [foodLogs, setFoodLogs] = useState<FoodLog[]>([]);
-  const [marijuanaSessions, setMarijuanaSessions] = useState<MarijuanaSession[]>([]);
-  const [sleepLogs, setSleepLogs] = useState<SleepLog[]>([]);
-
-  const loadWellness = useCallback(() => {
-    const from = new Date();
-    from.setDate(from.getDate() - 30);
-    const fromStr = from.toISOString().slice(0, 10);
-    api.get<FoodLog[]>(`/api/health/food?from=${fromStr}`).then(setFoodLogs).catch(() => {});
-    api
-      .get<MarijuanaSession[]>(`/api/health/marijuana?from=${fromStr}`)
-      .then(setMarijuanaSessions)
-      .catch(() => {});
-    api.get<SleepLog[]>(`/api/health/sleep?from=${fromStr}`).then(setSleepLogs).catch(() => {});
-  }, []);
-
-  const upsertSleepLog = useCallback((saved: SleepLog) => {
-    setSleepLogs((prev) => {
-      const idx = prev.findIndex((s) => s.id === saved.id);
-      if (idx === -1) return [saved, ...prev];
-      const next = [...prev];
-      next[idx] = saved;
-      return next;
-    });
-  }, []);
-
-  useEffect(() => {
-    loadWellness();
-  }, [loadWellness]);
-
-  return (
-    <div>
-      <h1 className="text-2xl font-semibold mb-4">Wellness</h1>
-      <Tabs active={tab} onChange={setTab} />
-
-      {tab === 'log' && (
-        <div className="max-w-2xl space-y-4">
-          <div className="flex items-center gap-3">
-            <label className="text-sm text-gray-400">Date</label>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="bg-gray-800 rounded-md px-3 py-1.5 text-sm text-white border border-gray-700 focus:outline-none focus:border-indigo-500"
-            />
-            <button
-              onClick={() => setSelectedDate(todayStr())}
-              className="text-xs text-gray-500 hover:text-gray-300"
-            >
-              Today
-            </button>
-          </div>
-
-          <SleepSection
-            date={selectedDate}
-            sleepLogs={sleepLogs}
-            onUpsert={upsertSleepLog}
-            onRefresh={loadWellness}
-          />
-          <FoodSection date={selectedDate} foodLogs={foodLogs} onRefresh={loadWellness} />
-          <CannabisSection
-            date={selectedDate}
-            sessions={marijuanaSessions}
-            onRefresh={loadWellness}
-          />
-        </div>
-      )}
-
-      {tab === 'insights' && (
-        <AnalysisTab
-          sleepLogs={sleepLogs}
-          foodLogs={foodLogs}
-          marijuanaSessions={marijuanaSessions}
-        />
-      )}
-    </div>
-  );
-}
+export { todayStr };

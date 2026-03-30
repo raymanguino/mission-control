@@ -1,10 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
+import { Navigate, useParams } from 'react-router-dom';
 import { api } from '../utils/api.js';
 import type { Channel, Message } from '@mission-control/types';
 
 export default function Chat() {
-  const [channels, setChannels] = useState<Channel[]>([]);
-  const [selected, setSelected] = useState<Channel | null>(null);
+  const { channelId } = useParams<{ channelId: string }>();
+  const [channels, setChannels] = useState<Channel[] | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState('');
   /** Optional Discord snowflake; when set, backend resolves display name for author */
@@ -12,19 +13,24 @@ export default function Chat() {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    api.get<Channel[]>('/api/channels').then((c) => {
-      setChannels(c);
-      if (c.length > 0 && !selected) setSelected(c[0]!);
-    });
+    api
+      .get<Channel[]>('/api/channels')
+      .then(setChannels)
+      .catch(() => {
+        setChannels([]);
+      });
   }, []);
+
+  const selected =
+    channelId && channels ? channels.find((c) => c.id === channelId) : undefined;
 
   useEffect(() => {
     if (!selected) return;
     let cancelled = false;
     const loadMessages = () => {
-      const channelId = selected.id;
+      const id = selected.id;
       api
-        .get<Message[]>(`/api/channels/${channelId}/messages?limit=50`)
+        .get<Message[]>(`/api/channels/${id}/messages?limit=50`)
         .then((msgs) => {
           if (cancelled) return;
           const list = Array.isArray(msgs) ? msgs : [];
@@ -44,6 +50,26 @@ export default function Chat() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  if (!channelId) {
+    return <Navigate to="/chat" replace />;
+  }
+
+  if (channels === null) {
+    return <p className="text-gray-500 text-sm">Loading…</p>;
+  }
+
+  if (channels.length === 0) {
+    return (
+      <div className="text-gray-500 text-sm max-w-md">
+        <p>No channels yet. Add a channel to start chatting.</p>
+      </div>
+    );
+  }
+
+  if (!selected) {
+    return <Navigate to="/chat" replace />;
+  }
+
   async function send() {
     if (!selected || !text.trim()) return;
     const trimmedId = postAsDiscordUserId.trim();
@@ -62,42 +88,9 @@ export default function Chat() {
 
   return (
     <div
-      className="flex h-full min-h-0 gap-0 -m-6 overflow-hidden"
+      className="flex h-full min-h-0 flex-col -m-6 overflow-hidden"
       style={{ height: 'calc(100vh - 0px)' }}
     >
-      {/* Channel list */}
-      <aside className="w-48 shrink-0 bg-gray-900 border-r border-gray-800 flex flex-col">
-        <div className="px-4 py-3 border-b border-gray-800 text-sm font-medium text-gray-300">
-          Channels
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          {channels.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => setSelected(c)}
-              title={
-                c.source === 'discord' && c.externalId
-                  ? `Discord channel id ${c.externalId} — pick the channel that matches where people talk in Discord`
-                  : undefined
-              }
-              className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
-                selected?.id === c.id
-                  ? 'bg-gray-800 text-white'
-                  : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-              }`}
-            >
-              <span className="block"># {c.name}</span>
-              {c.source === 'discord' && c.externalId ? (
-                <span className="block text-[10px] text-gray-600 font-mono mt-0.5 truncate">
-                  …{c.externalId.slice(-8)}
-                </span>
-              ) : null}
-            </button>
-          ))}
-        </div>
-      </aside>
-
-      {/* Messages */}
       <div className="flex-1 flex min-h-0 flex-col overflow-hidden">
         <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-3">
           {messages.map((m) => (
@@ -140,19 +133,20 @@ export default function Chat() {
             className="w-full bg-gray-900 rounded-md px-3 py-1.5 text-xs text-gray-400 border border-gray-800 focus:outline-none focus:border-indigo-500 font-mono"
           />
           <div className="flex gap-2">
-          <input
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && send()}
-            placeholder="Message…"
-            className="flex-1 bg-gray-800 rounded-md px-3 py-2 text-sm text-white border border-gray-700 focus:outline-none focus:border-indigo-500"
-          />
-          <button
-            onClick={send}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-md"
-          >
-            Send
-          </button>
+            <input
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && send()}
+              placeholder="Message…"
+              className="flex-1 bg-gray-800 rounded-md px-3 py-2 text-sm text-white border border-gray-700 focus:outline-none focus:border-indigo-500"
+            />
+            <button
+              type="button"
+              onClick={send}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-md"
+            >
+              Send
+            </button>
           </div>
         </div>
       </div>

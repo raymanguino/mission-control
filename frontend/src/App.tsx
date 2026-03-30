@@ -6,8 +6,12 @@ import Login from './pages/Login.js';
 import Agents from './pages/Agents.js';
 import AgentDetail from './pages/AgentDetail.js';
 import Projects from './pages/Projects.js';
-import Wellness from './pages/Health.js';
+import WellnessLayout from './pages/WellnessLayout.js';
+import WellnessDailyLog from './pages/WellnessDailyLog.js';
+import WellnessInsights from './pages/WellnessInsights.js';
 import Chat from './pages/Chat.js';
+import ChatIndex from './pages/ChatIndex.js';
+import ProjectsIndex from './pages/ProjectsIndex.js';
 import Usage from './pages/Usage.js';
 import Settings from './pages/Settings.js';
 
@@ -28,10 +32,16 @@ export default function App() {
             <Route index element={<Navigate to="/agents" replace />} />
             <Route path="agents" element={<Agents />} />
             <Route path="agents/:agentId" element={<AgentDetail />} />
-            <Route path="projects" element={<Projects />} />
-            <Route path="health" element={<Navigate to="/wellness" replace />} />
-            <Route path="wellness" element={<Wellness />} />
-            <Route path="chat" element={<Chat />} />
+            <Route path="projects" element={<ProjectsIndex />} />
+            <Route path="projects/:projectId" element={<Projects />} />
+            <Route path="health" element={<Navigate to="/wellness/log" replace />} />
+            <Route path="wellness" element={<WellnessLayout />}>
+              <Route index element={<Navigate to="log" replace />} />
+              <Route path="log" element={<WellnessDailyLog />} />
+              <Route path="insights" element={<WellnessInsights />} />
+            </Route>
+            <Route path="chat" element={<ChatIndex />} />
+            <Route path="chat/:channelId" element={<Chat />} />
             <Route path="usage" element={<Usage />} />
             <Route path="settings" element={<Settings />} />
           </Route>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import {
   DndContext,
   PointerSensor,
@@ -10,7 +11,8 @@ import {
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { api, ApiError } from '../utils/api.js';
-import type { Project, Task, TaskStatus, Agent, ProjectStatus } from '@mission-control/types';
+import type { Project, Task, TaskStatus, Agent } from '@mission-control/types';
+import { PROJECT_STATUS_LABELS } from '../utils/projectLabels.js';
 
 const COLUMNS: { id: TaskStatus; label: string }[] = [
   { id: 'backlog', label: 'Backlog' },
@@ -18,18 +20,6 @@ const COLUMNS: { id: TaskStatus; label: string }[] = [
   { id: 'review', label: 'Review' },
   { id: 'done', label: 'Done' },
 ];
-
-const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
-  pending_approval: 'Pending Approval',
-  approved: 'Approved',
-  denied: 'Denied',
-};
-
-const PROJECT_STATUS_BADGE_CLASS: Record<ProjectStatus, string> = {
-  pending_approval: 'text-yellow-400 bg-yellow-950/40',
-  approved: 'text-green-400 bg-green-950/40',
-  denied: 'text-red-400 bg-red-950/40',
-};
 
 function TaskCard({
   task,
@@ -273,38 +263,30 @@ function TaskSlideOver({
 }
 
 export default function Projects() {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const { projectId } = useParams<{ projectId: string }>();
+  const navigate = useNavigate();
+  const [projects, setProjects] = useState<Project[] | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [slideOver, setSlideOver] = useState<Task | null | 'new'>(null);
-  const [showAddProject, setShowAddProject] = useState(false);
-  const [newProjectName, setNewProjectName] = useState('');
-  const [newProjectDescription, setNewProjectDescription] = useState('');
-  const [projectSaving, setProjectSaving] = useState(false);
 
-  const loadProjects = () =>
+  const loadProjectList = () =>
     api
       .get<Project[]>('/api/projects')
-      .then((projectList) => {
-        setProjects(projectList);
-        if (projectList.length === 0) {
-          setSelectedProject(null);
-          return;
-        }
-        setSelectedProject((current) => {
-          if (!current) return projectList[0]!;
-          return projectList.find((project) => project.id === current.id) ?? projectList[0]!;
-        });
-      })
-      .catch(() => {});
+      .then(setProjects)
+      .catch(() => {
+        setProjects([]);
+      });
 
-  const loadTasks = (projectId: string) => {
-    api.get<Task[]>(`/api/projects/${projectId}/tasks`).then(setTasks).catch(() => {});
+  const loadTasks = (id: string) => {
+    api.get<Task[]>(`/api/projects/${id}/tasks`).then(setTasks).catch(() => {});
   };
 
+  const selectedProject =
+    projectId && projects ? projects.find((p) => p.id === projectId) : undefined;
+
   useEffect(() => {
-    loadProjects();
+    loadProjectList();
     api.get<Agent[]>('/api/agents').then(setAgents).catch(() => {});
   }, []);
 
@@ -354,24 +336,6 @@ export default function Projects() {
     loadTasks(selectedProject.id);
   };
 
-  async function createProject() {
-    if (!newProjectName.trim()) return;
-    setProjectSaving(true);
-    try {
-      const project = await api.post<Project>('/api/projects', {
-        name: newProjectName.trim(),
-        description: newProjectDescription.trim() || undefined,
-      });
-      setNewProjectName('');
-      setNewProjectDescription('');
-      setShowAddProject(false);
-      await loadProjects();
-      setSelectedProject(project);
-    } finally {
-      setProjectSaving(false);
-    }
-  }
-
   async function deleteSelectedProject() {
     if (!selectedProject) return;
     if (
@@ -383,7 +347,7 @@ export default function Projects() {
     }
     try {
       await api.delete(`/api/projects/${selectedProject.id}`);
-      await loadProjects();
+      navigate('/projects');
     } catch (e) {
       const message = e instanceof ApiError ? e.message : 'Failed to delete project';
       window.alert(message);
@@ -401,45 +365,20 @@ export default function Projects() {
     }
   }
 
+  if (!projectId) {
+    return <Navigate to="/projects" replace />;
+  }
+
+  if (projects === null) {
+    return <p className="text-gray-500 text-sm">Loading…</p>;
+  }
+
+  if (!selectedProject) {
+    return <Navigate to="/projects" replace />;
+  }
+
   return (
     <div className="flex h-full gap-0 -mx-6 overflow-hidden">
-      <aside className="w-72 shrink-0 bg-gray-900 border-r border-gray-800 flex flex-col">
-        <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
-          <span className="text-sm font-medium text-gray-300">Projects</span>
-          <button
-            type="button"
-            onClick={() => setShowAddProject(true)}
-            className="px-2 py-1 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-md"
-          >
-            + Add
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          {projects.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => setSelectedProject(p)}
-              className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
-                selectedProject?.id === p.id
-                  ? 'bg-gray-800 text-white'
-                  : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-              }`}
-            >
-              <span className="block">{p.name}</span>
-              <span
-                className={`mt-0.5 inline-block text-[10px] px-1.5 py-0.5 rounded-full ${PROJECT_STATUS_BADGE_CLASS[p.status]}`}
-              >
-                {PROJECT_STATUS_LABELS[p.status]}
-              </span>
-            </button>
-          ))}
-          {projects.length === 0 && (
-            <p className="px-4 py-3 text-xs text-gray-500">No projects yet.</p>
-          )}
-        </div>
-      </aside>
-
       <div className="flex-1 overflow-x-auto px-6 py-6">
         {selectedProject && selectedProject.status === 'approved' && (
           <>
@@ -504,9 +443,6 @@ export default function Projects() {
             </div>
           </>
         )}
-        {!selectedProject && projects.length > 0 && (
-          <p className="text-gray-500">Select a project to view its board.</p>
-        )}
       </div>
 
       {slideOver !== null && (
@@ -517,56 +453,6 @@ export default function Projects() {
           onClose={() => setSlideOver(null)}
           onSaved={reload}
         />
-      )}
-
-      {showAddProject && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="w-96 bg-gray-900 rounded-lg border border-gray-700 p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-white">New Project</h2>
-              <button
-                onClick={() => setShowAddProject(false)}
-                className="text-gray-500 hover:text-white text-xl"
-              >
-                ×
-              </button>
-            </div>
-            <div>
-              <label className="text-xs text-gray-400">Project Name</label>
-              <input
-                value={newProjectName}
-                onChange={(e) => setNewProjectName(e.target.value)}
-                className="w-full mt-1 bg-gray-800 rounded-md px-3 py-2 text-sm text-white border border-gray-700 focus:outline-none"
-                autoFocus
-                onKeyDown={(e) => e.key === 'Enter' && createProject()}
-              />
-            </div>
-            <div>
-              <label className="text-xs text-gray-400">Description</label>
-              <textarea
-                value={newProjectDescription}
-                onChange={(e) => setNewProjectDescription(e.target.value)}
-                rows={3}
-                className="w-full mt-1 bg-gray-800 rounded-md px-3 py-2 text-sm text-white border border-gray-700 focus:outline-none resize-none"
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setShowAddProject(false)}
-                className="px-3 py-1.5 text-sm text-gray-400 hover:text-white"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={createProject}
-                disabled={projectSaving || !newProjectName.trim()}
-                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm rounded-md"
-              >
-                {projectSaving ? 'Creating…' : 'Create Project'}
-              </button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );
