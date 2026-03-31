@@ -373,25 +373,34 @@ export default function Sidebar() {
           }
         >
           {projects.map((p) => (
-            <NavLink
-              key={p.id}
-              to={`/projects/${p.id}`}
-              className={({ isActive }) => projectRowLinkClass(isActive)}
-            >
-              {({ isActive }) => (
-                <>
-                  <SidebarNavIcon isActive={isActive} paths={PROJECT_FOLDER_PATHS} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate">{p.name}</span>
-                    <span
-                      className={`mt-0.5 inline-block text-[10px] px-1.5 py-0.5 rounded-full ${PROJECT_STATUS_BADGE_CLASS[p.status]}`}
-                    >
-                      {PROJECT_STATUS_LABELS[p.status]}
+            <div key={p.id} className="flex items-start gap-1">
+              <NavLink to={`/projects/${p.id}`} className={({ isActive }) => projectRowLinkClass(isActive)}>
+                {({ isActive }) => (
+                  <>
+                    <SidebarNavIcon isActive={isActive} paths={PROJECT_FOLDER_PATHS} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate">{p.name}</span>
+                      <span
+                        className={`mt-0.5 inline-block text-[10px] px-1.5 py-0.5 rounded-full ${PROJECT_STATUS_BADGE_CLASS[p.status]}`}
+                      >
+                        {PROJECT_STATUS_LABELS[p.status]}
+                      </span>
                     </span>
-                  </span>
-                </>
-              )}
-            </NavLink>
+                  </>
+                )}
+              </NavLink>
+              {p.url ? (
+                <a
+                  href={p.url}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="mt-1 text-[10px] text-indigo-400 hover:text-indigo-300 px-1.5 py-0.5 rounded shrink-0"
+                  title={`Open ${p.name}`}
+                >
+                  Open
+                </a>
+              ) : null}
+            </div>
           ))}
           {projects.length === 0 && (
             <p className="pl-8 pr-2 text-xs text-gray-600 py-1">No projects</p>

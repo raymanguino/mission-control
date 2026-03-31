@@ -16,7 +16,8 @@ http:
     data: |-
       {
         "name": "New project",
-        "description": "Optional description"
+        "description": "Optional description",
+        "url": "https://example.com"
       }
   auth: inherit
 

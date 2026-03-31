@@ -25,6 +25,7 @@ const FOLDER_TOOLS: Record<string, string[]> = {
   projects: [
     'list_projects',
     'create_project',
+    'update_project',
     'delete_project',
     'get_task',
     'list_tasks',
@@ -91,6 +92,13 @@ const BODY_JSON: Partial<Record<string, object>> = {
   create_project: {
     name: 'New project',
     description: 'Optional description',
+    url: 'https://example.com',
+  },
+  update_project: {
+    name: 'Updated project name',
+    description: 'Updated optional description',
+    status: 'approved',
+    url: 'https://example.com',
   },
   create_task: {
     projectId: '00000000-0000-4000-8000-000000000002',

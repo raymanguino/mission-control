@@ -10,6 +10,7 @@ interface AddProjectModalProps {
 export default function AddProjectModal({ onClose, onCreated }: AddProjectModalProps) {
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectDescription, setNewProjectDescription] = useState('');
+  const [newProjectUrl, setNewProjectUrl] = useState('');
   const [projectSaving, setProjectSaving] = useState(false);
 
   async function createProject() {
@@ -19,6 +20,7 @@ export default function AddProjectModal({ onClose, onCreated }: AddProjectModalP
       const project = await api.post<Project>('/api/projects', {
         name: newProjectName.trim(),
         description: newProjectDescription.trim() || undefined,
+        url: newProjectUrl.trim() || undefined,
       });
       onCreated(project);
       onClose();
@@ -60,6 +62,16 @@ export default function AddProjectModal({ onClose, onCreated }: AddProjectModalP
             onChange={(e) => setNewProjectDescription(e.target.value)}
             rows={3}
             className="w-full mt-1 bg-gray-800 rounded-md px-3 py-2 text-sm text-white border border-gray-700 focus:outline-none resize-none"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-gray-400">Project URL (optional)</label>
+          <input
+            type="url"
+            value={newProjectUrl}
+            onChange={(e) => setNewProjectUrl(e.target.value)}
+            placeholder="https://example.com"
+            className="w-full mt-1 bg-gray-800 rounded-md px-3 py-2 text-sm text-white border border-gray-700 focus:outline-none"
           />
         </div>
         <div className="flex justify-end gap-2">

@@ -1,11 +1,11 @@
 info:
-  name: create_project
+  name: update_project
   type: http
-  seq: 2
+  seq: 3
 
 http:
-  method: post
-  url: http://{{host}}:{{port}}/api/projects
+  method: patch
+  url: http://{{host}}:{{port}}/api/projects/{{projectId}}
   headers:
     - name: Authorization
       value: Bearer {{token}}
@@ -15,8 +15,9 @@ http:
     type: json
     data: |-
       {
-        "name": "New project",
-        "description": "Optional description",
+        "name": "Updated project name",
+        "description": "Updated optional description",
+        "status": "approved",
         "url": "https://example.com"
       }
   auth: inherit

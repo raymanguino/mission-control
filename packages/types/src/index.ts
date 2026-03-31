@@ -68,6 +68,7 @@ export interface Project {
   id: string;
   name: string;
   description: string | null;
+  url: string | null;
   status: ProjectStatus;
   createdAt: string;
   updatedAt: string;

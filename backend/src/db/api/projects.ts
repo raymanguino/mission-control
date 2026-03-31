@@ -11,7 +11,7 @@ export async function getProject(id: string) {
   return rows[0] ?? null;
 }
 
-export async function createProject(data: { name: string; description?: string }) {
+export async function createProject(data: { name: string; description?: string; url?: string }) {
   const rows = await db
     .insert(projects)
     .values({ ...data, status: 'pending_approval' })
@@ -21,7 +21,7 @@ export async function createProject(data: { name: string; description?: string }
 
 export async function updateProject(
   id: string,
-  data: Partial<{ name: string; description: string; status: string }>,
+  data: Partial<{ name: string; description: string; status: string; url: string | null }>,
 ) {
   const rows = await db
     .update(projects)

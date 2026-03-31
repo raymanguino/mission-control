@@ -9,6 +9,7 @@ const updateProjectSchema = z.object({
   name: z.string().optional(),
   description: z.string().optional(),
   status: z.enum(['pending_approval', 'approved', 'denied']).optional(),
+  url: z.string().url().nullable().optional(),
 });
 
 const projectRoutes: FastifyPluginAsync = async (fastify) => {
