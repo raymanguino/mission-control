@@ -5,78 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1774385644171,
-      "tag": "0000_true_hammerhead",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1774410403881,
-      "tag": "0001_furry_lenny_balinger",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1774500000000,
-      "tag": "0002_openrouter_usage_metrics",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1774500000001,
-      "tag": "0003_idempotency_keys",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1774500000002,
-      "tag": "0004_org_agents_and_intents",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1774500000003,
-      "tag": "0005_discord_message_sync",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1774632082903,
-      "tag": "0006_spicy_squirrel_girl",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1774700000000,
-      "tag": "0007_agent_workflow",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "7",
-      "when": 1774800000000,
-      "tag": "0008_project_approval_workflow",
-      "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "7",
-      "when": 1774900000000,
-      "tag": "0009_agent_avatar",
-      "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "7",
-      "when": 1775000000000,
-      "tag": "0010_projects_status_default_pending",
+      "when": 1774964676516,
+      "tag": "0000_violet_emma_frost",
       "breakpoints": true
     }
   ]

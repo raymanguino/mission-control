@@ -34,6 +34,16 @@ That runs the backend, frontend, and MCP server in parallel (see root `package.j
 
 Other root commands: `pnpm build`, `pnpm test`, `pnpm lint`, `pnpm format`.
 
+## Database migration baseline
+
+- Migration history was consolidated into a single baseline file in [`supabase/migrations/`](supabase/migrations/).
+- This is a breaking reset of migration history: existing databases must be dropped/reset before applying current migrations.
+- For a fresh database, run:
+
+```bash
+pnpm --filter backend db:migrate
+```
+
 ## Configuration
 
 Do not duplicate environment variables here. Copy each package’s **`.env.example`** to **`.env`** and adjust:
