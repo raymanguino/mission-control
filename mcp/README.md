@@ -18,10 +18,6 @@ Default HTTP port is **3002** (`PORT` in [`.env.example`](.env.example)).
 
 Copy [`.env.example`](.env.example) to `.env`. It defines how to reach the backend (`BACKEND_URL`), authentication (`BACKEND_JWT`, `MCP_API_KEY`), and the listen port.
 
-### Chat posting identity
-
-`post_message` only accepts channel ID and message content. Author identity is enforced by Mission Control, and dashboard-origin posts are stored as `Mr` (human) rather than a selectable agent/user ID.
-
 ## Build and production
 
 ```bash

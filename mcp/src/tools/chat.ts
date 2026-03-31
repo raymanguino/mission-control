@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { apiDelete, apiGet, apiPost } from '../client.js';
+import { apiDelete, apiGet } from '../client.js';
 import type { Channel, Message } from '@mission-control/types';
 
 export function registerChatTools(server: McpServer) {
@@ -37,21 +37,6 @@ export function registerChatTools(server: McpServer) {
       const ordered = [...messages].reverse();
       return {
         content: [{ type: 'text', text: JSON.stringify(ordered, null, 2) }],
-      };
-    },
-  );
-
-  server.tool(
-    'post_message',
-    'Post a message to a channel.\n\nRequired: `channelId`, `content`.\nDashboard-authenticated posts are attributed as `Mr` by Mission Control.',
-    {
-      channelId: z.string().describe('Channel UUID (required).'),
-      content: z.string().describe('Message text (required).'),
-    },
-    async ({ channelId, content }) => {
-      const message = await apiPost<Message>(`/api/channels/${channelId}/messages`, { content });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(message, null, 2) }],
       };
     },
   );

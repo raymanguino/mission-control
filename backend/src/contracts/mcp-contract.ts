@@ -62,9 +62,6 @@ export const backendRequestSchemas = {
     assignedAgentId: z.string().uuid().nullable().optional(),
     order: z.number().int().optional(),
   }),
-  createMessage: z.object({
-    content: z.string(),
-  }),
   createFood: z.object({
     mealType: z.enum(['breakfast', 'lunch', 'dinner', 'snack']),
     description: z.string().min(1),
@@ -209,15 +206,6 @@ export const mcpToolContracts: Record<string, McpToolContract> = {
     input: {
       channelId: z.string(),
       limit: z.number().int().min(1).max(100).optional(),
-    },
-  },
-  post_message: {
-    method: 'POST',
-    path: '/api/channels/:channelId/messages',
-    params: 'path+body',
-    input: {
-      channelId: z.string(),
-      content: z.string(),
     },
   },
   delete_channel: {

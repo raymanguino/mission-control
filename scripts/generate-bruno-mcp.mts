@@ -41,7 +41,7 @@ const FOLDER_TOOLS: Record<string, string[]> = {
     'convert_intent_to_project',
     'delete_intent',
   ],
-  chat: ['list_channels', 'get_messages', 'post_message', 'delete_channel'],
+  chat: ['list_channels', 'get_messages', 'delete_channel'],
   usage: ['get_usage', 'get_usage_records', 'get_ai_config', 'sync_usage'],
   wellness: [
     'estimate_food',
@@ -127,10 +127,6 @@ const BODY_JSON: Partial<Record<string, object>> = {
   convert_intent_to_project: {
     projectName: 'From intent',
     projectDescription: 'Optional project description',
-  },
-  post_message: {
-    content: 'Hello from Bruno',
-    author: 'Claude',
   },
   log_food: {
     mealType: 'lunch',

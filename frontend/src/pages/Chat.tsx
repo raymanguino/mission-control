@@ -7,7 +7,6 @@ export default function Chat() {
   const { channelId } = useParams<{ channelId: string }>();
   const [channels, setChannels] = useState<Channel[] | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [text, setText] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -68,17 +67,6 @@ export default function Chat() {
     return <Navigate to="/chat" replace />;
   }
 
-  async function send() {
-    if (!selected || !text.trim()) return;
-    await api.post(`/api/channels/${selected.id}/messages`, { content: text.trim() });
-    setText('');
-    const msgs = await api.get<Message[]>(
-      `/api/channels/${selected.id}/messages?limit=50`,
-    );
-    const list = Array.isArray(msgs) ? msgs : [];
-    setMessages([...list].reverse());
-  }
-
   return (
     <div
       className="flex h-full min-h-0 flex-col -m-6 overflow-hidden"
@@ -110,24 +98,8 @@ export default function Chat() {
           ))}
           <div ref={bottomRef} />
         </div>
-        <div className="border-t border-gray-800 px-4 py-3 flex flex-col gap-2">
-          <p className="text-xs text-gray-500">Posting as Mr</p>
-          <div className="flex gap-2">
-            <input
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && send()}
-              placeholder="Message…"
-              className="flex-1 bg-gray-800 rounded-md px-3 py-2 text-sm text-white border border-gray-700 focus:outline-none focus:border-indigo-500"
-            />
-            <button
-              type="button"
-              onClick={send}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-md"
-            >
-              Send
-            </button>
-          </div>
+        <div className="border-t border-gray-800 px-4 py-3">
+          <p className="text-xs text-gray-500">Read-only chat: Mission Control only consumes channel messages.</p>
         </div>
       </div>
     </div>
