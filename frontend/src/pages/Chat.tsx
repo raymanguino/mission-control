@@ -1,17 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { api } from '../utils/api.js';
-import { useDashboardTitle } from '../contexts/DashboardTitleContext.js';
 import type { Channel, Message } from '@mission-control/types';
 
 export default function Chat() {
-  const { dashboardTitle } = useDashboardTitle();
   const { channelId } = useParams<{ channelId: string }>();
   const [channels, setChannels] = useState<Channel[] | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState('');
-  /** Optional Discord snowflake; when set, backend resolves display name for author */
-  const [postAsDiscordUserId, setPostAsDiscordUserId] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -74,12 +70,7 @@ export default function Chat() {
 
   async function send() {
     if (!selected || !text.trim()) return;
-    const trimmedId = postAsDiscordUserId.trim();
-    const payload =
-      /^\d{17,20}$/.test(trimmedId)
-        ? { discordUserId: trimmedId, content: text.trim() }
-        : { author: 'Dashboard', content: text.trim() };
-    await api.post(`/api/channels/${selected.id}/messages`, payload);
+    await api.post(`/api/channels/${selected.id}/messages`, { content: text.trim() });
     setText('');
     const msgs = await api.get<Message[]>(
       `/api/channels/${selected.id}/messages?limit=50`,
@@ -98,14 +89,6 @@ export default function Chat() {
           {messages.map((m) => (
             <div key={m.id}>
               <div className="flex items-baseline gap-2 flex-wrap">
-                {m.fromMissionControl ? (
-                  <span
-                    className="text-[10px] uppercase tracking-wide font-semibold px-1.5 py-0.5 rounded bg-amber-900/50 text-amber-200 border border-amber-700/60"
-                    title={`Sent from ${dashboardTitle} (dashboard or API)`}
-                  >
-                    MC
-                  </span>
-                ) : null}
                 <span className="text-xs font-semibold text-indigo-400">{m.author}</span>
                 <span className="text-xs text-gray-600">
                   {new Date(m.createdAt).toLocaleTimeString()}
@@ -128,12 +111,7 @@ export default function Chat() {
           <div ref={bottomRef} />
         </div>
         <div className="border-t border-gray-800 px-4 py-3 flex flex-col gap-2">
-          <input
-            value={postAsDiscordUserId}
-            onChange={(e) => setPostAsDiscordUserId(e.target.value)}
-            placeholder="Post as Discord user ID (optional, 17–20 digits)"
-            className="w-full bg-gray-900 rounded-md px-3 py-1.5 text-xs text-gray-400 border border-gray-800 focus:outline-none focus:border-indigo-500 font-mono"
-          />
+          <p className="text-xs text-gray-500">Posting as Mr</p>
           <div className="flex gap-2">
             <input
               value={text}

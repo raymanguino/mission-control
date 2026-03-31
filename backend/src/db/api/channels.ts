@@ -77,9 +77,10 @@ export async function listMessages(channelId: string, limit: number, before?: st
 export async function createMessage(data: {
   channelId: string;
   author: string;
+  discordUserId?: string;
   content: string;
   fromMissionControl?: boolean;
-  agentId?: string;
+  agentId?: string | null;
   source?: string;
   externalMessageId?: string;
 }) {
@@ -95,9 +96,10 @@ export async function createMessage(data: {
 export async function createMessageForDiscordSync(data: {
   channelId: string;
   author: string;
+  discordUserId?: string;
   content: string;
   fromMissionControl?: boolean;
-  agentId?: string;
+  agentId?: string | null;
   source?: string;
   externalMessageId?: string;
 }): Promise<{ id: string; inserted: boolean }> {

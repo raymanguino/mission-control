@@ -94,33 +94,16 @@ describe('MCP tool unit tests', () => {
 
   it('registerChatTools: post_message posts correct payload', async () => {
     const handlers = getHandlers(registerChatTools as unknown as (server: unknown) => void);
-    const msg = { id: 'msg1', author: 'Claude', content: 'hi', createdAt: 't1' };
+    const msg = { id: 'msg1', author: 'Mr', content: 'hi', createdAt: 't1' };
     apiPostMock.mockResolvedValueOnce(msg as any);
 
-    const res = await handlers.post_message({ channelId: 'ch-1', content: 'hi', author: 'Claude' });
+    const res = await handlers.post_message({ channelId: 'ch-1', content: 'hi' });
     expect(apiPostMock).toHaveBeenCalledWith('/api/channels/ch-1/messages', {
-      author: 'Claude',
       content: 'hi',
     });
 
     const parsed = JSON.parse((res as any).content[0].text as string);
     expect(parsed).toEqual(msg);
-  });
-
-  it('registerChatTools: post_message sends discordUserId when provided', async () => {
-    const handlers = getHandlers(registerChatTools as unknown as (server: unknown) => void);
-    const msg = { id: 'msg1', author: 'Alice', content: 'hi', createdAt: 't1' };
-    apiPostMock.mockResolvedValueOnce(msg as any);
-
-    await handlers.post_message({
-      channelId: 'ch-1',
-      content: 'hi',
-      discordUserId: '123456789012345678',
-    });
-    expect(apiPostMock).toHaveBeenCalledWith('/api/channels/ch-1/messages', {
-      discordUserId: '123456789012345678',
-      content: 'hi',
-    });
   });
 
   it('registerProjectTools: list_tasks groups by status', async () => {

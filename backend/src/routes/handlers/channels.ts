@@ -12,6 +12,13 @@ const createChannelSchema = z.object({
 });
 
 const createMessageSchema = backendRequestSchemas.createMessage;
+const DASHBOARD_AUTHOR_NAME = 'Mr';
+const DASHBOARD_DISCORD_USER_ID = '1486874215104905367';
+
+function isExternalMessageIdDuplicateError(error: unknown): boolean {
+  const e = error as { code?: string; constraint_name?: string };
+  return e?.code === '23505' && e?.constraint_name === 'messages_external_message_id_idx';
+}
 
 const channelRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/', { preHandler: fastify.authenticate }, async () => {
@@ -45,38 +52,7 @@ const channelRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const { id } = request.params as { id: string };
       const body = parseBody(createMessageSchema, request.body);
-      const { discordUserId, ...messageBody } = body;
-
-      let author = messageBody.author;
-      if (discordUserId) {
-        const discord = getDiscordSyncService();
-        if (!discord) {
-          return reply.code(503).send({
-            error: {
-              code: 'SERVICE_UNAVAILABLE',
-              message: 'Discord sync is not connected',
-            },
-          });
-        }
-        try {
-          author = await discord.resolveAuthorForUserId(discordUserId);
-        } catch (error) {
-          const e = error as { message?: string };
-          return reply.code(400).send({
-            error: {
-              code: 'DISCORD_USER_RESOLVE_FAILED',
-              message: e.message ?? 'Could not resolve Discord user',
-            },
-          });
-        }
-      } else if (!author) {
-        return reply.code(400).send({
-          error: {
-            code: 'BAD_REQUEST',
-            message: 'author is required when discordUserId is not set',
-          },
-        });
-      }
+      const author = DASHBOARD_AUTHOR_NAME;
 
       const channel = await channelsDb.getChannelById(id);
       if (!channel) {
@@ -110,9 +86,7 @@ const channelRoutes: FastifyPluginAsync = async (fastify) => {
         }
         let externalMessageId: string;
         try {
-          externalMessageId = await discord.sendMessage(channel.externalId, messageBody.content, {
-            prefixMissionControl: true,
-          });
+          externalMessageId = await discord.sendMessage(channel.externalId, body.content);
         } catch (error) {
           const e = error as { message?: string };
           return reply.code(502).send({
@@ -122,22 +96,33 @@ const channelRoutes: FastifyPluginAsync = async (fastify) => {
             },
           });
         }
-        message = await channelsDb.createMessage({
-          channelId: id,
-          author,
-          content: messageBody.content,
-          fromMissionControl: true,
-          agentId: messageBody.agentId,
-          source: 'discord',
-          externalMessageId,
-        });
+        try {
+          message = await channelsDb.createMessage({
+            channelId: id,
+            author,
+            discordUserId: DASHBOARD_DISCORD_USER_ID,
+            content: body.content,
+            source: 'discord',
+            externalMessageId,
+          });
+        } catch (error) {
+          // Discord gateway ingestion can race this write; return existing row when duplicate.
+          if (!isExternalMessageIdDuplicateError(error)) {
+            throw error;
+          }
+
+          const existing = await channelsDb.getMessageByExternalMessageId(externalMessageId);
+          if (!existing) {
+            throw error;
+          }
+          message = existing;
+        }
       } else {
         message = await channelsDb.createMessage({
           channelId: id,
           author,
-          content: messageBody.content,
-          fromMissionControl: true,
-          agentId: messageBody.agentId,
+          discordUserId: DASHBOARD_DISCORD_USER_ID,
+          content: body.content,
           source: channel.source,
         });
       }

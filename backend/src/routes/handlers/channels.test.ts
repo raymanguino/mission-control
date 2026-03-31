@@ -4,12 +4,15 @@ import channelRoutes from './channels.js';
 import * as channelsDb from '../../db/api/channels.js';
 import { getDiscordSyncService } from '../../services/discord/index.js';
 
+const DASHBOARD_DISCORD_USER_ID = '1486874215104905367';
+
 vi.mock('../../db/api/channels.js', () => ({
   listChannels: vi.fn(),
   createChannel: vi.fn(),
   deleteChannel: vi.fn(),
   listMessages: vi.fn(),
   createMessage: vi.fn(),
+  getMessageByExternalMessageId: vi.fn(),
   getChannelById: vi.fn(),
 }));
 
@@ -43,10 +46,11 @@ describe('channel route posting behavior', () => {
     vi.mocked(channelsDb.createMessage).mockResolvedValue({
       id: 'message-1',
       channelId: 'channel-1',
-      author: 'user',
+      author: 'Mr',
+      discordUserId: DASHBOARD_DISCORD_USER_ID,
       content: 'hello',
       agentId: null,
-      fromMissionControl: true,
+      fromMissionControl: false,
       source: 'manual',
       externalMessageId: null,
       createdAt: new Date(),
@@ -57,15 +61,15 @@ describe('channel route posting behavior', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/api/channels/channel-1/messages',
-        payload: { author: 'user', content: 'hello' },
+        payload: { content: 'hello' },
       });
       expect(response.statusCode).toBe(201);
       expect(getDiscordSyncService).not.toHaveBeenCalled();
       expect(channelsDb.createMessage).toHaveBeenCalledWith({
         channelId: 'channel-1',
-        author: 'user',
+        author: 'Mr',
+        discordUserId: DASHBOARD_DISCORD_USER_ID,
         content: 'hello',
-        fromMissionControl: true,
         source: 'manual',
       });
     } finally {
@@ -73,7 +77,7 @@ describe('channel route posting behavior', () => {
     }
   });
 
-  it('resolves discordUserId to author when Discord is connected', async () => {
+  it('always stores manual posts as Mr with no agentId', async () => {
     vi.mocked(channelsDb.getChannelById).mockResolvedValue({
       id: 'channel-1',
       name: 'manual',
@@ -81,17 +85,14 @@ describe('channel route posting behavior', () => {
       externalId: null,
       createdAt: new Date(),
     });
-    const resolveAuthorForUserId = vi.fn().mockResolvedValue('Resolved User');
-    vi.mocked(getDiscordSyncService).mockReturnValue({
-      resolveAuthorForUserId,
-    } as unknown as ReturnType<typeof getDiscordSyncService>);
     vi.mocked(channelsDb.createMessage).mockResolvedValue({
       id: 'message-1',
       channelId: 'channel-1',
-      author: 'Resolved User',
+      author: 'Mr',
+      discordUserId: DASHBOARD_DISCORD_USER_ID,
       content: 'hello',
       agentId: null,
-      fromMissionControl: true,
+      fromMissionControl: false,
       source: 'manual',
       externalMessageId: null,
       createdAt: new Date(),
@@ -102,15 +103,15 @@ describe('channel route posting behavior', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/api/channels/channel-1/messages',
-        payload: { discordUserId: '123456789012345678', content: 'hello' },
+        payload: { content: 'hello' },
       });
       expect(response.statusCode).toBe(201);
-      expect(resolveAuthorForUserId).toHaveBeenCalledWith('123456789012345678');
+      expect(getDiscordSyncService).not.toHaveBeenCalled();
       expect(channelsDb.createMessage).toHaveBeenCalledWith({
         channelId: 'channel-1',
-        author: 'Resolved User',
+        author: 'Mr',
+        discordUserId: DASHBOARD_DISCORD_USER_ID,
         content: 'hello',
-        fromMissionControl: true,
         source: 'manual',
       });
     } finally {
@@ -133,10 +134,11 @@ describe('channel route posting behavior', () => {
     vi.mocked(channelsDb.createMessage).mockResolvedValue({
       id: 'message-1',
       channelId: 'channel-1',
-      author: 'user',
+      author: 'Mr',
+      discordUserId: DASHBOARD_DISCORD_USER_ID,
       content: 'hello',
       agentId: null,
-      fromMissionControl: true,
+      fromMissionControl: false,
       source: 'discord',
       externalMessageId: 'discord-message-id',
       createdAt: new Date(),
@@ -147,18 +149,64 @@ describe('channel route posting behavior', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/api/channels/channel-1/messages',
-        payload: { author: 'user', content: 'hello' },
+        payload: { content: 'hello' },
       });
       expect(response.statusCode).toBe(201);
-      expect(sendMessage).toHaveBeenCalledWith('discord-channel-id', 'hello', {
-        prefixMissionControl: true,
-      });
+      expect(sendMessage).toHaveBeenCalledWith('discord-channel-id', 'hello');
       expect(channelsDb.createMessage).toHaveBeenCalledWith({
         channelId: 'channel-1',
-        author: 'user',
+        author: 'Mr',
+        discordUserId: DASHBOARD_DISCORD_USER_ID,
         content: 'hello',
-        fromMissionControl: true,
         source: 'discord',
+        externalMessageId: 'discord-message-id',
+      });
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('returns existing row when discord message insert races gateway ingest', async () => {
+    vi.mocked(channelsDb.getChannelById).mockResolvedValue({
+      id: 'channel-1',
+      name: 'discord-general',
+      source: 'discord',
+      externalId: 'discord-channel-id',
+      createdAt: new Date(),
+    });
+    const sendMessage = vi.fn().mockResolvedValue('discord-message-id');
+    vi.mocked(getDiscordSyncService).mockReturnValue({
+      sendMessage,
+    } as unknown as ReturnType<typeof getDiscordSyncService>);
+    vi.mocked(channelsDb.createMessage).mockRejectedValue({
+      code: '23505',
+      constraint_name: 'messages_external_message_id_idx',
+    });
+    const existingMessage = {
+      id: 'message-existing',
+      channelId: 'channel-1',
+      author: 'Mr',
+      discordUserId: DASHBOARD_DISCORD_USER_ID,
+      content: 'hello',
+      agentId: null,
+      fromMissionControl: false,
+      source: 'discord',
+      externalMessageId: 'discord-message-id',
+      createdAt: new Date(),
+    };
+    vi.mocked(channelsDb.getMessageByExternalMessageId).mockResolvedValue(existingMessage);
+
+    const app = await buildApp();
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/channels/channel-1/messages',
+        payload: { content: 'hello' },
+      });
+      expect(response.statusCode).toBe(201);
+      expect(channelsDb.getMessageByExternalMessageId).toHaveBeenCalledWith('discord-message-id');
+      expect(response.json()).toMatchObject({
+        id: 'message-existing',
         externalMessageId: 'discord-message-id',
       });
     } finally {

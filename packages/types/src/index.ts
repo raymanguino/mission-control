@@ -175,6 +175,7 @@ export interface Message {
   id: string;
   channelId: string;
   author: string;
+  discordUserId: string | null;
   content: string;
   /** True if created via Mission Control API (not ingested from Discord). */
   fromMissionControl: boolean;

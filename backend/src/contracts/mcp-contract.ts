@@ -62,17 +62,9 @@ export const backendRequestSchemas = {
     assignedAgentId: z.string().uuid().nullable().optional(),
     order: z.number().int().optional(),
   }),
-  createMessage: z
-    .object({
-      author: z.string().optional(),
-      content: z.string(),
-      agentId: z.string().uuid().optional(),
-      /** If set, author display name is resolved from this member in the configured Discord guild (snowflake id). */
-      discordUserId: z.string().regex(/^\d{17,20}$/).optional(),
-    })
-    .refine((data) => data.author != null || data.discordUserId != null, {
-      message: 'Provide either author or discordUserId',
-    }),
+  createMessage: z.object({
+    content: z.string(),
+  }),
   createFood: z.object({
     mealType: z.enum(['breakfast', 'lunch', 'dinner', 'snack']),
     description: z.string().min(1),
@@ -226,8 +218,6 @@ export const mcpToolContracts: Record<string, McpToolContract> = {
     input: {
       channelId: z.string(),
       content: z.string(),
-      author: z.string().optional(),
-      discordUserId: z.string().regex(/^\d{17,20}$/).optional(),
     },
   },
   delete_channel: {

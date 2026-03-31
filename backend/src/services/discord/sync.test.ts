@@ -136,7 +136,7 @@ describe('discord sync ingestion', () => {
       guildId: 'guild-1',
       content: 'hello',
       type: 0,
-      author: { username: 'Alice', globalName: 'Alice', bot: false },
+      author: { id: '1487070776476569720', username: 'Alice', globalName: 'Alice', bot: false },
       channel: { id: 'chan-1', guildId: 'guild-1', type: ChannelType.GuildText, name: 'general' },
     };
     await service.ingestMessageFromGateway(event);

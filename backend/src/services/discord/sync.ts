@@ -11,6 +11,8 @@ import {
 
 const DISCORD_SOURCE = 'discord';
 const MAX_SEND_RETRIES = 3;
+const MISSION_CONTROL_WEBHOOK_NAME = 'Mission Control';
+const MISSION_CONTROL_WEBHOOK_USERNAME = 'Mr';
 // discord.js v14 targets Discord API v10 by default.
 
 type Logger = {
@@ -26,6 +28,7 @@ export interface DiscordSyncDependencies {
   createMessage: (data: {
     channelId: string;
     author: string;
+    discordUserId?: string;
     content: string;
     fromMissionControl?: boolean;
     agentId?: string;
@@ -47,7 +50,7 @@ export interface DiscordMessageEvent {
   guildId?: string | null;
   content: string;
   type?: number;
-  author: { username: string; globalName?: string | null; bot?: boolean | null };
+  author: { id: string; username: string; globalName?: string | null; bot?: boolean | null };
   channel: DiscordChannelEvent;
 }
 
@@ -157,6 +160,14 @@ function mapDiscordError(error: unknown) {
     message: e.message,
     statusCode: 502,
   };
+}
+
+function supportsWebhooks(channel: unknown): channel is {
+  fetchWebhooks: () => Promise<Map<string, { id: string; owner?: { id: string } | null; name: string | null; send: (options: { content: string; username?: string }) => Promise<{ id: string }> }>>;
+  createWebhook: (options: { name: string }) => Promise<{ id: string; send: (options: { content: string; username?: string }) => Promise<{ id: string }> }>;
+} {
+  const c = channel as { fetchWebhooks?: unknown; createWebhook?: unknown };
+  return typeof c?.fetchWebhooks === 'function' && typeof c?.createWebhook === 'function';
 }
 
 async function withRetry<T>(fn: () => Promise<T>) {
@@ -320,6 +331,44 @@ export class DiscordSyncService {
         ? `*Sent via Mission Control*\n\n${content}`
         : content;
     try {
+      // Prefer webhook sends so Mission Control posts are not authored by the bot user itself.
+      if (this.client?.user && supportsWebhooks(channel)) {
+        const webhooks = await channel.fetchWebhooks();
+        const namedOwnedWebhook = [...webhooks.values()].find(
+          (entry) =>
+            entry.owner?.id === this.client?.user?.id &&
+            entry.name === MISSION_CONTROL_WEBHOOK_NAME,
+        );
+        if (namedOwnedWebhook) {
+          const sent = await withRetry(() =>
+            namedOwnedWebhook
+              .send({ content: body, username: MISSION_CONTROL_WEBHOOK_USERNAME })
+              .then((message) => ({ id: message.id })),
+          );
+          return sent.id;
+        }
+
+        const anyOwnedWebhook = [...webhooks.values()].find(
+          (entry) => entry.owner?.id === this.client?.user?.id,
+        );
+        if (anyOwnedWebhook) {
+          const sent = await withRetry(() =>
+            anyOwnedWebhook
+              .send({ content: body, username: MISSION_CONTROL_WEBHOOK_USERNAME })
+              .then((message) => ({ id: message.id })),
+          );
+          return sent.id;
+        }
+
+        const createdWebhook = await channel.createWebhook({ name: MISSION_CONTROL_WEBHOOK_NAME });
+        const sent = await withRetry(() =>
+          createdWebhook
+            .send({ content: body, username: MISSION_CONTROL_WEBHOOK_USERNAME })
+            .then((message) => ({ id: message.id })),
+        );
+        return sent.id;
+      }
+
       const sent = await withRetry(() => channel.send({ content: body }).then((message) => ({ id: message.id })));
       return sent.id;
     } catch (error) {
@@ -397,6 +446,7 @@ export class DiscordSyncService {
     await this.deps.createMessage({
       channelId: channelRecord.id,
       author,
+      discordUserId: String(message.author.id),
       content: message.content,
       source: DISCORD_SOURCE,
       externalMessageId: String(message.id),

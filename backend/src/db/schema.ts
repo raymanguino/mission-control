@@ -107,6 +107,8 @@ export const messages = pgTable('messages', {
     .notNull()
     .references(() => channels.id, { onDelete: 'cascade' }),
   author: text('author').notNull(),
+  /** Canonical Discord user snowflake identity for authoring logic (nullable for legacy/system rows). */
+  discordUserId: text('discord_user_id'),
   content: text('content').notNull(),
   /** True when the row was created by the Mission Control API (dashboard/MCP), not synced from Discord. */
   fromMissionControl: boolean('from_mission_control').notNull().default(false),

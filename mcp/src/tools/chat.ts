@@ -43,22 +43,13 @@ export function registerChatTools(server: McpServer) {
 
   server.tool(
     'post_message',
-    'Post a message to a channel.\n\nRequired: `channelId`, `content`.\nProvide either `author` or `discordUserId` (snowflake). If `discordUserId` is set, the author label is resolved from your configured Discord guild (nickname/display name).',
+    'Post a message to a channel.\n\nRequired: `channelId`, `content`.\nDashboard-authenticated posts are attributed as `Mr` by Mission Control.',
     {
       channelId: z.string().describe('Channel UUID (required).'),
       content: z.string().describe('Message text (required).'),
-      author: z.string().optional().describe('Author display name (omit if using discordUserId).'),
-      discordUserId: z
-        .string()
-        .regex(/^\d{17,20}$/)
-        .optional()
-        .describe('Discord user snowflake ID; resolves author name from the guild.'),
     },
-    async ({ channelId, content, author, discordUserId }) => {
-      const payload: { content: string; author?: string; discordUserId?: string } = { content };
-      if (discordUserId) payload.discordUserId = discordUserId;
-      else payload.author = author ?? 'Claude';
-      const message = await apiPost<Message>(`/api/channels/${channelId}/messages`, payload);
+    async ({ channelId, content }) => {
+      const message = await apiPost<Message>(`/api/channels/${channelId}/messages`, { content });
       return {
         content: [{ type: 'text', text: JSON.stringify(message, null, 2) }],
       };
