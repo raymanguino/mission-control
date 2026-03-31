@@ -7,6 +7,18 @@ Use this package to keep agent filtering behavior consistent:
 - Allow Mission Control webhook messages
 - Optionally allowlist trusted webhook IDs/usernames
 
+## What this is for
+
+Use this package only when your agent consumes Discord gateway `messageCreate` events.
+
+- `webhookId` filtering exists because Mission Control may publish into Discord via webhook.
+- Those messages are usually bot-like (`author.bot = true`) but should still be processed by agents.
+- Self-skip must use stable IDs (`author.id === clientUserId`), not display names.
+
+If your OpenClaw agent reads from Mission Control HTTP/MCP instead of Discord gateway events, webhook
+filters are not the primary control. In that case, rely on Mission Control message fields like
+`agentId` and `discordUserId`.
+
 ## Install
 
 ```bash
@@ -43,6 +55,23 @@ client.on('messageCreate', async (message) => {
   // ... your agent logic
 });
 ```
+
+## Behavior summary
+
+- `author.id === clientUserId` -> dropped (true self message)
+- `webhookId` present:
+  - allowed by default
+  - if allowlists are set, must match `ALLOWED_WEBHOOK_IDS` or `ALLOWED_WEBHOOK_USERNAMES`
+- non-webhook bot message (`author.bot = true`) -> dropped by default
+- human non-self message -> processed
+
+## Recommended OpenClaw defaults
+
+- Keep `ignoreBotMessages` at default (`true`)
+- Keep `allowWebhookMessages` at default (`true`)
+- Set one allowlist for production hardening:
+  - prefer `ALLOWED_WEBHOOK_IDS`
+  - use `ALLOWED_WEBHOOK_USERNAMES` only as a secondary fallback
 
 ## Environment variables
 
