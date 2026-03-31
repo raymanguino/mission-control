@@ -12,7 +12,10 @@ export async function getProject(id: string) {
 }
 
 export async function createProject(data: { name: string; description?: string }) {
-  const rows = await db.insert(projects).values(data).returning();
+  const rows = await db
+    .insert(projects)
+    .values({ ...data, status: 'pending_approval' })
+    .returning();
   return rows[0]!;
 }
 
