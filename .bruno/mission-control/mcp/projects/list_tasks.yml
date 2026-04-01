@@ -1,7 +1,7 @@
 info:
   name: list_tasks
   type: http
-  seq: 5
+  seq: 6
 
 http:
   method: get

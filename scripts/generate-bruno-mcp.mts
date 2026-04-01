@@ -33,14 +33,6 @@ const FOLDER_TOOLS: Record<string, string[]> = {
     'update_task',
     'delete_task',
   ],
-  intents: [
-    'list_intents',
-    'get_intent',
-    'create_intent',
-    'update_intent',
-    'convert_intent_to_project',
-    'delete_intent',
-  ],
   chat: ['list_channels', 'get_messages', 'delete_channel'],
   usage: ['get_usage', 'get_usage_records', 'get_ai_config', 'sync_usage'],
   wellness: [
@@ -112,21 +104,6 @@ const BODY_JSON: Partial<Record<string, object>> = {
     status: 'doing',
     description: null,
     assignedAgentId: '00000000-0000-4000-8000-000000000001',
-  },
-  create_intent: {
-    title: 'Idea title',
-    body: 'Intent body text',
-    status: 'open',
-  },
-  update_intent: {
-    title: 'Updated title',
-    body: 'Updated body',
-    status: 'open',
-    createdProjectId: null,
-  },
-  convert_intent_to_project: {
-    projectName: 'From intent',
-    projectDescription: 'Optional project description',
   },
   log_food: {
     mealType: 'lunch',

@@ -1,7 +1,7 @@
 info:
   name: update_task
   type: http
-  seq: 7
+  seq: 8
 
 http:
   method: patch

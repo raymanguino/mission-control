@@ -33,16 +33,24 @@ export function registerProjectTools(server: McpServer) {
 
   server.tool(
     'create_project',
-    'Create a new project.\n\nRequired: `name`.\nOptional: `description`.',
+    'Create a new project.\n\nRequired: `name`.\nOptional: `description`, `url`.',
     {
       name: z.string().describe('Project name (required).'),
       description: z
         .string()
         .optional()
         .describe('Optional longer project description (omit if not needed).'),
+      url: z
+        .string()
+        .url()
+        .optional()
+        .describe('Optional project URL (omit if not needed).'),
     },
-    async ({ name, description }) => {
-      const project = await apiPost<Project>('/api/projects', omitNullValues({ name, description }));
+    async ({ name, description, url }) => {
+      const project = await apiPost<Project>(
+        '/api/projects',
+        omitNullValues({ name, description, url }),
+      );
       return {
         content: [{ type: 'text', text: JSON.stringify(project, null, 2) }],
       };
@@ -51,7 +59,7 @@ export function registerProjectTools(server: McpServer) {
 
   server.tool(
     'update_project',
-    'Update a project name, description, or approval status.\n\nRequired: `projectId`.\nOptional: `name`, `description`, `status` (pending_approval | approved | denied).',
+    'Update a project name, description, approval status, or URL.\n\nRequired: `projectId`.\nOptional: `name`, `description`, `status` (pending_approval | approved | denied), `url` (omit or set null to clear).',
     {
       projectId: z.string().uuid().describe('Project UUID (required).'),
       name: z.string().optional().describe('Updated name (omit to keep unchanged).'),
@@ -60,6 +68,12 @@ export function registerProjectTools(server: McpServer) {
         .enum(['pending_approval', 'approved', 'denied'])
         .optional()
         .describe('Set to approved or denied to action a pending project.'),
+      url: z
+        .string()
+        .url()
+        .nullable()
+        .optional()
+        .describe('Updated project URL, or null to clear (omit to keep unchanged).'),
     },
     async ({ projectId, ...updates }) => {
       const project = await apiPatch<Project>(`/api/projects/${projectId}`, omitNullValues(updates));
