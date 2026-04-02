@@ -7,6 +7,7 @@ import * as agentsDb from '../../db/api/agents.js';
 import * as settingsDb from '../../db/api/settings.js';
 import { backendRequestSchemas } from '../../contracts/mcp-contract.js';
 import { ApiError, parseBody } from '../../lib/errors.js';
+import { touchMcpActivity } from '../../lib/mcpActivity.js';
 import { toPublicAgent } from '../../lib/publicAgent.js';
 
 const agentAvatarIdSchema = z
@@ -69,6 +70,7 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
     const orgRole = existingCoS.length === 0 ? 'chief_of_staff' : 'member';
 
     const agent = await agentsDb.createAgent({ ...body, apiKeyHash, orgRole });
+    await touchMcpActivity([agent.id]);
 
     const instrKey = orgRole === 'chief_of_staff' ? 'cos_instructions' : 'agent_instructions';
     const agentInstructions = await settingsDb.getSetting(instrKey);
@@ -87,7 +89,8 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   fastify.get('/instructions', { preHandler: fastify.authenticateAgent }, async (request) => {
-    const agent = (request as FastifyRequest & { agent: { orgRole: string } }).agent;
+    const agent = (request as FastifyRequest & { agent: { id: string; orgRole: string } }).agent;
+    await touchMcpActivity([agent.id]);
     const key = instructionKeyForOrgRole(agent.orgRole);
     const row = await settingsDb.getSettingRow(key);
     if (!row) {
@@ -99,10 +102,11 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
     };
   });
 
-  fastify.get('/:id', { preHandler: fastify.authenticate }, async (request, reply) => {
+  fastify.get('/:id', { preHandler: fastify.authenticate }, async (request) => {
     const { id } = request.params as { id: string };
     const agent = await agentsDb.getAgent(id);
     if (!agent) throw new ApiError(404, 'NOT_FOUND', 'Not found');
+    await touchMcpActivity([id]);
     return toPublicAgent(agent);
   });
 
@@ -110,6 +114,7 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
     const { id } = request.params as { id: string };
     const agent = await agentsDb.getAgent(id);
     if (!agent) throw new ApiError(404, 'NOT_FOUND', 'Not found');
+    await touchMcpActivity([id]);
     const orgRole = agent.orgRole as 'chief_of_staff' | 'member';
     const key = instructionKeyForOrgRole(orgRole);
     const instructions = (await settingsDb.getSetting(key)) ?? '';
@@ -149,11 +154,13 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
 
     const agent = await agentsDb.updateAgent(id, body);
     if (!agent) throw new ApiError(404, 'NOT_FOUND', 'Not found');
+    await touchMcpActivity([id]);
     return toPublicAgent(agent);
   });
 
   fastify.delete('/:id', { preHandler: fastify.authenticate }, async (request, reply) => {
     const { id } = request.params as { id: string };
+    await touchMcpActivity([id]);
     await agentsDb.deleteAgent(id);
     return reply.code(204).send();
   });
@@ -164,6 +171,7 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
     const limit = Math.min(Number(query.limit ?? 50), 200);
     const offset = Number(query.offset ?? 0);
     const data = await agentsDb.getActivities(id, limit, offset);
+    await touchMcpActivity([id]);
     return { data, limit, offset };
   });
 
@@ -176,6 +184,7 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
       status: body.status ?? inferStatusFromType(body.type),
     });
     const activity = await agentsDb.insertActivity({ agentId: agent.id, ...body });
+    await touchMcpActivity([agent.id]);
 
     const instrKey = instructionKeyForOrgRole(agent.orgRole);
     const instrRow = await settingsDb.getSettingRow(instrKey);

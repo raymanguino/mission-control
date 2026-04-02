@@ -5,6 +5,7 @@ import * as settingsDb from '../../db/api/settings.js';
 import * as emailService from '../../services/email.js';
 import { notifyAssignedAgentOfTask } from '../../services/agentNotifier.js';
 import { backendRequestSchemas } from '../../contracts/mcp-contract.js';
+import { touchMcpActivity } from '../../lib/mcpActivity.js';
 import { ApiError, parseBody } from '../../lib/errors.js';
 
 const createTaskSchema = backendRequestSchemas.createTask;
@@ -49,6 +50,7 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
     const { id } = request.params as { id: string };
     const task = await projectsDb.getTask(id);
     if (!task) throw new ApiError(404, 'NOT_FOUND', 'Not found');
+    await touchMcpActivity([task.assignedAgentId]);
     return task;
   });
 
@@ -68,6 +70,7 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
     await fastify.finalizeIdempotency(request, 201, task);
 
     if (body.assignedAgentId) {
+      await touchMcpActivity([body.assignedAgentId]);
       await notifyAssignedAgent(task.id, body.assignedAgentId, request.log);
     }
 
@@ -92,6 +95,8 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
     const task = await projectsDb.updateTask(id, updateData);
     if (!task) throw new ApiError(404, 'NOT_FOUND', 'Not found');
 
+    await touchMcpActivity([task.assignedAgentId]);
+
     // Notify newly assigned agent (skip if we're also clearing via review auto-unassign)
     if (body.assignedAgentId && body.status !== 'review') {
       await notifyAssignedAgent(id, body.assignedAgentId, request.log);
@@ -102,6 +107,10 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.delete('/:id', { preHandler: fastify.authenticate }, async (request, reply) => {
     const { id } = request.params as { id: string };
+    const existing = await projectsDb.getTask(id);
+    if (existing?.assignedAgentId) {
+      await touchMcpActivity([existing.assignedAgentId]);
+    }
     await projectsDb.deleteTask(id);
     return reply.code(204).send();
   });

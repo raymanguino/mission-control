@@ -2,9 +2,80 @@
 import type { ErrorEnvelope } from '@mission-control/types';
 
 const backendUrl = process.env['BACKEND_URL'] ?? 'http://localhost:3001';
-const backendToken = process.env['BACKEND_TOKEN'] ?? process.env['BACKEND_JWT'];
 
-if (!backendToken) throw new Error('BACKEND_TOKEN or BACKEND_JWT is required');
+let dashboardJwt: string | null = null;
+let loginInFlight: Promise<string> | null = null;
+let loginSeq = 0;
+
+async function loginDashboard(): Promise<string> {
+  const password = process.env['DASHBOARD_PASSWORD']?.trim();
+  if (!password) {
+    throw new Error(
+      'DASHBOARD_PASSWORD is required (same value as backend DASHBOARD_PASSWORD; MCP logs in like the web dashboard)',
+    );
+  }
+  const res = await fetch(`${backendUrl}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password }),
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(`Dashboard login failed (${res.status}): ${text}`);
+  }
+  let data: { token?: string };
+  try {
+    data = JSON.parse(text) as { token?: string };
+  } catch {
+    throw new Error(`Dashboard login returned invalid JSON: ${text}`);
+  }
+  if (!data.token) {
+    throw new Error('Dashboard login response missing token');
+  }
+  return data.token;
+}
+
+async function getDashboardJwt(): Promise<string> {
+  while (true) {
+    if (dashboardJwt) return dashboardJwt;
+    if (!loginInFlight) {
+      const capturedSeq = loginSeq;
+      loginInFlight = loginDashboard()
+        .then((t) => {
+          if (capturedSeq === loginSeq) {
+            dashboardJwt = t;
+          }
+          return t;
+        })
+        .finally(() => {
+          loginInFlight = null;
+        });
+    }
+    await loginInFlight;
+    if (dashboardJwt) return dashboardJwt;
+  }
+}
+
+function invalidateDashboardJwt(): void {
+  dashboardJwt = null;
+  loginSeq += 1;
+}
+
+async function getDashboardAuthHeaders(): Promise<Record<string, string>> {
+  const token = await getDashboardJwt();
+  return { Authorization: `Bearer ${token}` };
+}
+
+async function withAuthRetry(doFetch: (auth: Record<string, string>) => Promise<Response>): Promise<Response> {
+  let auth = await getDashboardAuthHeaders();
+  let res = await doFetch(auth);
+  if (res.status === 401) {
+    invalidateDashboardJwt();
+    auth = await getDashboardAuthHeaders();
+    res = await doFetch(auth);
+  }
+  return res;
+}
 
 export class BackendApiError extends Error {
   public readonly status: number;
@@ -21,9 +92,11 @@ export class BackendApiError extends Error {
 }
 
 export async function apiGet<T>(path: string): Promise<T> {
-  const res = await fetch(`${backendUrl}${path}`, {
-    headers: { Authorization: `Bearer ${backendToken}` },
-  });
+  const res = await withAuthRetry((auth) =>
+    fetch(`${backendUrl}${path}`, {
+      headers: { ...auth },
+    }),
+  );
   if (!res.ok) {
     const text = await res.text();
     const parsed = parseErrorResponse(text);
@@ -42,16 +115,18 @@ export async function apiPost<T>(
   body?: unknown,
   options?: { headers?: Record<string, string> },
 ): Promise<T> {
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${backendToken}`,
-    'Content-Type': 'application/json',
-  };
-  if (options?.headers) Object.assign(headers, options.headers);
+  const res = await withAuthRetry(async (auth) => {
+    const headers: Record<string, string> = {
+      ...auth,
+      'Content-Type': 'application/json',
+    };
+    if (options?.headers) Object.assign(headers, options.headers);
 
-  const res = await fetch(`${backendUrl}${path}`, {
-    method: 'POST',
-    headers,
-    body: body != null ? JSON.stringify(body) : undefined,
+    return fetch(`${backendUrl}${path}`, {
+      method: 'POST',
+      headers,
+      body: body != null ? JSON.stringify(body) : undefined,
+    });
   });
   if (!res.ok) {
     const text = await res.text();
@@ -68,14 +143,16 @@ export async function apiPost<T>(
 }
 
 export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(`${backendUrl}${path}`, {
-    method: 'PATCH',
-    headers: {
-      Authorization: `Bearer ${backendToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
+  const res = await withAuthRetry((auth) =>
+    fetch(`${backendUrl}${path}`, {
+      method: 'PATCH',
+      headers: {
+        ...auth,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    }),
+  );
   if (!res.ok) {
     const text = await res.text();
     const parsed = parseErrorResponse(text);
@@ -90,10 +167,12 @@ export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
 }
 
 export async function apiDelete(path: string): Promise<void> {
-  const res = await fetch(`${backendUrl}${path}`, {
-    method: 'DELETE',
-    headers: { Authorization: `Bearer ${backendToken}` },
-  });
+  const res = await withAuthRetry((auth) =>
+    fetch(`${backendUrl}${path}`, {
+      method: 'DELETE',
+      headers: { ...auth },
+    }),
+  );
   if (!res.ok) {
     const text = await res.text();
     const parsed = parseErrorResponse(text);

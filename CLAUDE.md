@@ -90,7 +90,7 @@ pnpm --filter backend db:seed       # seed sample data
 Single-user dashboard. No user table.
 
 - **Dashboard access**: The frontend stores a session token (set on login) in `localStorage`. The login page accepts a PIN/password checked against the `DASHBOARD_PASSWORD` env var. On success the backend issues a signed JWT (using `DASHBOARD_SECRET`). All API routes (except `/api/agents/report` and `/api/auth/login`) require this JWT as a Bearer token.
-- **Agent auth**: Each agent is registered in the `agents` table with an `api_key_hash` (bcrypt). Agents send their raw API key in the `X-Agent-Key` header when posting to `/api/agents/report`. The backend verifies the hash.
+- **Agent auth**: Each agent is registered in the `agents` table with an `api_key_hash` (bcrypt). Agents send the same plaintext API key as `Authorization: Bearer <key>` for `/api/agents/report`, `GET /api/agents/instructions`, and all MCP→backend calls. The backend verifies the hash. Dashboard login uses a separate JWT (`Bearer` after PIN login).
 
 ---
 

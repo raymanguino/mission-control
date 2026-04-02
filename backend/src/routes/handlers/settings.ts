@@ -7,7 +7,8 @@ import {
   notifyChiefOfStaffInstructionsUpdated,
   notifyMemberAgentsInstructionsUpdated,
 } from '../../services/agentNotifier.js';
-import { parseBody } from '../../lib/errors.js';
+import { ApiError, parseBody } from '../../lib/errors.js';
+import { AGENT_PRESENCE_SETTING_KEYS } from '../../lib/agentPresenceConfig.js';
 
 const DEFAULT_DASHBOARD_TITLE = 'Mission Control';
 const DASHBOARD_TITLE_MAX_LEN = 128;
@@ -34,6 +35,20 @@ const settingsRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.patch('/', { preHandler: fastify.authenticate }, async (request) => {
     const body = parseBody(updateSettingsSchema, request.body);
+
+    for (const key of Object.values(AGENT_PRESENCE_SETTING_KEYS)) {
+      if (!Object.prototype.hasOwnProperty.call(body, key)) continue;
+      const raw = String(body[key] ?? '').trim();
+      const n = Number.parseInt(raw, 10);
+      if (!Number.isFinite(n) || n < 1 || n > 10_080) {
+        throw new ApiError(
+          400,
+          'VALIDATION_FAILED',
+          `${key} must be an integer from 1 to 10080 (minutes)`,
+        );
+      }
+      body[key] = String(n);
+    }
 
     if (Object.prototype.hasOwnProperty.call(body, 'dashboard_title')) {
       const v = body['dashboard_title'] ?? '';

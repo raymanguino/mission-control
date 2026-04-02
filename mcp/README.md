@@ -1,6 +1,6 @@
 # MCP server
 
-**Model Context Protocol** server that exposes Mission Control capabilities to MCP clients. Implemented with **Express** and the official MCP SDK; calls the Mission Control backend using a JWT and optional API key.
+**Model Context Protocol** server that exposes Mission Control capabilities to MCP clients. Implemented with **Express** and the official MCP SDK; calls the Mission Control backend with the **dashboard** JWT from `POST /api/auth/login` (same PIN as the web app), plus an MCP HTTP API key for inbound clients.
 
 ## Run from the monorepo root
 
@@ -16,7 +16,7 @@ Default HTTP port is **3002** (`PORT` in [`.env.example`](.env.example)).
 
 ## Configuration
 
-Copy [`.env.example`](.env.example) to `.env`. It defines how to reach the backend (`BACKEND_URL`), authentication (`BACKEND_JWT`, `MCP_API_KEY`), and the listen port.
+Copy [`.env.example`](.env.example) to `.env`. Set `BACKEND_URL`, `DASHBOARD_PASSWORD` (must match the backend’s `DASHBOARD_PASSWORD`), `MCP_API_KEY` (secret for clients calling this MCP server), and optionally `PORT` (default 3002).
 
 ## Build and production
 

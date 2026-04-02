@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react';
 import { api } from '../utils/api.js';
 import {
+  AGENT_PRESENCE_DEFAULTS,
+  AGENT_PRESENCE_LEGACY_MCP_STALE_KEY,
+  AGENT_PRESENCE_SETTING_KEYS,
+} from '@mission-control/types';
+import {
   DEFAULT_DASHBOARD_TITLE,
   useDashboardTitle,
 } from '../contexts/DashboardTitleContext.js';
@@ -42,6 +47,12 @@ export default function Settings() {
   const [dashboardTitle, setDashboardTitle] = useState('');
   const [cosInstructions, setCosInstructions] = useState('');
   const [agentInstructions, setAgentInstructions] = useState('');
+  const [activityStaleToIdleMin, setActivityStaleToIdleMin] = useState<number>(
+    AGENT_PRESENCE_DEFAULTS.activityStaleToIdleMinutes,
+  );
+  const [idleToOfflineMin, setIdleToOfflineMin] = useState<number>(
+    AGENT_PRESENCE_DEFAULTS.idleToOfflineMinutes,
+  );
   const [saving, setSaving] = useState<string | null>(null);
 
   const load = () => {
@@ -61,6 +72,19 @@ export default function Settings() {
         setDashboardTitle(s['dashboard_title'] ?? '');
         setCosInstructions(s['cos_instructions'] ?? '');
         setAgentInstructions(s['agent_instructions'] ?? '');
+        const t1Raw =
+          s[AGENT_PRESENCE_SETTING_KEYS.activityStaleToIdleMinutes] ??
+          s[AGENT_PRESENCE_LEGACY_MCP_STALE_KEY] ??
+          '';
+        const t1 = Number.parseInt(t1Raw, 10);
+        const t2 = Number.parseInt(
+          s[AGENT_PRESENCE_SETTING_KEYS.idleToOfflineMinutes] ?? '',
+          10,
+        );
+        if (Number.isFinite(t1) && t1 >= 1) setActivityStaleToIdleMin(t1);
+        else setActivityStaleToIdleMin(AGENT_PRESENCE_DEFAULTS.activityStaleToIdleMinutes);
+        if (Number.isFinite(t2) && t2 >= 1) setIdleToOfflineMin(t2);
+        else setIdleToOfflineMin(AGENT_PRESENCE_DEFAULTS.idleToOfflineMinutes);
       })
       .catch(() => {})
       .finally(() => setSettingsLoading(false));
@@ -173,6 +197,79 @@ export default function Settings() {
               {saving === 'agent_instructions' ? 'Saving…' : 'Save'}
             </button>
           </>
+        )}
+      </div>
+
+      {/* Agent presence */}
+      <div className="bg-gray-900 rounded-xl p-5 border border-gray-800 space-y-3">
+        <h2 className="text-sm font-semibold text-white">Agent presence</h2>
+        <p className="text-xs text-gray-500">
+          Online / idle / offline come only from Mission Control activity:{' '}
+          <span className="text-gray-400">last activity</span> on each agent (updated when the server
+          logs work for that agent). Agents do not need to report in for status. Optional{' '}
+          <code className="text-gray-400">POST /api/agents/report</code> still updates{' '}
+          <span className="text-gray-400">last seen</span> for display but does not drive status. The
+          server sweeps about once per minute.
+        </p>
+        {settingsLoading ? (
+          <p className="text-xs text-gray-500">Loading…</p>
+        ) : (
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">
+                Activity quiet → idle (minutes)
+              </label>
+              <p className="text-xs text-gray-600 mb-1">
+                If last activity is older than this, status becomes{' '}
+                <span className="text-gray-500">idle</span>. Agents with no recorded activity stay{' '}
+                <span className="text-gray-500">offline</span>.
+              </p>
+              <input
+                type="number"
+                min={1}
+                max={10080}
+                className="w-full max-w-xs bg-gray-800 text-gray-200 text-sm rounded-md px-3 py-2 border border-gray-700 focus:outline-none focus:border-gray-600"
+                value={activityStaleToIdleMin}
+                onChange={(e) => setActivityStaleToIdleMin(Number(e.target.value))}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">
+                Idle → offline (extra minutes)
+              </label>
+              <p className="text-xs text-gray-600 mb-1">
+                After last activity is older than &quot;activity quiet → idle&quot; plus this many
+                additional minutes, status becomes <span className="text-gray-500">offline</span>.
+              </p>
+              <input
+                type="number"
+                min={1}
+                max={10080}
+                className="w-full max-w-xs bg-gray-800 text-gray-200 text-sm rounded-md px-3 py-2 border border-gray-700 focus:outline-none focus:border-gray-600"
+                value={idleToOfflineMin}
+                onChange={(e) => setIdleToOfflineMin(Number(e.target.value))}
+              />
+            </div>
+            <button
+              onClick={async () => {
+                setSaving('agent_presence');
+                try {
+                  await api.patch('/api/settings', {
+                    [AGENT_PRESENCE_SETTING_KEYS.activityStaleToIdleMinutes]: String(
+                      activityStaleToIdleMin,
+                    ),
+                    [AGENT_PRESENCE_SETTING_KEYS.idleToOfflineMinutes]: String(idleToOfflineMin),
+                  });
+                } finally {
+                  setSaving(null);
+                }
+              }}
+              disabled={saving === 'agent_presence'}
+              className="px-3 py-1.5 text-xs rounded-md bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50"
+            >
+              {saving === 'agent_presence' ? 'Saving…' : 'Save presence settings'}
+            </button>
+          </div>
         )}
       </div>
 

@@ -4,7 +4,7 @@
  * - `.bruno/mission-control/rest` — raw HTTP API (same routes; e.g. settings.yml for GET /api/settings)
  *
  * Sources: mcpToolContracts + estimate_food (POST /api/health/food/estimate) +
- * get_agent_instructions (GET /api/agents/instructions, X-Agent-Key only; no MCP tool).
+ * get_agent_instructions (GET /api/agents/instructions, Bearer agent key only; no MCP tool).
  *
  * Run from repo root: pnpm gen:bruno
  */
@@ -232,7 +232,7 @@ function renderRequest(
   return lines.join('\n');
 }
 
-/** Agent-authenticated route (X-Agent-Key); no Bearer token. */
+/** Agent-authenticated route (Authorization: Bearer agent API key). */
 function renderAgentRequest(seq: number, url: string, infoName: string): string {
   const lines: string[] = [
     'info:',
@@ -244,8 +244,8 @@ function renderAgentRequest(seq: number, url: string, infoName: string): string 
     '  method: get',
     `  url: ${url}`,
     '  headers:',
-    '    - name: X-Agent-Key',
-    '      value: {{agentKey}}',
+    '    - name: Authorization',
+    '      value: Bearer {{agentKey}}',
     '  auth: inherit',
     '',
     SETTINGS_YAML,
