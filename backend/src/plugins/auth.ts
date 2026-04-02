@@ -1,9 +1,19 @@
 import fp from 'fastify-plugin';
 import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
+import type { InferSelectModel } from 'drizzle-orm';
 import { listAgents } from '../db/api/agents.js';
+import { agents } from '../db/schema.js';
 import { sendError } from '../lib/errors.js';
+
+export type AgentAuthRow = InferSelectModel<typeof agents>;
+
+declare module 'fastify' {
+  interface FastifyRequest {
+    /** Set when `Authorization: Bearer` matches an agent API key (same secret used for MCP and report). */
+    agent?: AgentAuthRow;
+  }
+}
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -12,55 +22,65 @@ declare module 'fastify' {
   }
 }
 
-const authPlugin: FastifyPluginAsync = async (fastify) => {
-  const serviceToken = process.env['MISSION_CONTROL_SERVICE_TOKEN'];
+async function resolveAgentFromBearer(request: FastifyRequest): Promise<AgentAuthRow | null> {
+  const authorization = request.headers['authorization'];
+  if (!authorization || typeof authorization !== 'string' || !authorization.startsWith('Bearer ')) {
+    return null;
+  }
+  const rawKey = authorization.slice(7).trim();
+  if (!rawKey) return null;
 
+  const allAgents = await listAgents();
+  for (const agent of allAgents) {
+    const match = await bcrypt.compare(rawKey, agent.apiKeyHash);
+    if (match) {
+      return agent;
+    }
+  }
+  return null;
+}
+
+const authPlugin: FastifyPluginAsync = async (fastify) => {
   fastify.decorate(
     'authenticate',
     async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
       const authorization = request.headers['authorization'];
-      if (serviceToken && typeof authorization === 'string' && authorization.startsWith('Bearer ')) {
-        const bearerToken = authorization.slice(7);
-        if (secureEquals(bearerToken, serviceToken)) {
-          return;
-        }
+      if (!authorization || typeof authorization !== 'string' || !authorization.startsWith('Bearer ')) {
+        return sendError(reply, 401, 'UNAUTHORIZED', 'Unauthorized');
       }
 
       try {
         await request.jwtVerify();
+        return;
       } catch {
-        return sendError(reply, 401, 'UNAUTHORIZED', 'Unauthorized');
+        // Not a dashboard JWT — try agent API key (MCP, automation).
       }
+
+      const agent = await resolveAgentFromBearer(request);
+      if (agent) {
+        request.agent = agent;
+        return;
+      }
+
+      return sendError(reply, 401, 'UNAUTHORIZED', 'Unauthorized');
     },
   );
 
   fastify.decorate(
     'authenticateAgent',
     async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
-      const rawKey = request.headers['x-agent-key'];
-      if (!rawKey || typeof rawKey !== 'string') {
-        await sendError(reply, 401, 'UNAUTHORIZED', 'Missing X-Agent-Key header');
-        return;
+      const agent = await resolveAgentFromBearer(request);
+      if (!agent) {
+        return sendError(
+          reply,
+          401,
+          'UNAUTHORIZED',
+          'Missing or invalid Authorization: Bearer agent API key',
+        );
       }
-
-      const allAgents = await listAgents();
-      for (const agent of allAgents) {
-        const match = await bcrypt.compare(rawKey, agent.apiKeyHash);
-        if (match) {
-          (request as FastifyRequest & { agent: typeof agent }).agent = agent;
-          return;
-        }
-      }
-      await sendError(reply, 401, 'UNAUTHORIZED', 'Invalid agent key');
+      request.agent = agent;
     },
   );
 };
-
-function secureEquals(value: string, expected: string): boolean {
-  const valueBuffer = Buffer.from(value);
-  const expectedBuffer = Buffer.from(expected);
-  if (valueBuffer.length !== expectedBuffer.length) return false;
-  return crypto.timingSafeEqual(valueBuffer, expectedBuffer);
-}
 
 export default fp(authPlugin, { name: 'auth' });

@@ -28,6 +28,8 @@ export const agents = pgTable('agents', {
     onDelete: 'set null',
   }),
   lastSeen: timestamp('last_seen'),
+  /** Last time Mission Control recorded presence-relevant activity for this agent (not from agent report). */
+  lastActivityAt: timestamp('last_activity_at'),
   status: text('status').notNull().default('offline'),
   /** Preset sprite id (see AGENT_AVATAR_IDS in @mission-control/types). */
   avatarId: text('avatar_id'),

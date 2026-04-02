@@ -4,6 +4,7 @@ import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import authPlugin from './plugins/auth.js';
 import idempotencyPlugin from './plugins/idempotency.js';
+import mcpActivityPlugin from './plugins/mcpActivity.js';
 import { registerRoutes } from './routes/index.js';
 import { startCronJobs } from './services/cron.js';
 import { registerErrorHandling } from './lib/errors.js';
@@ -23,6 +24,7 @@ await app.register(cors, {
 await app.register(jwt, { secret });
 await app.register(authPlugin);
 await app.register(idempotencyPlugin);
+await app.register(mcpActivityPlugin);
 
 registerErrorHandling(app);
 await registerRoutes(app);

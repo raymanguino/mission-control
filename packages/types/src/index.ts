@@ -56,9 +56,25 @@ export interface Agent {
   /** True when a bearer token is stored; the token itself is never returned. */
   hookTokenSet: boolean;
   lastSeen: string | null;
+  /** ISO timestamp of last Mission Control–recorded activity used for presence (not from report). */
+  lastActivityAt: string | null;
   status: AgentStatus;
   createdAt: string;
 }
+
+/** Settings keys for agent presence sweep (values are minutes as decimal strings). */
+export const AGENT_PRESENCE_SETTING_KEYS = {
+  activityStaleToIdleMinutes: 'agent_presence_activity_stale_to_idle_minutes',
+  idleToOfflineMinutes: 'agent_presence_idle_to_offline_minutes',
+} as const;
+
+export const AGENT_PRESENCE_DEFAULTS = {
+  activityStaleToIdleMinutes: 10,
+  idleToOfflineMinutes: 10,
+} as const;
+
+/** Older installs may still have this key; treat like `activityStaleToIdleMinutes`. */
+export const AGENT_PRESENCE_LEGACY_MCP_STALE_KEY = 'agent_presence_mcp_stale_to_idle_minutes';
 
 export interface AgentActivity {
   id: string;

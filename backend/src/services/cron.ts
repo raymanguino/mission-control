@@ -1,5 +1,6 @@
 import cron from 'node-cron';
 import { deleteExpiredIdempotencyKeys } from '../db/api/idempotency.js';
+import { sweepAgentPresence } from './agentPresence.js';
 import { syncOpenRouterUsage } from './openrouter.js';
 
 export function startCronJobs() {
@@ -11,6 +12,20 @@ export function startCronJobs() {
       console.log(`[cron] Synced ${count} usage records`);
     } catch (err) {
       console.error('[cron] OpenRouter sync failed:', err);
+    }
+  });
+
+  // Agent presence: heartbeat vs MCP work (intervals from settings; defaults in agentPresenceConfig)
+  cron.schedule('*/1 * * * *', async () => {
+    try {
+      const result = await sweepAgentPresence();
+      if (result.updated > 0) {
+        console.log(
+          `[cron] Agent presence: updated ${result.updated} agent(s) (activity→idle≤${result.activityStaleToIdleMinutes}m, idle→offline +${result.idleToOfflineMinutes}m)`,
+        );
+      }
+    } catch (err) {
+      console.error('[cron] Agent presence sweep failed:', err);
     }
   });
 

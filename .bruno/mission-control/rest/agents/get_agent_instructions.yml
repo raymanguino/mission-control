@@ -7,8 +7,8 @@ http:
   method: get
   url: http://{{host}}:{{port}}/api/agents/instructions
   headers:
-    - name: X-Agent-Key
-      value: {{agentKey}}
+    - name: Authorization
+      value: Bearer {{agentKey}}
   auth: inherit
 
 settings:

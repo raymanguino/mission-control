@@ -64,6 +64,7 @@ export async function updateAgent(
     hookUrl: string | null;
     hookToken: string | null;
     lastSeen: Date;
+    lastActivityAt: Date | null;
     status: string;
   }>,
 ) {
@@ -113,4 +114,9 @@ export async function insertActivity(data: {
 }) {
   const rows = await db.insert(agentActivities).values(data).returning();
   return rows[0]!;
+}
+
+/** Call when Mission Control logs presence-relevant activity for an agent (MCP actions, etc.). */
+export async function touchLastActivityAt(agentId: string): Promise<void> {
+  await updateAgent(agentId, { lastActivityAt: new Date() });
 }

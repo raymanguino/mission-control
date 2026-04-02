@@ -69,7 +69,7 @@ export async function notifyChiefOfStaffOfProject(
 const INSTRUCTIONS_UPDATE_EVENT = 'instructions.updated' as const;
 
 const INSTRUCTIONS_WEBHOOK_MESSAGE =
-  'Mission Control: instructions were updated. Refresh via GET /api/agents/instructions with your X-Agent-Key.';
+  'Mission Control: instructions were updated. Refresh via GET /api/agents/instructions with Authorization: Bearer <your agent API key>.';
 
 function instructionsUpdatePayload(): Record<string, unknown> {
   return {

@@ -62,7 +62,7 @@ export async function notifyAgentInstructionsUpdated(
     `Hello ${agent.name},`,
     ``,
     `Your ${roleLabel} playbook (Mission Control settings) was updated.`,
-    `Refresh your local instructions (e.g. MEMORY.md): call GET /api/agents/instructions with your existing X-Agent-Key,`,
+    `Refresh your local instructions (e.g. MEMORY.md): call GET /api/agents/instructions with Authorization: Bearer <your agent API key>,`,
     `using the same API base URL you already use for Mission Control.`,
     ``,
     `If you do not rely on email, you can also detect changes via instructionsUpdatedAt on POST /api/agents/report.`,
