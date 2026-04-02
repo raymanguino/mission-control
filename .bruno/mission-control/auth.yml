@@ -1,21 +1,19 @@
 info:
-  name: update_settings
+  name: auth
   type: http
-  seq: 2
+  seq: 3
 
 http:
-  method: patch
-  url: http://{{host}}:{{port}}/api/settings
+  method: post
+  url: http://localhost:3001/api/auth/login
   headers:
-    - name: Authorization
-      value: Bearer {{dashboardJwt}}
     - name: Content-Type
       value: application/json
   body:
     type: json
     data: |-
       {
-        "some_key": "some_value"
+        "password": "YOUR_DASHBOARD_PASSWORD"
       }
   auth: inherit
 

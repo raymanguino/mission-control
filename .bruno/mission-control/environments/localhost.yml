@@ -4,5 +4,7 @@ variables:
     value: localhost
   - name: port
     value: "3001"
-  - name: token
+  - name: dashboardJwt
     value: 1fcb32cf3217469cb468809760b8b0c7050107778379b7d4daf32a987068855e
+  - name: dashboardPw
+    value: six7swe

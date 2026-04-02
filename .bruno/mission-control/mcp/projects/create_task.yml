@@ -8,18 +8,16 @@ http:
   url: http://{{host}}:{{port}}/api/tasks
   headers:
     - name: Authorization
-      value: Bearer {{token}}
+      value: Bearer {{dashboardJwt}}
     - name: Content-Type
       value: application/json
   body:
     type: json
     data: |-
       {
-        "projectId": "00000000-0000-4000-8000-000000000002",
+        "projectId": "a7b28edb-ca91-4f75-aed5-375c3c9e6950",
         "title": "Implement feature",
-        "description": "Task details",
-        "status": "backlog",
-        "assignedAgentId": "00000000-0000-4000-8000-000000000001"
+        "description": "Task details"
       }
   auth: inherit
 

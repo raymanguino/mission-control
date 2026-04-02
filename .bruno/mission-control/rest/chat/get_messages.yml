@@ -8,7 +8,7 @@ http:
   url: http://{{host}}:{{port}}/api/channels/{{channelId}}/messages?limit=50
   headers:
     - name: Authorization
-      value: Bearer {{token}}
+      value: Bearer {{dashboardJwt}}
   auth: inherit
 
 settings:
