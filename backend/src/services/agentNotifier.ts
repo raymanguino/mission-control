@@ -9,11 +9,22 @@
 import type { FastifyBaseLogger } from 'fastify';
 import * as agentsDb from '../db/api/agents.js';
 
+/** Set `AGENT_WEBHOOKS_ENABLED=false` (or `0` / `no`) to disable all outbound agent webhook POSTs. Default: enabled. */
+function agentWebhooksEnabled(): boolean {
+  const v = process.env['AGENT_WEBHOOKS_ENABLED'];
+  if (v == null || v.trim() === '') return true;
+  const lower = v.trim().toLowerCase();
+  return lower !== 'false' && lower !== '0' && lower !== 'no';
+}
+
 export async function postToAgentWebhook(
   hookUrl: string | null,
   hookToken: string | null,
   payload: Record<string, unknown>,
 ): Promise<void> {
+  if (!agentWebhooksEnabled()) {
+    return;
+  }
   if (!hookUrl?.trim() || !hookToken?.trim()) {
     return;
   }
@@ -85,6 +96,8 @@ function instructionsUpdatePayload(): Record<string, unknown> {
 export async function notifyChiefOfStaffInstructionsUpdated(
   log?: FastifyBaseLogger,
 ): Promise<void> {
+  if (!agentWebhooksEnabled()) return;
+
   const cosRows = await agentsDb.getCoSAgents();
   let posted = 0;
   for (const agent of cosRows) {
@@ -104,6 +117,8 @@ export async function notifyChiefOfStaffInstructionsUpdated(
 export async function notifyMemberAgentsInstructionsUpdated(
   log?: FastifyBaseLogger,
 ): Promise<void> {
+  if (!agentWebhooksEnabled()) return;
+
   const rows = await agentsDb.listAgentsByOrgRole('member');
   let posted = 0;
   for (const agent of rows) {
