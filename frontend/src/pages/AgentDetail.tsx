@@ -320,7 +320,7 @@ export default function AgentDetail() {
           <code className="text-gray-400">Authorization: Bearer &lt;token&gt;</code>. Task assignments
           go to the assigned agent; new projects and Chief of Staff instruction saves go to the CoS
           agent. Saving Agent playbook instructions in Settings notifies member agents (
-          <code className="text-gray-400">instructions.update</code>).
+          <code className="text-gray-400">instructions.updated</code>).
         </p>
         <div className="space-y-3 max-w-xl">
           <div>

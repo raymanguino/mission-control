@@ -123,7 +123,7 @@ export default function Settings() {
         <h2 className="text-sm font-semibold text-white">Chief of Staff Instructions</h2>
         <p className="text-xs text-gray-500">
           Sent to the CoS agent on registration and with every report response. On Save, Mission
-          Control POSTs <code className="text-gray-400">instructions.update</code> to each{' '}
+          Control POSTs <code className="text-gray-400">instructions.updated</code> to each{' '}
           <span className="text-gray-400">chief_of_staff</span> agent that has a webhook URL and
           bearer token configured (Agent detail).
         </p>
@@ -152,7 +152,7 @@ export default function Settings() {
         <h2 className="text-sm font-semibold text-white">Agent Instructions</h2>
         <p className="text-xs text-gray-500">
           Sent to member agents on registration, task assignment, and with every report response. On
-          Save, Mission Control POSTs <code className="text-gray-400">instructions.update</code> to
+          Save, Mission Control POSTs <code className="text-gray-400">instructions.updated</code> to
           each <span className="text-gray-400">member</span> agent with a webhook configured—not to
           the Chief of Staff.
         </p>

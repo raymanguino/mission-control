@@ -1,0 +1,53 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Backend",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--import", "tsx/esm"],
+      "args": ["src/index.ts"],
+      "cwd": "${workspaceFolder}/backend",
+      "envFile": "${workspaceFolder}/backend/.env",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"]
+    },
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "Frontend (Chrome)",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/frontend"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Backend: Vitest (current file)",
+      "program": "${workspaceFolder}/backend/node_modules/vitest/vitest.mjs",
+      "args": ["run", "${file}"],
+      "cwd": "${workspaceFolder}/backend",
+      "envFile": "${workspaceFolder}/backend/.env",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Backend: Vitest (all)",
+      "program": "${workspaceFolder}/backend/node_modules/vitest/vitest.mjs",
+      "args": ["run"],
+      "cwd": "${workspaceFolder}/backend",
+      "envFile": "${workspaceFolder}/backend/.env",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"]
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Backend + Frontend (Chrome)",
+      "configurations": ["Backend", "Frontend (Chrome)"],
+      "stopAll": true
+    }
+  ]
+}

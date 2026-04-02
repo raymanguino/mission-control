@@ -66,7 +66,7 @@ export async function notifyChiefOfStaffOfProject(
   });
 }
 
-const INSTRUCTIONS_UPDATE_EVENT = 'instructions.update' as const;
+const INSTRUCTIONS_UPDATE_EVENT = 'instructions.updated' as const;
 
 const INSTRUCTIONS_WEBHOOK_MESSAGE =
   'Mission Control: instructions were updated. Refresh via GET /api/agents/instructions with your X-Agent-Key.';
@@ -95,7 +95,7 @@ export async function notifyChiefOfStaffInstructionsUpdated(
 
   if (posted === 0) {
     log?.warn(
-      'Skipping instructions.update webhook: no chief_of_staff agent has both hook URL and hook token set.',
+      'Skipping instructions.updated webhook: no chief_of_staff agent has both hook URL and hook token set.',
     );
   }
 }
@@ -114,7 +114,7 @@ export async function notifyMemberAgentsInstructionsUpdated(
 
   if (posted === 0) {
     log?.warn(
-      'Skipping instructions.update webhook: no member agent has both hook URL and hook token set.',
+      'Skipping instructions.updated webhook: no member agent has both hook URL and hook token set.',
     );
   }
 }
