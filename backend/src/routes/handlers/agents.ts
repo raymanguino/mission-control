@@ -98,6 +98,20 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
     return toPublicAgent(agent);
   });
 
+  fastify.get('/:id/instructions', { preHandler: fastify.authenticate }, async (request) => {
+    const { id } = request.params as { id: string };
+    const agent = await agentsDb.getAgent(id);
+    if (!agent) throw new ApiError(404, 'NOT_FOUND', 'Not found');
+    const orgRole = agent.orgRole as 'chief_of_staff' | 'member';
+    const key = instructionKeyForOrgRole(orgRole);
+    const instructions = (await settingsDb.getSetting(key)) ?? '';
+    return {
+      agentId: agent.id,
+      orgRole,
+      instructions,
+    };
+  });
+
   fastify.patch('/:id', { preHandler: fastify.authenticate }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const existing = await agentsDb.getAgent(id);
