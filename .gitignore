@@ -13,5 +13,4 @@ supabase/.temp/
 .claude/settings.local.json
 
 # Bruno: machine-specific env (tokens, hostnames)
-.bruno/mission-control/environments/localhost.yml
-.bruno/mission-control/environments/tailnet.yml
+.bruno/mission-control/environments/*.yml
