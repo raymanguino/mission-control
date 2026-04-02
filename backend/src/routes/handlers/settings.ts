@@ -3,7 +3,10 @@ import { z } from 'zod';
 import * as agentsDb from '../../db/api/agents.js';
 import * as settingsDb from '../../db/api/settings.js';
 import * as emailService from '../../services/email.js';
-import { notifyChiefOfStaffInstructionsUpdated } from '../../services/agentNotifier.js';
+import {
+  notifyChiefOfStaffInstructionsUpdated,
+  notifyMemberAgentsInstructionsUpdated,
+} from '../../services/agentNotifier.js';
 import { parseBody } from '../../lib/errors.js';
 
 const DEFAULT_DASHBOARD_TITLE = 'Mission Control';
@@ -47,9 +50,11 @@ const settingsRoutes: FastifyPluginAsync = async (fastify) => {
 
     await settingsDb.upsertSettings(body);
 
-    notifyAgentsOfInstructionChanges(request, previousByKey, body).catch((err) => {
+    try {
+      await notifyAgentsOfInstructionChanges(request, previousByKey, body);
+    } catch (err) {
       request.log.error({ err }, 'Failed to notify agents of instruction updates');
-    });
+    }
 
     return settingsDb.getAllSettings();
   });
@@ -64,15 +69,25 @@ async function notifyAgentsOfInstructionChanges(
     if (!Object.prototype.hasOwnProperty.call(body, key)) continue;
     const prev = previousByKey[key];
     const next = body[key];
-    if (prev === next) continue;
-
-    const role = key === 'cos_instructions' ? 'chief_of_staff' : 'member';
+    const unchanged = prev === next;
 
     if (key === 'cos_instructions') {
-      notifyChiefOfStaffInstructionsUpdated().catch((err) =>
-        request.log.error({ err }, 'Failed to notify chief of staff webhook of instructions update'),
-      );
+      try {
+        await notifyChiefOfStaffInstructionsUpdated(request.log);
+      } catch (err) {
+        request.log.error({ err }, 'Failed to notify chief of staff webhook of instructions update');
+      }
+    } else if (key === 'agent_instructions') {
+      try {
+        await notifyMemberAgentsInstructionsUpdated(request.log);
+      } catch (err) {
+        request.log.error({ err }, 'Failed to notify member agent webhooks of instructions update');
+      }
     }
+
+    if (unchanged) continue;
+
+    const role = key === 'cos_instructions' ? 'chief_of_staff' : 'member';
 
     const agents = await agentsDb.listAgentsWithEmailByOrgRole(role);
     for (const a of agents) {

@@ -14,6 +14,8 @@ export interface McpToolContract {
 export const backendRequestSchemas = {
   createAgent: z.object({
     name: z.string(),
+    hookUrl: z.string().url(),
+    hookToken: z.string().min(1),
     email: z.string().email().optional(),
     device: z.string().optional(),
     ip: z.string().optional(),
@@ -32,8 +34,8 @@ export const backendRequestSchemas = {
     description: z.string().optional(),
     reportsToAgentId: z.string().uuid().nullable().optional(),
     avatarId: z.string().nullable().optional(),
-    hookUrl: z.union([z.string().url(), z.null()]).optional(),
-    hookToken: z.union([z.string().min(1), z.null()]).optional(),
+    hookUrl: z.string().url().optional(),
+    hookToken: z.string().min(1).optional(),
   }),
   updateSettings: z.object({
     updates: z.record(z.string(), z.string()),

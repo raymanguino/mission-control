@@ -13,6 +13,11 @@ export async function listAgentsWithEmailByOrgRole(orgRole: 'chief_of_staff' | '
     .where(and(eq(agents.orgRole, orgRole), isNotNull(agents.email)));
 }
 
+/** All agents with the given org role (same pattern as {@link getCoSAgents}). */
+export async function listAgentsByOrgRole(orgRole: 'chief_of_staff' | 'member') {
+  return db.select().from(agents).where(eq(agents.orgRole, orgRole));
+}
+
 export async function listAgents() {
   return await db.select().from(agents).orderBy(agents.createdAt);
 }
@@ -29,6 +34,8 @@ export async function getAgentByKeyHash(_hash: string) {
 
 export async function createAgent(data: {
   name: string;
+  hookUrl: string;
+  hookToken: string;
   email?: string;
   device?: string;
   ip?: string;

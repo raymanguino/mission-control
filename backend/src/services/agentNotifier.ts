@@ -1,8 +1,12 @@
 /**
  * POSTs JSON event payloads to each agent's configured `hookUrl` with `Authorization: Bearer <hookToken>`.
  * Used for task assignment (assigned agent) and org-wide events (chief of staff agent).
+ *
+ * OpenClaw gateway `POST /hooks/agent` requires a `message` string; instruction payloads include it
+ * so hooks work when `hookUrl` points at that endpoint. Custom receivers may ignore extra fields.
  */
 
+import type { FastifyBaseLogger } from 'fastify';
 import * as agentsDb from '../db/api/agents.js';
 
 export async function postToAgentWebhook(
@@ -62,10 +66,55 @@ export async function notifyChiefOfStaffOfProject(
   });
 }
 
-export async function notifyChiefOfStaffInstructionsUpdated(): Promise<void> {
-  const cosRows = await agentsDb.getCoSAgents();
-  const agent = cosRows.find((a) => a.hookUrl?.trim() && a.hookToken?.trim());
-  if (!agent) return;
+const INSTRUCTIONS_UPDATE_EVENT = 'instructions.update' as const;
 
-  await postToAgentWebhook(agent.hookUrl, agent.hookToken, { event: 'instructions.updated' });
+const INSTRUCTIONS_WEBHOOK_MESSAGE =
+  'Mission Control: instructions were updated. Refresh via GET /api/agents/instructions with your X-Agent-Key.';
+
+function instructionsUpdatePayload(): Record<string, unknown> {
+  return {
+    event: INSTRUCTIONS_UPDATE_EVENT,
+    message: INSTRUCTIONS_WEBHOOK_MESSAGE,
+    name: 'Mission Control',
+    deliver: false,
+    wakeMode: 'now',
+  };
+}
+
+/** When CoS playbook text is saved: notify each chief_of_staff agent that has a webhook. */
+export async function notifyChiefOfStaffInstructionsUpdated(
+  log?: FastifyBaseLogger,
+): Promise<void> {
+  const cosRows = await agentsDb.getCoSAgents();
+  let posted = 0;
+  for (const agent of cosRows) {
+    if (!agent.hookUrl?.trim() || !agent.hookToken?.trim()) continue;
+    await postToAgentWebhook(agent.hookUrl, agent.hookToken, instructionsUpdatePayload());
+    posted += 1;
+  }
+
+  if (posted === 0) {
+    log?.warn(
+      'Skipping instructions.update webhook: no chief_of_staff agent has both hook URL and hook token set.',
+    );
+  }
+}
+
+/** When shared member playbook text is saved: notify each member agent that has a webhook. */
+export async function notifyMemberAgentsInstructionsUpdated(
+  log?: FastifyBaseLogger,
+): Promise<void> {
+  const rows = await agentsDb.listAgentsByOrgRole('member');
+  let posted = 0;
+  for (const agent of rows) {
+    if (!agent.hookUrl?.trim() || !agent.hookToken?.trim()) continue;
+    await postToAgentWebhook(agent.hookUrl, agent.hookToken, instructionsUpdatePayload());
+    posted += 1;
+  }
+
+  if (posted === 0) {
+    log?.warn(
+      'Skipping instructions.update webhook: no member agent has both hook URL and hook token set.',
+    );
+  }
 }

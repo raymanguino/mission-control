@@ -25,12 +25,12 @@ const updateAgentSchema = z.object({
   reportsToAgentId: z.string().uuid().nullable().optional(),
   avatarId: agentAvatarIdSchema,
   hookUrl: z.preprocess(
-    (v) => (v === '' ? null : v),
-    z.union([z.string().url(), z.null()]).optional(),
+    (v) => (v === '' ? undefined : v),
+    z.string().url().optional(),
   ),
   hookToken: z.preprocess(
     (v) => (v === '' ? undefined : v),
-    z.union([z.string().min(1), z.null()]).optional(),
+    z.string().min(1).optional(),
   ),
 });
 
@@ -100,6 +100,9 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.patch('/:id', { preHandler: fastify.authenticate }, async (request, reply) => {
     const { id } = request.params as { id: string };
+    const existing = await agentsDb.getAgent(id);
+    if (!existing) throw new ApiError(404, 'NOT_FOUND', 'Not found');
+
     const body = parseBody(updateAgentSchema, request.body);
     if (body.reportsToAgentId !== undefined && body.reportsToAgentId !== null) {
       const manager = await agentsDb.getAgent(body.reportsToAgentId);
@@ -111,6 +114,17 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
         );
       }
     }
+
+    const mergedUrl = body.hookUrl !== undefined ? body.hookUrl : existing.hookUrl;
+    const mergedToken = body.hookToken !== undefined ? body.hookToken : existing.hookToken;
+    if (!mergedUrl?.trim() || !mergedToken?.trim()) {
+      throw new ApiError(
+        400,
+        'VALIDATION_FAILED',
+        'Agent must have a webhook URL and hook token. Include hookUrl and hookToken (or omit one field to keep the stored value).',
+      );
+    }
+
     const agent = await agentsDb.updateAgent(id, body);
     if (!agent) throw new ApiError(404, 'NOT_FOUND', 'Not found');
     return toPublicAgent(agent);

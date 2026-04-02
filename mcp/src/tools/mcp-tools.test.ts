@@ -64,9 +64,17 @@ describe('MCP tool unit tests', () => {
     const agent = { id: 'a1', name: 'Alpha', device: 'Pi', ip: '1.2.3.4', apiKey: 'secret-once' };
     apiPostMock.mockResolvedValueOnce(agent as any);
 
-    const res = await handlers.create_agent({ name: 'Alpha', device: 'Pi', ip: '1.2.3.4' });
+    const res = await handlers.create_agent({
+      name: 'Alpha',
+      hookUrl: 'https://example.com/hooks/agent',
+      hookToken: 'tok',
+      device: 'Pi',
+      ip: '1.2.3.4',
+    });
     expect(apiPostMock).toHaveBeenCalledWith('/api/agents', {
       name: 'Alpha',
+      hookUrl: 'https://example.com/hooks/agent',
+      hookToken: 'tok',
       device: 'Pi',
       ip: '1.2.3.4',
     });

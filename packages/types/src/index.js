@@ -10,6 +10,17 @@ export const AGENT_AVATAR_IDS = [
     'redstone_block',
     'creeper_face',
     'steve_face',
+    'alex_face',
+    'bee_face',
+    'blaze_face',
+    'drowned_face',
+    'enderman_face',
+    'herobrine_face',
+    'pig_face',
+    'skeleton_face',
+    'spider_face',
+    'villager_face',
+    'zombie_face',
 ];
 export const DEFAULT_AGENT_AVATAR_ID = 'grass_block';
 export function agentAvatarSrc(avatarId) {

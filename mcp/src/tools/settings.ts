@@ -24,7 +24,10 @@ export function registerSettingsTools(server: McpServer) {
         .describe('Settings key-value pairs to update (required).'),
     },
     async ({ updates }) => {
-      const result = await apiPatch<Record<string, string>>('/api/settings', updates);
+      const sanitized = Object.fromEntries(
+        Object.entries(updates).map(([k, v]) => [k, v ?? '']),
+      ) as Record<string, string>;
+      const result = await apiPatch<Record<string, string>>('/api/settings', sanitized);
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
       };

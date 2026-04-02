@@ -15,10 +15,10 @@ http:
     type: json
     data: |-
       {
-        "name": "Agent Alpha",
-        "email": "agent@example.com",
+        "name": "Agent Beta",
+        "email": "agent2@example.com",
         "specialization": "Frontend React",
-        "description": "Detailed skills profile",
+        "description": "Senior full-stack software engineer specializing in front end",
         "device": "Laptop",
         "ip": "192.168.1.10"
       }

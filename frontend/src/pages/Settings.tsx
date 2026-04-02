@@ -74,7 +74,8 @@ export default function Settings() {
   const saveSetting = async (key: string, value: string) => {
     setSaving(key);
     try {
-      await api.patch('/api/settings', { [key]: value });
+      // JSON.stringify drops keys whose value is undefined — backend would not see instruction keys.
+      await api.patch('/api/settings', { [key]: value ?? '' });
       if (key === 'dashboard_title') {
         await refreshDashboardTitle();
       }
@@ -121,7 +122,10 @@ export default function Settings() {
       <div className="bg-gray-900 rounded-xl p-5 border border-gray-800 space-y-3">
         <h2 className="text-sm font-semibold text-white">Chief of Staff Instructions</h2>
         <p className="text-xs text-gray-500">
-          Sent to the CoS agent on registration and with every report response.
+          Sent to the CoS agent on registration and with every report response. On Save, Mission
+          Control POSTs <code className="text-gray-400">instructions.update</code> to each{' '}
+          <span className="text-gray-400">chief_of_staff</span> agent that has a webhook URL and
+          bearer token configured (Agent detail).
         </p>
         {settingsLoading ? (
           <p className="text-xs text-gray-500">Loading…</p>
@@ -147,7 +151,10 @@ export default function Settings() {
       <div className="bg-gray-900 rounded-xl p-5 border border-gray-800 space-y-3">
         <h2 className="text-sm font-semibold text-white">Agent Instructions</h2>
         <p className="text-xs text-gray-500">
-          Sent to member agents on registration, task assignment, and with every report response.
+          Sent to member agents on registration, task assignment, and with every report response. On
+          Save, Mission Control POSTs <code className="text-gray-400">instructions.update</code> to
+          each <span className="text-gray-400">member</span> agent with a webhook configured—not to
+          the Chief of Staff.
         </p>
         {settingsLoading ? (
           <p className="text-xs text-gray-500">Loading…</p>
