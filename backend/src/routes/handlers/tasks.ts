@@ -54,6 +54,16 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post('/', { preHandler: [fastify.authenticate, fastify.enforceIdempotency] }, async (request, reply) => {
     const body = parseBody(createTaskSchema, request.body);
+    const project = await projectsDb.getProject(body.projectId);
+    if (!project) {
+      throw new ApiError(400, 'BAD_REQUEST', 'Unknown projectId');
+    }
+    if (body.assignedAgentId) {
+      const agent = await agentsDb.getAgent(body.assignedAgentId);
+      if (!agent) {
+        throw new ApiError(400, 'BAD_REQUEST', 'Unknown assignedAgentId');
+      }
+    }
     const task = await projectsDb.createTask(body);
     await fastify.finalizeIdempotency(request, 201, task);
 
@@ -71,6 +81,13 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
     // Auto-unassign when status moves to review
     const updateData =
       body.status === 'review' ? { ...body, assignedAgentId: null } : body;
+
+    if (updateData.assignedAgentId) {
+      const agent = await agentsDb.getAgent(updateData.assignedAgentId);
+      if (!agent) {
+        throw new ApiError(400, 'BAD_REQUEST', 'Unknown assignedAgentId');
+      }
+    }
 
     const task = await projectsDb.updateTask(id, updateData);
     if (!task) throw new ApiError(404, 'NOT_FOUND', 'Not found');

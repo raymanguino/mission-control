@@ -1,13 +1,9 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { AgentAvatar } from '../components/agents/AgentAvatar.js';
+import { ActivityTimeline } from '../components/agents/ActivityTimeline.js';
 import { api } from '../utils/api.js';
-import {
-  AGENT_AVATAR_IDS,
-  type Agent,
-  type AgentActivity,
-  type AgentAvatarId,
-} from '@mission-control/types';
+import { AGENT_AVATAR_IDS, type Agent, type AgentAvatarId } from '@mission-control/types';
 
 const statusColor: Record<string, string> = {
   online: 'bg-green-500',
@@ -25,46 +21,6 @@ function avatarChoiceLabel(id: AgentAvatarId): string {
     .split('_')
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(' ');
-}
-
-function ActivityFeed({ agentId }: { agentId: string }) {
-  const [activities, setActivities] = useState<AgentActivity[]>([]);
-
-  useEffect(() => {
-    const fetch = () =>
-      api
-        .get<{ data: AgentActivity[] }>(`/api/agents/${agentId}/activity?limit=50`)
-        .then((r) => setActivities(r.data))
-        .catch(() => {});
-    fetch();
-    const id = setInterval(fetch, 10_000);
-    return () => clearInterval(id);
-  }, [agentId]);
-
-  return (
-    <div className="mt-6 space-y-2">
-      <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wide">Activity</h2>
-      {activities.length === 0 && (
-        <p className="text-sm text-gray-500">No activity yet.</p>
-      )}
-      {activities.map((a) => (
-        <div key={a.id} className="bg-gray-800 rounded-lg px-3 py-2">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-mono text-indigo-400">{a.type}</span>
-            <span className="text-xs text-gray-500 ml-auto">
-              {new Date(a.createdAt).toLocaleString()}
-            </span>
-          </div>
-          {a.description && <p className="text-sm text-gray-300 mt-0.5">{a.description}</p>}
-          {a.metadata && Object.keys(a.metadata).length > 0 && (
-            <pre className="text-xs text-gray-500 mt-2 overflow-x-auto font-mono bg-gray-900/50 rounded p-2">
-              {JSON.stringify(a.metadata, null, 2)}
-            </pre>
-          )}
-        </div>
-      ))}
-    </div>
-  );
 }
 
 function DetailRow({ label, value }: { label: string; value: ReactNode }) {
@@ -376,7 +332,9 @@ export default function AgentDetail() {
         </button>
       </div>
 
-      <ActivityFeed agentId={agent.id} />
+      <div className="bg-gray-900 rounded-xl border border-gray-800 p-5 mt-6">
+        <ActivityTimeline agentId={agent.id} />
+      </div>
     </div>
   );
 }
