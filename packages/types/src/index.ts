@@ -69,6 +69,11 @@ export interface AgentActivity {
   createdAt: string;
 }
 
+/** Activity row with agent display name (e.g. fleet-wide feed). */
+export interface FleetActivityEntry extends AgentActivity {
+  agentName: string;
+}
+
 export interface AgentReportBody {
   type: string;
   status?: AgentStatus;

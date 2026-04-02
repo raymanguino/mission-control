@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AgentAvatar } from '../components/agents/AgentAvatar.js';
+import { FleetActivityTimeline } from '../components/agents/ActivityTimeline.js';
 import { api } from '../utils/api.js';
 import type { Agent } from '@mission-control/types';
 
@@ -80,6 +81,10 @@ export default function Agents() {
         {agents.length === 0 && (
           <p className="text-gray-500 col-span-3">No agents registered yet.</p>
         )}
+      </div>
+
+      <div className="bg-gray-900 rounded-xl border border-gray-800 p-5 mt-10">
+        <FleetActivityTimeline />
       </div>
     </div>
   );

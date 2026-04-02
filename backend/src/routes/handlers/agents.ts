@@ -78,6 +78,14 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.code(201).send(response);
   });
 
+  fastify.get('/fleet-activity', { preHandler: fastify.authenticate }, async (request) => {
+    const query = request.query as { limit?: string; offset?: string };
+    const limit = Math.min(Number(query.limit ?? 50), 200);
+    const offset = Number(query.offset ?? 0);
+    const data = await agentsDb.listFleetActivities(limit, offset);
+    return { data, limit, offset };
+  });
+
   fastify.get('/instructions', { preHandler: fastify.authenticateAgent }, async (request) => {
     const agent = (request as FastifyRequest & { agent: { orgRole: string } }).agent;
     const key = instructionKeyForOrgRole(agent.orgRole);
