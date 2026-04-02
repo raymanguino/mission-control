@@ -8,6 +8,20 @@
       "when": 1774964676516,
       "tag": "0000_violet_emma_frost",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1775091000000,
+      "tag": "0001_add_message_discord_user_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1775091000001,
+      "tag": "0002_agent_hook_columns",
+      "breakpoints": true
     }
   ]
 }

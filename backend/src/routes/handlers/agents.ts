@@ -7,6 +7,7 @@ import * as agentsDb from '../../db/api/agents.js';
 import * as settingsDb from '../../db/api/settings.js';
 import { backendRequestSchemas } from '../../contracts/mcp-contract.js';
 import { ApiError, parseBody } from '../../lib/errors.js';
+import { toPublicAgent } from '../../lib/publicAgent.js';
 
 const agentAvatarIdSchema = z
   .enum(AGENT_AVATAR_IDS as unknown as [string, ...string[]])
@@ -23,6 +24,14 @@ const updateAgentSchema = z.object({
   description: z.string().optional(),
   reportsToAgentId: z.string().uuid().nullable().optional(),
   avatarId: agentAvatarIdSchema,
+  hookUrl: z.preprocess(
+    (v) => (v === '' ? null : v),
+    z.union([z.string().url(), z.null()]).optional(),
+  ),
+  hookToken: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z.union([z.string().min(1), z.null()]).optional(),
+  ),
 });
 
 const reportSchema = z.object({
@@ -34,7 +43,8 @@ const reportSchema = z.object({
 
 const agentRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/', { preHandler: fastify.authenticate }, async () => {
-    return agentsDb.listAgents();
+    const rows = await agentsDb.listAgents();
+    return rows.map(toPublicAgent);
   });
 
   fastify.post('/', { preHandler: [fastify.authenticate, fastify.enforceIdempotency] }, async (request, reply) => {
@@ -63,7 +73,7 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
     const instrKey = orgRole === 'chief_of_staff' ? 'cos_instructions' : 'agent_instructions';
     const agentInstructions = await settingsDb.getSetting(instrKey);
 
-    const response = { ...agent, apiKey: rawKey, agentInstructions };
+    const response = { ...toPublicAgent(agent), apiKey: rawKey, agentInstructions };
     await fastify.finalizeIdempotency(request, 201, response);
     return reply.code(201).send(response);
   });
@@ -85,7 +95,7 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
     const { id } = request.params as { id: string };
     const agent = await agentsDb.getAgent(id);
     if (!agent) throw new ApiError(404, 'NOT_FOUND', 'Not found');
-    return agent;
+    return toPublicAgent(agent);
   });
 
   fastify.patch('/:id', { preHandler: fastify.authenticate }, async (request, reply) => {
@@ -103,7 +113,7 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
     }
     const agent = await agentsDb.updateAgent(id, body);
     if (!agent) throw new ApiError(404, 'NOT_FOUND', 'Not found');
-    return agent;
+    return toPublicAgent(agent);
   });
 
   fastify.delete('/:id', { preHandler: fastify.authenticate }, async (request, reply) => {

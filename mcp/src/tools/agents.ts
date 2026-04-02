@@ -81,7 +81,7 @@ export function registerAgentTools(server: McpServer) {
 
   server.tool(
     'update_agent',
-    'Update an existing agent\'s profile.\n\nRequired: `agentId`.\nOptional: `name`, `email`, `specialization`, `description`, `device`, `ip`, `orgRole`, `reportsToAgentId`, `avatarId` (preset block-style sprite).',
+    'Update an existing agent\'s profile.\n\nRequired: `agentId`.\nOptional: `name`, `email`, `specialization`, `description`, `device`, `ip`, `orgRole`, `reportsToAgentId`, `avatarId` (preset block-style sprite), `hookUrl`, `hookToken` (bearer for inbound webhooks; omit to keep, null to clear).',
     {
       agentId: z.string().describe('Agent UUID (required).'),
       name: z.string().optional().describe('Updated display name (omit to keep unchanged).'),
@@ -102,9 +102,28 @@ export function registerAgentTools(server: McpServer) {
       avatarId: agentAvatarIdSchema.describe(
         'Preset avatar id (grass_block, creeper_face, etc.), or null to clear to default (omit to keep unchanged).',
       ),
+      hookUrl: z
+        .string()
+        .url()
+        .nullable()
+        .optional()
+        .describe('HTTPS URL for inbound JSON webhooks from Mission Control, or null to clear (omit to keep unchanged).'),
+      hookToken: z
+        .string()
+        .min(1)
+        .nullable()
+        .optional()
+        .describe('Bearer token for webhook Authorization header, or null to clear stored token (omit to keep unchanged).'),
     },
     async ({ agentId, ...updates }) => {
-      const agent = await apiPatch<Agent>(`/api/agents/${agentId}`, omitNullValues(updates));
+      const body: Record<string, unknown> = { ...omitNullValues(updates) };
+      if (Object.prototype.hasOwnProperty.call(updates, 'hookUrl') && updates.hookUrl === null) {
+        body.hookUrl = null;
+      }
+      if (Object.prototype.hasOwnProperty.call(updates, 'hookToken') && updates.hookToken === null) {
+        body.hookToken = null;
+      }
+      const agent = await apiPatch<Agent>(`/api/agents/${agentId}`, body);
       return {
         content: [{ type: 'text', text: JSON.stringify(agent, null, 2) }],
       };

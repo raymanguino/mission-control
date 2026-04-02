@@ -40,6 +40,10 @@ export interface Agent {
   reportsToAgentId: string | null;
   /** Selected preset id, or null to show the default sprite in the UI. */
   avatarId: string | null;
+  /** Inbound webhook URL for HTTP notifications (task assigned, etc.). */
+  hookUrl: string | null;
+  /** True when a bearer token is stored; the token itself is never returned. */
+  hookTokenSet: boolean;
   lastSeen: string | null;
   status: AgentStatus;
   createdAt: string;

@@ -54,6 +54,8 @@ export async function updateAgent(
     description: string;
     reportsToAgentId: string | null;
     avatarId: string | null;
+    hookUrl: string | null;
+    hookToken: string | null;
     lastSeen: Date;
     status: string;
   }>,

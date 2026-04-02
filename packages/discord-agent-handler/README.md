@@ -20,9 +20,9 @@ filters are not the primary control. In that case, rely on Mission Control messa
 `agentId` and `discordUserId`.
 
 For OpenClaw agents that receive notifications via HTTP hook (e.g. over Tailscale), set up an
-incoming hook endpoint in your gateway config and register it with Mission Control via the
-`RALPH_HOOK_URL` and `RALPH_HOOK_TOKEN` environment variables. See the Mission Control backend
-`services/ralph.ts` for the events fired and expected payload shape.
+incoming hook endpoint in your gateway config and register the URL and bearer token on the agent
+record in Mission Control (`PATCH /api/agents/:id` with `hookUrl` and `hookToken`). See the backend
+`services/agentNotifier.ts` for the events fired and expected payload shape.
 
 ## Install
 

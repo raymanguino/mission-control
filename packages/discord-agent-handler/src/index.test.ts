@@ -6,7 +6,7 @@ describe('shouldProcessMessage', () => {
 
   it('skips true self messages', () => {
     const shouldProcess = shouldProcessMessage(
-      { author: { id: clientUserId, bot: true, username: 'Ralph' } },
+      { author: { id: clientUserId, bot: true, username: 'SelfBot' } },
       { clientUserId },
     );
     expect(shouldProcess).toBe(false);

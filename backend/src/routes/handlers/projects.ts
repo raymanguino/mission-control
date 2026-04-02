@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import * as projectsDb from '../../db/api/projects.js';
-import { notifyRalphOfProject } from '../../services/ralph.js';
+import { notifyChiefOfStaffOfProject } from '../../services/agentNotifier.js';
 import { backendRequestSchemas } from '../../contracts/mcp-contract.js';
 import { ApiError, parseBody } from '../../lib/errors.js';
 
@@ -22,9 +22,8 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
     const project = await projectsDb.createProject(body);
     await fastify.finalizeIdempotency(request, 201, project);
 
-    // Notify Ralph (OpenClaw CoS) directly over Tailscale (fire-and-forget, never fail the request)
-    notifyRalphOfProject(project).catch((err) =>
-      request.log.error({ err }, 'Failed to notify Ralph of new project'),
+    notifyChiefOfStaffOfProject(project).catch((err) =>
+      request.log.error({ err }, 'Failed to notify chief of staff webhook of new project'),
     );
 
     return reply.code(201).send(project);

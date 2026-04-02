@@ -84,6 +84,10 @@ export default function AgentDetail() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [avatarSaving, setAvatarSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [hookUrlEdit, setHookUrlEdit] = useState('');
+  const [hookTokenEdit, setHookTokenEdit] = useState('');
+  const [clearHookToken, setClearHookToken] = useState(false);
+  const [hookSaving, setHookSaving] = useState(false);
 
   const handleAvatarChange = useCallback(async (next: AgentAvatarId | null) => {
     if (!agentId) return;
@@ -112,6 +116,9 @@ export default function AgentDetail() {
         const data = await api.get<Agent>(`/api/agents/${agentId}`);
         if (cancelled) return;
         setAgent(data);
+        setHookUrlEdit(data.hookUrl ?? '');
+        setHookTokenEdit('');
+        setClearHookToken(false);
         if (data.reportsToAgentId) {
           try {
             const manager = await api.get<Agent>(`/api/agents/${data.reportsToAgentId}`);
@@ -130,6 +137,33 @@ export default function AgentDetail() {
       cancelled = true;
     };
   }, [agentId]);
+
+  async function handleSaveWebhook() {
+    if (!agentId) return;
+    setHookSaving(true);
+    try {
+      const body: {
+        hookUrl: string | null;
+        hookToken?: string | null;
+      } = {
+        hookUrl: hookUrlEdit.trim() || null,
+      };
+      if (clearHookToken) {
+        body.hookToken = null;
+      } else if (hookTokenEdit.trim()) {
+        body.hookToken = hookTokenEdit.trim();
+      }
+      const updated = await api.patch<Agent>(`/api/agents/${agentId}`, body);
+      setAgent(updated);
+      setHookUrlEdit(updated.hookUrl ?? '');
+      setHookTokenEdit('');
+      setClearHookToken(false);
+    } catch (err) {
+      console.error('Failed to save webhook settings', { agentId, err });
+    } finally {
+      setHookSaving(false);
+    }
+  }
 
   async function handleDeleteAgent() {
     if (!agent) return;
@@ -279,6 +313,63 @@ export default function AgentDetail() {
           />
           <DetailRow label="Registered" value={new Date(agent.createdAt).toLocaleString()} />
         </dl>
+      </div>
+
+      <div className="bg-gray-900 rounded-xl border border-gray-800 p-5 mb-4 mt-4">
+        <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wide mb-3">Webhook</h2>
+        <p className="text-xs text-gray-500 mb-3">
+          Mission Control POSTs JSON events to this URL with{' '}
+          <code className="text-gray-400">Authorization: Bearer &lt;token&gt;</code>. Task assignments
+          go to the assigned agent; new projects and chief-of-staff instruction updates go to the Chief
+          of Staff agent when that row has a webhook configured.
+        </p>
+        <div className="space-y-3 max-w-xl">
+          <div>
+            <label htmlFor="hook-url" className="block text-xs text-gray-500 mb-1">
+              Hook URL
+            </label>
+            <input
+              id="hook-url"
+              type="url"
+              value={hookUrlEdit}
+              onChange={(e) => setHookUrlEdit(e.target.value)}
+              placeholder="https://…"
+              className="w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-sm text-gray-100 placeholder:text-gray-600"
+            />
+          </div>
+          <div>
+            <label htmlFor="hook-token" className="block text-xs text-gray-500 mb-1">
+              Bearer token
+            </label>
+            <input
+              id="hook-token"
+              type="password"
+              autoComplete="new-password"
+              value={hookTokenEdit}
+              onChange={(e) => setHookTokenEdit(e.target.value)}
+              placeholder={agent.hookTokenSet ? 'Leave blank to keep current token' : 'Set token'}
+              className="w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-sm text-gray-100 placeholder:text-gray-600"
+            />
+            {agent.hookTokenSet && (
+              <label className="mt-2 flex items-center gap-2 text-xs text-gray-400 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={clearHookToken}
+                  onChange={(e) => setClearHookToken(e.target.checked)}
+                />
+                Remove stored token
+              </label>
+            )}
+          </div>
+          <button
+            type="button"
+            disabled={hookSaving}
+            onClick={() => void handleSaveWebhook()}
+            className="text-sm px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50"
+          >
+            {hookSaving ? 'Saving…' : 'Save webhook'}
+          </button>
+        </div>
       </div>
 
       <div className="mt-6 rounded-xl border border-red-900/50 bg-red-950/20 p-5">

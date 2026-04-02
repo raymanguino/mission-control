@@ -3,7 +3,7 @@ import * as projectsDb from '../../db/api/projects.js';
 import * as agentsDb from '../../db/api/agents.js';
 import * as settingsDb from '../../db/api/settings.js';
 import * as emailService from '../../services/email.js';
-import { notifyRalphOfTask } from '../../services/ralph.js';
+import { notifyAssignedAgentOfTask } from '../../services/agentNotifier.js';
 import { backendRequestSchemas } from '../../contracts/mcp-contract.js';
 import { ApiError, parseBody } from '../../lib/errors.js';
 
@@ -20,16 +20,25 @@ async function notifyAssignedAgent(
       agentsDb.getAgent(assignedAgentId),
       projectsDb.getTask(taskId),
     ]);
-    if (!agent?.email || !task) return;
+    if (!agent || !task) return;
     const project = await projectsDb.getProject(task.projectId);
     if (!project) return;
-    const instructions = (await settingsDb.getSetting('agent_instructions')) ?? '';
-    await emailService.notifyAgentOfTask(
-      { email: agent.email, name: agent.name },
-      task,
-      project,
-      instructions,
-    );
+
+    if (agent.hookUrl?.trim() && agent.hookToken?.trim()) {
+      notifyAssignedAgentOfTask(agent, task, project.name).catch((err) =>
+        log.error({ err }, 'Failed to POST task assignment to agent webhook'),
+      );
+    }
+
+    if (agent.email) {
+      const instructions = (await settingsDb.getSetting('agent_instructions')) ?? '';
+      await emailService.notifyAgentOfTask(
+        { email: agent.email, name: agent.name },
+        task,
+        project,
+        instructions,
+      );
+    }
   } catch (err) {
     log.error({ err }, 'Failed to notify agent of task assignment');
   }
@@ -50,11 +59,6 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
 
     if (body.assignedAgentId) {
       await notifyAssignedAgent(task.id, body.assignedAgentId, request.log);
-      // Notify Ralph (OpenClaw CoS) directly over Tailscale (fire-and-forget)
-      const project = await projectsDb.getProject(task.projectId);
-      notifyRalphOfTask(task, project?.name ?? task.projectId).catch((err) =>
-        request.log.error({ err }, 'Failed to notify Ralph of task assignment'),
-      );
     }
 
     return reply.code(201).send(task);
@@ -74,11 +78,6 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
     // Notify newly assigned agent (skip if we're also clearing via review auto-unassign)
     if (body.assignedAgentId && body.status !== 'review') {
       await notifyAssignedAgent(id, body.assignedAgentId, request.log);
-      // Notify Ralph (OpenClaw CoS) directly over Tailscale (fire-and-forget)
-      const project = await projectsDb.getProject(task.projectId);
-      notifyRalphOfTask(task, project?.name ?? task.projectId).catch((err) =>
-        request.log.error({ err }, 'Failed to notify Ralph of task assignment'),
-      );
     }
 
     return task;
