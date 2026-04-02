@@ -32,6 +32,20 @@ export function registerProjectTools(server: McpServer) {
   );
 
   server.tool(
+    'get_project',
+    'Get a single project by ID.\n\nRequired: `projectId`.',
+    {
+      projectId: z.string().uuid().describe('Project UUID (required).'),
+    },
+    async ({ projectId }) => {
+      const project = await apiGet<Project>(`/api/projects/${projectId}`);
+      return {
+        content: [{ type: 'text', text: JSON.stringify(project, null, 2) }],
+      };
+    },
+  );
+
+  server.tool(
     'create_project',
     'Create a new project.\n\nRequired: `name`.\nOptional: `description`, `url`.',
     {

@@ -10,7 +10,8 @@
     "test": "vitest run",
     "lint": "eslint src",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
+    "db:ensure": "node --import tsx/esm scripts/ensure-database.ts",
+    "db:migrate": "pnpm run db:ensure && drizzle-kit migrate",
     "db:seed": "node --import tsx/esm src/db/seed.ts"
   },
   "dependencies": {

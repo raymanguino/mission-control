@@ -136,6 +136,12 @@ export const mcpToolContracts: Record<string, McpToolContract> = {
     input: { agentId: z.string().uuid() },
   },
   list_projects: { method: 'GET', path: '/api/projects', params: 'none', input: {} },
+  get_project: {
+    method: 'GET',
+    path: '/api/projects/:projectId',
+    params: 'path+query',
+    input: { projectId: z.string().uuid() },
+  },
   create_project: {
     method: 'POST',
     path: '/api/projects',

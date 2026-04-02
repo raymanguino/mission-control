@@ -17,6 +17,13 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
     return projectsDb.listProjects();
   });
 
+  fastify.get('/:id', { preHandler: fastify.authenticate }, async (request) => {
+    const { id } = request.params as { id: string };
+    const project = await projectsDb.getProject(id);
+    if (!project) throw new ApiError(404, 'NOT_FOUND', 'Not found');
+    return project;
+  });
+
   fastify.post('/', { preHandler: [fastify.authenticate, fastify.enforceIdempotency] }, async (request, reply) => {
     const body = parseBody(backendRequestSchemas.createProject, request.body);
     const project = await projectsDb.createProject(body);

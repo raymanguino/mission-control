@@ -44,6 +44,7 @@ export async function createAgent(data: {
   description?: string;
   reportsToAgentId?: string | null;
   apiKeyHash: string;
+  avatarId?: string | null;
 }) {
   const rows = await db.insert(agents).values(data).returning();
   return rows[0]!;

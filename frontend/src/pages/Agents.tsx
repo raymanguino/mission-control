@@ -42,7 +42,10 @@ export default function Agents() {
             }}
             className="flex gap-4 text-left bg-gray-900 rounded-xl p-5 border border-gray-800 hover:border-gray-700 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/80"
           >
-            <div className="flex shrink-0 flex-col items-center justify-center self-stretch border-r border-gray-800 pr-4">
+            <div className="flex shrink-0 flex-col items-center justify-center gap-2 self-stretch border-r border-gray-800 pr-4">
+              <span className="text-center text-[10px] uppercase tracking-wide text-indigo-300 bg-indigo-950/70 px-2 py-0.5 rounded-full max-w-[7rem] leading-tight">
+                {roleLabel[agent.orgRole] ?? agent.orgRole}
+              </span>
               <span className="relative inline-block">
                 <AgentAvatar avatarId={agent.avatarId} size={52} />
                 <span
@@ -52,12 +55,7 @@ export default function Agents() {
               </span>
             </div>
             <div className="min-w-0 flex-1 flex flex-col gap-2">
-              <div className="flex items-start justify-between gap-2">
-                <span className="font-medium text-white truncate min-w-0">{agent.name}</span>
-                <span className="shrink-0 text-[10px] uppercase tracking-wide text-indigo-300 bg-indigo-950/70 px-2 py-0.5 rounded-full">
-                  {roleLabel[agent.orgRole] ?? agent.orgRole}
-                </span>
-              </div>
+              <span className="font-medium text-white truncate min-w-0">{agent.name}</span>
               {agent.specialization && (
                 <p className="text-xs text-gray-300 line-clamp-2">{agent.specialization}</p>
               )}

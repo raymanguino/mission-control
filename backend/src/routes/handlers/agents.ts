@@ -68,8 +68,9 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
     // Auto-assign CoS role: first agent becomes Chief of Staff
     const existingCoS = await agentsDb.getCoSAgents();
     const orgRole = existingCoS.length === 0 ? 'chief_of_staff' : 'member';
+    const avatarId = AGENT_AVATAR_IDS[crypto.randomInt(0, AGENT_AVATAR_IDS.length)];
 
-    const agent = await agentsDb.createAgent({ ...body, apiKeyHash, orgRole });
+    const agent = await agentsDb.createAgent({ ...body, apiKeyHash, orgRole, avatarId });
     await touchMcpActivity([agent.id]);
 
     const instrKey = orgRole === 'chief_of_staff' ? 'cos_instructions' : 'agent_instructions';
