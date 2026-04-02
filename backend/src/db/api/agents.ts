@@ -86,6 +86,25 @@ export async function getActivities(agentId: string, limit: number, offset: numb
   return rows;
 }
 
+export async function listFleetActivities(limit: number, offset: number) {
+  const rows = await db
+    .select({
+      id: agentActivities.id,
+      agentId: agentActivities.agentId,
+      type: agentActivities.type,
+      description: agentActivities.description,
+      metadata: agentActivities.metadata,
+      createdAt: agentActivities.createdAt,
+      agentName: agents.name,
+    })
+    .from(agentActivities)
+    .innerJoin(agents, eq(agentActivities.agentId, agents.id))
+    .orderBy(desc(agentActivities.createdAt))
+    .limit(limit)
+    .offset(offset);
+  return rows;
+}
+
 export async function insertActivity(data: {
   agentId: string;
   type: string;
