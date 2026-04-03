@@ -380,10 +380,10 @@ export default function Sidebar() {
           }
         >
           {projects.map((p) => (
-            <div key={p.id} className="flex items-start gap-1">
+            <div key={p.id} className="flex w-full min-w-0 items-center gap-1 pr-2">
               <NavLink
-                to={`/projects/${p.id}?details=1`}
-                className={({ isActive }) => projectRowLinkClass(isActive)}
+                to={`/projects/${p.id}`}
+                className={({ isActive }) => `${projectRowLinkClass(isActive)} flex-1 min-w-0`}
               >
                 {({ isActive }) => (
                   <>
@@ -399,10 +399,29 @@ export default function Sidebar() {
                   href={p.url}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="mt-1 text-[10px] text-indigo-400 hover:text-indigo-300 px-1.5 py-0.5 rounded shrink-0"
-                  title={`Open ${p.name}`}
+                  className="ml-auto shrink-0 inline-flex items-center gap-0.5 text-[10px] text-indigo-400 hover:text-indigo-300 px-1.5 py-0.5 rounded"
+                  title={`Open ${p.name} in a new tab`}
+                  aria-label={`Open ${p.name} in a new tab`}
                 >
                   Open
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    className="w-3 h-3 opacity-90"
+                    aria-hidden
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M4.25 5.5a.75.75 0 0 0-.75.75v7.5c0 .414.336.75.75.75h7.5a.75.75 0 0 0 .75-.75v-3a.75.75 0 0 1 1.5 0v3A2.25 2.25 0 0 1 11.75 16h-7.5A2.25 2.25 0 0 1 2 13.75v-7.5A2.25 2.25 0 0 1 4.25 4h3a.75.75 0 0 1 0 1.5h-3Z"
+                      clipRule="evenodd"
+                    />
+                    <path
+                      fillRule="evenodd"
+                      d="M8.75 4.75a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 .75.75v6.5a.75.75 0 0 1-1.5 0V6.56l-5.22 5.22a.75.75 0 1 1-1.06-1.06l5.22-5.22H9.5a.75.75 0 0 1-.75-.75Z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
                 </a>
               ) : null}
             </div>

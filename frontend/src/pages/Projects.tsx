@@ -411,6 +411,16 @@ export default function Projects() {
   const [slideOver, setSlideOver] = useState<Task | null | 'new'>(null);
 
   const detailsOpen = searchParams.get('details') === '1';
+  const openProjectDetails = () => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set('details', '1');
+        return next;
+      },
+      { replace: true },
+    );
+  };
   const closeProjectDetails = () => {
     setSearchParams(
       (prev) => {
@@ -543,6 +553,13 @@ export default function Projects() {
         <div className="flex justify-end gap-2 mb-4 flex-wrap">
           <button
             type="button"
+            onClick={openProjectDetails}
+            className="px-3 py-1.5 text-sm text-gray-200 border border-gray-700 hover:border-gray-600 hover:bg-gray-800 rounded-md"
+          >
+            Edit project
+          </button>
+          <button
+            type="button"
             onClick={deleteSelectedProject}
             className="px-3 py-1.5 text-red-400 hover:text-red-300 text-sm border border-red-900/60 hover:border-red-800 rounded-md"
           >
@@ -588,8 +605,8 @@ export default function Projects() {
         {project.status !== 'approved' && (
           <div className="flex flex-col items-center justify-center min-h-[12rem] text-center rounded-lg border border-dashed border-gray-800 bg-gray-900/30">
             <p className="text-gray-400 text-sm max-w-md">
-              The task board opens after this project is approved. Click the project in the sidebar
-              to open project details and change status or other fields.
+              The task board opens after this project is approved. Use Edit project above to change
+              status or other fields.
             </p>
             <p className="text-gray-500 text-xs mt-2 max-w-md">
               Task management is only available for approved projects.
