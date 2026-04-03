@@ -1,6 +1,6 @@
 /**
  * POSTs JSON event payloads to each agent's configured `hookUrl` with `Authorization: Bearer <hookToken>`.
- * Used for task assignment (assigned agent), task.completed / review handoff (chief of staff), and org-wide events.
+ * Used for task assignment (assigned agent), review assignment (`task.review_assigned`), task.completed / review handoff (chief of staff), and org-wide events.
  *
  * OpenClaw gateway `POST /hooks/agent` requires a `message` string; instruction payloads include it
  * so hooks work when `hookUrl` points at that endpoint. Custom receivers may ignore extra fields.
@@ -51,6 +51,23 @@ export async function notifyAssignedAgentOfTask(
 ): Promise<void> {
   await postToAgentWebhook(agent.hookUrl, agent.hookToken, {
     event: 'task.assigned',
+    task: {
+      id: task.id,
+      title: task.title,
+      description: task.description ?? null,
+      projectName,
+    },
+  });
+}
+
+/** When a task already in Review gets a new assignee (reviewer): notify that agent's webhook. */
+export async function notifyAssignedAgentOfReviewAssigned(
+  agent: { hookUrl: string | null; hookToken: string | null },
+  task: { id: string; title: string; description: string | null },
+  projectName: string,
+): Promise<void> {
+  await postToAgentWebhook(agent.hookUrl, agent.hookToken, {
+    event: 'task.review_assigned',
     task: {
       id: task.id,
       title: task.title,

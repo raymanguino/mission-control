@@ -59,6 +59,28 @@ export async function notifyAgentOfTask(
   await sendEmail(agent.email, subject, text);
 }
 
+export async function notifyAgentOfReviewTask(
+  agent: { email: string; name: string },
+  task: { id: string; title: string; description: string | null },
+  project: { name: string },
+  instructions: string,
+): Promise<void> {
+  const subject = `[Mission Control] Review task assigned: ${task.title}`;
+  const text = [
+    `A task in Review has been assigned to you.`,
+    ``,
+    `Project: ${project.name}`,
+    `Task ID: ${task.id}`,
+    `Title: ${task.title}`,
+    `Description: ${task.description ?? '(none)'}`,
+    ``,
+    `---`,
+    `Your instructions:`,
+    instructions,
+  ].join('\n');
+  await sendEmail(agent.email, subject, text);
+}
+
 export async function notifyAgentInstructionsUpdated(
   agent: { email: string; name: string },
   kind: AgentOrgRole,

@@ -4,6 +4,7 @@ import * as agentsDb from '../../db/api/agents.js';
 import * as settingsDb from '../../db/api/settings.js';
 import * as emailService from '../../services/email.js';
 import {
+  notifyAssignedAgentOfReviewAssigned,
   notifyAssignedAgentOfTask,
   notifyChiefOfStaffOfTaskCompleted,
 } from '../../services/agentNotifier.js';
@@ -77,6 +78,40 @@ async function notifyAssignedAgent(
   }
 }
 
+async function notifyReviewAssignedAgent(
+  taskId: string,
+  assignedAgentId: string,
+  log: FastifyBaseLogger,
+): Promise<void> {
+  try {
+    const [agent, task] = await Promise.all([
+      agentsDb.getAgent(assignedAgentId),
+      projectsDb.getTask(taskId),
+    ]);
+    if (!agent || !task) return;
+    const project = await projectsDb.getProject(task.projectId);
+    if (!project) return;
+
+    if (agent.hookUrl?.trim() && agent.hookToken?.trim()) {
+      notifyAssignedAgentOfReviewAssigned(agent, task, project.name).catch((err) =>
+        log.error({ err }, 'Failed to POST task.review_assigned to agent webhook'),
+      );
+    }
+
+    if (agent.email) {
+      const instructions = (await settingsDb.getSetting('agent_instructions')) ?? '';
+      await emailService.notifyAgentOfReviewTask(
+        { email: agent.email, name: agent.name },
+        task,
+        project,
+        instructions,
+      );
+    }
+  } catch (err) {
+    log.error({ err }, 'Failed to notify agent of review task assignment');
+  }
+}
+
 const taskRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/:id', { preHandler: fastify.authenticate }, async (request) => {
     const { id } = request.params as { id: string };
@@ -115,7 +150,11 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
         description: `Task "${task.title}" created in ${project.name}`,
         metadata: taskActivityMeta({ ...task, projectName: project.name }),
       });
-      await notifyAssignedAgent(task.id, body.assignedAgentId, request.log);
+      if (task.status === 'review') {
+        await notifyReviewAssignedAgent(task.id, body.assignedAgentId, request.log);
+      } else {
+        await notifyAssignedAgent(task.id, body.assignedAgentId, request.log);
+      }
     }
 
     return reply.code(201).send(task);
@@ -168,8 +207,13 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     // Notify newly assigned agent (skip if we're also clearing via review auto-unassign)
-    if (body.assignedAgentId && body.status !== 'review') {
-      await notifyAssignedAgent(id, body.assignedAgentId, request.log);
+    const newAssigneeId = task.assignedAgentId;
+    if (newAssigneeId && existing.assignedAgentId !== newAssigneeId) {
+      if (task.status === 'review') {
+        await notifyReviewAssignedAgent(id, newAssigneeId, request.log);
+      } else {
+        await notifyAssignedAgent(id, newAssigneeId, request.log);
+      }
     }
 
     if (existing.status !== 'review' && task.status === 'review') {
