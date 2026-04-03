@@ -143,6 +143,8 @@ Fired when a task is assigned to your agent.
 }
 ```
 
+**Agent filtering:** Each agent's transform should check `task.assignedAgentId` against its own agent ID and return `null` (ignore the event) if the task belongs to a different agent. This is defensive even when MC fires to individual `hookUrl`s, and essential in any broadcast model.
+
 **Expected handler workflow (Task Agent):**
 1. Call `update_task(id, { status: "doing" })`.
 2. Call `get_project(...)` to get the optional GitHub URL and full context.
