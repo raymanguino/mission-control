@@ -1,1 +1,224 @@
-IyBBZ2VudCBJbnRlZ3JhdGlvbiBHdWlkZQoKVGhpcyBkb2N1bWVudCBpcyB0aGUgYXV0aG9yaXRhdGl2ZSByZWZlcmVuY2UgZm9yIGFueSBBSSBhZ2VudCBpbnRlZ3JhdGluZyB3aXRoIE1pc3Npb24gQ29udHJvbCDigJQgd2ViaG9vayBldmVudHMsIHBheWxvYWQgc2hhcGVzLCBoYW5kbGVyIHdvcmtmbG93cywgYWdlbnQgcmVnaXN0cmF0aW9uLCBhbmQgc2VsZi1zZXR1cCBpbnN0cnVjdGlvbnMuCgpJZiB5b3UgYXJlIGFuIGFnZW50IHJlYWRpbmcgdGhpcyBjb2xkOiBmb2xsb3cgdGhpcyBndWlkZSB0byBnZXQgeW91cnNlbGYgb3BlcmF0aW9uYWwgd2l0aG91dCBuZWVkaW5nIGEgaHVtYW4gaW4gdGhlIGxvb3AuCgotLS0KCiMjIEFyY2hpdGVjdHVyZSBPdmVydmlldwoKTWlzc2lvbiBDb250cm9sIGZpcmVzIHdlYmhvb2sgZXZlbnRzIHRvIHJlZ2lzdGVyZWQgYWdlbnRzIG92ZXIgVGFpbHNjYWxlLiBBZ2VudHMgcmVjZWl2ZSBldmVudHMsIGV4ZWN1dGUgd29ya2Zsb3dzLCBhbmQgcmVwb3J0IGJhY2sgdmlhIHRoZSBNQ1AgQVBJIG9yIFJFU1QgQVBJLgoKYGBgCk1pc3Npb24gQ29udHJvbCAobGFwdG9wLWYydmZjdDhiKQogIOKUlOKUgCBQT1NUIC9ob29rcy88cGF0aD4gIOKGkiAgQWdlbnQgT3BlbkNsYXcgaW5zdGFuY2UgKFRhaWxzY2FsZSkKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg4pSU4pSAIHRyYW5zZm9ybS5qcyByb3V0ZXMgdG8gYWdlbnQgc2Vzc2lvbgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIOKUlOKUgCBBZ2VudCBleGVjdXRlcyB3b3JrZmxvdyB2aWEgTUNQIHRvb2xzCmBgYAoKKipDdXJyZW50IGFnZW50czoqKgoKfCBBZ2VudCB8IEhvc3QgfCBUYWlsc2NhbGUgVVJMIHwgUm9sZSB8CnwtLS0tLS0tfC0tLS0tLXwtLS0tLS0tLS0tLS0tLS18LS0tLS0tfAp8IFJhbHBoIHwgc2l4N3N3ZS1sZWFkZXIgfCBgaHR0cHM6Ly9zaXg3c3dlLWxlYWRlci50YWlsYzI4MjM2LnRzLm5ldGAgfCBDaGllZiBvZiBTdGFmZiDigJQgcHJvamVjdCBhcHByb3ZhbCwgZGVjb21wb3NpdGlvbiwgdGFzayBhc3NpZ25tZW50IHwKfCBIZXJtZXMgfCBzaXg3c3dlLXdvcmtlciB8IGBodHRwczovL3NpeDdzd2Utd29ya2VyLnRhaWxjMjgyMzYudHMubmV0YCB8IERldiB0YXNrIGV4ZWN1dG9yIHwKCi0tLQoKIyMgUmVnaXN0ZXJpbmcgYSBOZXcgQWdlbnQKCiMjIyAxLiBSZWdpc3RlciB2aWEgUkVTVCBBUEkKCmBgYGJhc2gKY3VybCAtWCBQT1NUIGh0dHA6Ly9sYXB0b3AtZjJ2ZmN0OGIudGFpbGMyODIzNi50cy5uZXQ6MzAwMS9hcGkvYWdlbnRzIFwKICAtSCAiQXV0aG9yaXphdGlvbjogQmVhcmVyIDxhZG1pbi1hcGkta2V5PiIgXAogIC1IICJDb250ZW50LVR5cGU6IGFwcGxpY2F0aW9uL2pzb24iIFwKICAtZCAnewogICAgIm5hbWUiOiAiQWdlbnQgTmFtZSIsCiAgICAiZW1haWwiOiAiYWdlbnRAZXhhbXBsZS5jb20iLAogICAgInNwZWNpYWxpemF0aW9uIjogImRldiIsCiAgICAiZGVzY3JpcHRpb24iOiAiV2hhdCB0aGlzIGFnZW50IGRvZXMgYW5kIHdoYXQgdGFza3MgaXQgc2hvdWxkIHJlY2VpdmUuIiwKICAgICJkZXZpY2UiOiAiaG9zdG5hbWUiLAogICAgImlwIjogIjEwMC54LngueCIsCiAgICAiaG9va1VybCI6ICJodHRwczovL3lvdXItdGFpbHNjYWxlLWhvc3QudGFpbGMyODIzNi50cy5uZXQvaG9va3MvbWMiLAogICAgImhvb2tUb2tlbiI6ICJ5b3VyLXNlY3JldC10b2tlbiIKICB9JwpgYGAKClRoZSByZXNwb25zZSBpbmNsdWRlcyB5b3VyIGBhZ2VudElkYCBhbmQgYGFwaUtleWAg4oCUIHN0b3JlIGJvdGguIFRoZSBgYWdlbnRJZGAgaXMgdXNlZCBpbiB0YXNrIGFzc2lnbm1lbnRzOyB0aGUgYGFwaUtleWAgYXV0aGVudGljYXRlcyBNQ1AgYW5kIFJFU1QgY2FsbHMgb24geW91ciBiZWhhbGYuCgojIyMgMi4gQ29uZmlndXJlIHlvdXIgT3BlbkNsYXcgaG9vayBtYXBwaW5nCgpJbiBgfi8ub3BlbmNsYXcvb3BlbmNsYXcuanNvbmAsIGFkZCBhIG1hcHBpbmcgdW5kZXIgYGhvb2tzLm1hcHBpbmdzYDoKCmBgYGpzb24KewogICJpZCI6ICJtaXNzaW9uLWNvbnRyb2wtbm90aWZ5IiwKICAibWF0Y2giOiB7ICJwYXRoIjogIm1jIiB9LAogICJhY3Rpb24iOiAid2FrZSIsCiAgIm5hbWUiOiAiTWlzc2lvbiBDb250cm9sIOKGkiA8QWdlbnROYW1lPiIsCiAgInRyYW5zZm9ybSI6IHsgIm1vZHVsZSI6ICJtYy1ub3RpZnktdHJhbnNmb3JtLmpzIiB9Cn0KYGBgCgo+ICoqTm90ZToqKiBgbWF0Y2gucGF0aGAgaXMgdGhlIHN1Yi1wYXRoICphZnRlciogYC9ob29rcy9gIOKAlCB1c2UgYCJtYyJgIG5vdCBgIi9ob29rcy9tYyJgLgoKIyMjIDMuIFdyaXRlIHlvdXIgdHJhbnNmb3JtCgpDcmVhdGUgYH4vLm9wZW5jbGF3L2hvb2tzL3RyYW5zZm9ybXMvbWMtbm90aWZ5LXRyYW5zZm9ybS5qc2AuIFRoZSB0cmFuc2Zvcm0gcmVjZWl2ZXMgdGhlIHJhdyBQT1NUIGJvZHkgYW5kIHJldHVybnMgYSBgd2FrZWAgYWN0aW9uIHRoYXQgaW5qZWN0cyBhIHN5c3RlbSBldmVudCBpbnRvIHlvdXIgYWdlbnQgc2Vzc2lvbi4KClNlZSBSYWxwaCdzIHRyYW5zZm9ybSBhdCBgfi8ub3BlbmNsYXcvaG9va3MvdHJhbnNmb3Jtcy9tYy1ub3RpZnktdHJhbnNmb3JtLmpzYCBvbiBzaXg3c3dlLWxlYWRlciBhcyBhIHJlZmVyZW5jZSBpbXBsZW1lbnRhdGlvbi4KCiMjIyA0LiBTZXQgTUMgZW52aXJvbm1lbnQgdmFyaWFibGVzCgpJbiB0aGUgTWlzc2lvbiBDb250cm9sIGJhY2tlbmQgYC5lbnZgOgoKYGBgClJBTFBIX0hPT0tfVVJMPWh0dHBzOi8veW91ci10YWlsc2NhbGUtaG9zdC50YWlsYzI4MjM2LnRzLm5ldC9ob29rcy9tYwpSQUxQSF9IT09LX1RPS0VOPXlvdXItc2VjcmV0LXRva2VuCmBgYAoKKihWYXJpYWJsZSBuYW1lcyBhcmUgUmFscGgtc3BlY2lmaWMgZm9yIG5vdzsgYSBtdWx0aS1hZ2VudCByb3V0aW5nIGxheWVyIGlzIGEgZnV0dXJlIGltcHJvdmVtZW50LikqCgotLS0KCiMjIFdlYmhvb2sgRXZlbnRzCgpBbGwgZXZlbnRzIGFyZSBkZWxpdmVyZWQgYXM6CgpgYGAKUE9TVCA8aG9va1VybD4KQXV0aG9yaXphdGlvbjogQmVhcmVyIDxob29rVG9rZW4+CkNvbnRlbnQtVHlwZTogYXBwbGljYXRpb24vanNvbgpgYGAKCi0tLQoKIyMjIGBwcm9qZWN0LmFwcHJvdmFsX3JlcXVlc3RlZGAKCkZpcmVkIHdoZW4gYSBuZXcgcHJvamVjdCBpcyBzdWJtaXR0ZWQgYW5kIG5lZWRzIENoaWVmIG9mIFN0YWZmIHJldmlldy4KCioqUGF5bG9hZDoqKgpgYGBqc29uCnsKICAiZXZlbnQiOiAicHJvamVjdC5hcHByb3ZhbF9yZXF1ZXN0ZWQiLAogICJwcm9qZWN0IjogewogICAgImlkIjogIjx1dWlkPiIsCiAgICAibmFtZSI6ICJQcm9qZWN0IG5hbWUiLAogICAgImRlc2NyaXB0aW9uIjogIldoYXQgdGhlIHJlcXVlc3RlciB3YW50cyBidWlsdCBvciBkb25lLiIKICB9Cn0KYGBgCgoqKkV4cGVjdGVkIGhhbmRsZXIgd29ya2Zsb3cgKENoaWVmIG9mIFN0YWZmKToqKgoxLiBDYWxsIGBnZXRfcHJvamVjdChpZClgIHRvIGxvYWQgZnVsbCBkZXRhaWxzLgoyLiBJZiB0aGUgcHJvamVjdCBjYW5ub3QgYmUgYnVpbHQgYXMgYSB3ZWIgYXBwIOKGkiBgdXBkYXRlX3Byb2plY3QoaWQsIHsgc3RhdHVzOiAiZGVuaWVkIiB9KWAgYW5kIHN0b3AuCjMuIEV4cGFuZCB0aGUgZGVzY3JpcHRpb24gaW50byBhIGNsZWFyLCBpbXBsZW1lbnRhdGlvbi1yZWFkeSBwbGFuLgo0LiBDYWxsIGBjcmVhdGVfdGFzayguLi4pYCBmb3IgZWFjaCBkaXNjcmV0ZSB0YXNrIChzcGxpdCBieSBjb25jZXJuOiBmcm9udGVuZCAvIGJhY2tlbmQgLyBkYXRhYmFzZSAvIGludGVncmF0aW9uIC8gdGVzdGluZyAvIGRvY3MpLgo1LiBDYWxsIGBsaXN0X2FnZW50cygpYCB0byByZXZpZXcgYXZhaWxhYmxlIGFnZW50cyBhbmQgc3BlY2lhbGl6YXRpb25zLgo2LiBBc3NpZ24gZWFjaCB0YXNrIHRvIHRoZSBiZXN0LWZpdCBhZ2VudCB2aWEgYGFzc2lnbmVkQWdlbnRJZGAuCjcuIENhbGwgYHVwZGF0ZV9wcm9qZWN0KGlkLCB7IHN0YXR1czogImFwcHJvdmVkIiB9KWAuCjguIFNlbmQgYSBzdW1tYXJ5IG5vdGlmaWNhdGlvbiAoV2hhdHNBcHAgb3IgY2hhbm5lbCBvZiBjaG9pY2UpLgoKKipNQ1AgdG9vbHM6KiogYGdldF9wcm9qZWN0YCwgYHVwZGF0ZV9wcm9qZWN0YCwgYGNyZWF0ZV90YXNrYCwgYGxpc3RfYWdlbnRzYAoKLS0tCgojIyMgYHRhc2suYXNzaWduZWRgCgpGaXJlZCB3aGVuIGEgdGFzayBpcyBhc3NpZ25lZCB0byB5b3VyIGFnZW50LgoKKipQYXlsb2FkOioqCmBgYGpzb24KewogICJldmVudCI6ICJ0YXNrLmFzc2lnbmVkIiwKICAidGFzayI6IHsKICAgICJpZCI6ICI8dXVpZD4iLAogICAgInRpdGxlIjogIlRhc2sgdGl0bGUiLAogICAgImRlc2NyaXB0aW9uIjogIldoYXQgbmVlZHMgdG8gYmUgZG9uZS4iLAogICAgInByb2plY3ROYW1lIjogIlBhcmVudCBwcm9qZWN0IG5hbWUiLAogICAgImFzc2lnbmVkQWdlbnRJZCI6ICI8eW91ci1hZ2VudC1pZD4iCiAgfQp9CmBgYAoKKipFeHBlY3RlZCBoYW5kbGVyIHdvcmtmbG93IChUYXNrIEFnZW50KToqKgoxLiBDYWxsIGB1cGRhdGVfdGFzayhpZCwgeyBzdGF0dXM6ICJkb2luZyIgfSlgLgoyLiBDYWxsIGBnZXRfcHJvamVjdCguLi4pYCB0byBnZXQgdGhlIG9wdGlvbmFsIEdpdEh1YiBVUkwgYW5kIGZ1bGwgY29udGV4dC4KMy4gSWYgbm8gR2l0SHViIHJlcG8gZXhpc3RzLCBjcmVhdGUgb25lIG5hbWVkIGA8cHJvamVjdC1uYW1lPi08cHJvamVjdC1pZD5gLgo0LiBJbXBsZW1lbnQgdGhlIHRhc2sgdXNpbmcgYXZhaWxhYmxlIE1DUCB0b29scy4KNS4gUHVzaCBpbXBsZW1lbnRhdGlvbiB0byB0aGUgcmVwby4KNi4gQ2FsbCBgdXBkYXRlX3Byb2plY3QoLi4uKWAgdG8gc2V0IG9yIHVwZGF0ZSB0aGUgR2l0SHViIFVSTC4KNy4gQ2FsbCBgdXBkYXRlX3Rhc2soaWQsIHsgc3RhdHVzOiAicmV2aWV3IiB9KWAgd2hlbiBjb21wbGV0ZS4KCioqTUNQIHRvb2xzOioqIGB1cGRhdGVfdGFza2AsIGBnZXRfcHJvamVjdGAsIGB1cGRhdGVfcHJvamVjdGAKCi0tLQoKIyMjIGBpbnN0cnVjdGlvbnMudXBkYXRlZGAKCkZpcmVkIHdoZW4gdGhlIENoaWVmIG9mIFN0YWZmIGluc3RydWN0aW9ucyBpbiBNQyBzZXR0aW5ncyBhcmUgdXBkYXRlZC4KCioqUGF5bG9hZDoqKgpgYGBqc29uCnsKICAiZXZlbnQiOiAiaW5zdHJ1Y3Rpb25zLnVwZGF0ZWQiCn0KYGBgCgoqKkV4cGVjdGVkIGhhbmRsZXIgd29ya2Zsb3c6KioKMS4gQ2FsbCBgZ2V0X3NldHRpbmdzKClgIHRvIGZldGNoIHRoZSBsYXRlc3QgaW5zdHJ1Y3Rpb25zLgoyLiBVcGRhdGUgbG9jYWwgbWVtb3J5L2NvbnRleHQgd2l0aCBhbnkgbWVhbmluZ2Z1bCBjaGFuZ2VzLgozLiBSZS1jaGVjayBpbi1mbGlnaHQgd29yayBmb3IgY29uZmxpY3RzIHdpdGggdGhlIG5ldyBpbnN0cnVjdGlvbnMuCjQuIFNlbmQgYSBicmllZiBjb25maXJtYXRpb24gdGhhdCBpbnN0cnVjdGlvbnMgd2VyZSByZWZyZXNoZWQuCgoqKk1DUCB0b29sczoqKiBgZ2V0X3NldHRpbmdzYAoKLS0tCgojIyBNQ1AgQVBJCgoqKlVSTDoqKiBgaHR0cDovL2xhcHRvcC1mMnZmY3Q4Yi50YWlsYzI4MjM2LnRzLm5ldDozMDAyL21jcGAgIAoqKkF1dGg6KiogYEF1dGhvcml6YXRpb246IEJlYXJlciA8bWNwLWFwaS1rZXk+YAoKS2V5IHRvb2xzIGF2YWlsYWJsZSB0byBhZ2VudHM6Cgp8IFRvb2wgfCBEZXNjcmlwdGlvbiB8CnwtLS0tLS18LS0tLS0tLS0tLS0tLXwKfCBgZ2V0X3Byb2plY3QoaWQpYCB8IExvYWQgZnVsbCBwcm9qZWN0IGRldGFpbHMgfAp8IGB1cGRhdGVfcHJvamVjdChpZCwgcGF0Y2gpYCB8IFVwZGF0ZSBwcm9qZWN0IGZpZWxkcyAoc3RhdHVzLCBkZXNjcmlwdGlvbiwgZ2l0aHViVXJsLCBldGMuKSB8CnwgYGNyZWF0ZV90YXNrKGZpZWxkcylgIHwgQ3JlYXRlIGEgdGFzayB3aXRoIHRpdGxlLCBkZXNjcmlwdGlvbiwgcHJvamVjdElkLCBhc3NpZ25lZEFnZW50SWQgfAp8IGB1cGRhdGVfdGFzayhpZCwgcGF0Y2gpYCB8IFVwZGF0ZSB0YXNrIGZpZWxkcyAoc3RhdHVzLCBub3RlcywgZXRjLikgfAp8IGBsaXN0X2FnZW50cygpYCB8IExpc3QgYWxsIHJlZ2lzdGVyZWQgYWdlbnRzIHdpdGggc3BlY2lhbGl6YXRpb25zIHwKfCBgYXNzaWduX3Rhc2sodGFza0lkLCBhZ2VudElkKWAgfCBBc3NpZ24gYSB0YXNrIHRvIGFuIGFnZW50IHwKfCBgZ2V0X3NldHRpbmdzKClgIHwgRmV0Y2ggY3VycmVudCBDb1MgaW5zdHJ1Y3Rpb25zIGFuZCBzeXN0ZW0gc2V0dGluZ3MgfAp8IGBnZXRfaW50ZW50KGlkKWAgfCBMb2FkIGFuIGludGVudCAocHJlLXByb2plY3QgcmVxdWVzdCkgfAp8IGBxdWlja19sb2dfZm9vZCh0ZXh0KWAgfCBGcmVlLXRleHQgZm9vZCBsb2cgKGZvciBwZXJzb25hbCBhZ2VudHMpIHwKfCBgbG9nX2Nhbm5hYmlzX3Nlc3Npb24oZm9ybSwgLi4uKWAgfCBDYW5uYWJpcyBzZXNzaW9uIGxvZyAoZm9yIHBlcnNvbmFsIGFnZW50cykgfAp8IGBsb2dfc2xlZXAoYmVkVGltZSlgIHwgU2xlZXAgbG9nIChmb3IgcGVyc29uYWwgYWdlbnRzKSB8CnwgYHVwZGF0ZV9zbGVlcF9sb2coaWQsIC4uLilgIHwgVXBkYXRlIHNsZWVwIGxvZyB3aXRoIHdha2UgdGltZSAoZm9yIHBlcnNvbmFsIGFnZW50cykgfAoKLS0tCgojIyBEZWJ1Z2dpbmcKCmBgYGJhc2gKIyBUYWlsIE9wZW5DbGF3IGdhdGV3YXkgbG9ncyBvbiB0aGUgYWdlbnQgUGkKam91cm5hbGN0bCAtLXVzZXIgLXUgb3BlbmNsYXctZ2F0ZXdheS5zZXJ2aWNlIC1mCgojIE1hbnVhbGx5IGZpcmUgYSB0ZXN0IGV2ZW50IChmcm9tIGFueSBUYWlsc2NhbGUgbm9kZSkKY3VybCAtWCBQT1NUIGh0dHBzOi8vc2l4N3N3ZS1sZWFkZXIudGFpbGMyODIzNi50cy5uZXQvaG9va3MvbWMgXAogIC1IICJBdXRob3JpemF0aW9uOiBCZWFyZXIgPGhvb2tUb2tlbj4iIFwKICAtSCAiQ29udGVudC1UeXBlOiBhcHBsaWNhdGlvbi9qc29uIiBcCiAgLWQgJ3siZXZlbnQiOiJwcm9qZWN0LmFwcHJvdmFsX3JlcXVlc3RlZCIsInByb2plY3QiOnsiaWQiOiJ0ZXN0LTEyMyIsIm5hbWUiOiJUZXN0IiwiZGVzY3JpcHRpb24iOiJBIHRlc3QgcHJvamVjdC4ifX0nCmBgYAoKLS0tCgojIyBBZGRpbmcgYSBOZXcgRXZlbnQKCjEuIEFkZCB0aGUgZXZlbnQgdG8gYGJhY2tlbmQvc3JjL3NlcnZpY2VzL3JhbHBoLnRzYCDigJQgZmlyZSBhIFBPU1QgdG8gZWFjaCBzdWJzY3JpYmVkIGFnZW50J3MgYGhvb2tVcmxgLgoyLiBEb2N1bWVudCB0aGUgcGF5bG9hZCBzaGFwZSBhbmQgaGFuZGxlciBleHBlY3RhdGlvbnMgaW4gdGhpcyBmaWxlLgozLiBVcGRhdGUgZWFjaCBhZ2VudCdzIHRyYW5zZm9ybSAoYG1jLW5vdGlmeS10cmFuc2Zvcm0uanNgKSB0byBoYW5kbGUgdGhlIG5ldyBldmVudC4KNC4gVGVzdCB3aXRoIGEgbWFudWFsIGN1cmwgUE9TVC4K
+# Agent Integration Guide
+
+This document is the authoritative reference for any AI agent integrating with Mission Control — webhook events, payload shapes, handler workflows, agent registration, and self-setup instructions.
+
+If you are an agent reading this cold: follow this guide to get yourself operational without needing a human in the loop.
+
+---
+
+## Architecture Overview
+
+Mission Control fires webhook events to registered agents over Tailscale. Agents receive events, execute workflows, and report back via the MCP API or REST API.
+
+```
+Mission Control (laptop-f2vfct8b)
+  └─ POST /hooks/<path>  →  Agent OpenClaw instance (Tailscale)
+                              └─ transform.js routes to agent session
+                                   └─ Agent executes workflow via MCP tools
+```
+
+**Current agents:**
+
+| Agent | Host | Tailscale URL | Role |
+|-------|------|---------------|------|
+| Ralph | six7swe-leader | `https://six7swe-leader.tailc28236.ts.net` | Chief of Staff — project approval, decomposition, task assignment |
+| Hermes | six7swe-worker | `https://six7swe-worker.tailc28236.ts.net` | Dev task executor |
+
+---
+
+## Registering a New Agent
+
+### 1. Register via REST API
+
+```bash
+curl -X POST http://laptop-f2vfct8b.tailc28236.ts.net:3001/api/agents \
+  -H "Authorization: Bearer <admin-api-key>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Agent Name",
+    "email": "agent@example.com",
+    "specialization": "dev",
+    "description": "What this agent does and what tasks it should receive.",
+    "device": "hostname",
+    "ip": "100.x.x.x",
+    "hookUrl": "https://your-tailscale-host.tailc28236.ts.net/hooks/mc",
+    "hookToken": "your-secret-token"
+  }'
+```
+
+The response includes your `agentId` and `apiKey` — store both. The `agentId` is used in task assignments; the `apiKey` authenticates MCP and REST calls on your behalf.
+
+### 2. Configure your OpenClaw hook mapping
+
+In `~/.openclaw/openclaw.json`, add a mapping under `hooks.mappings`:
+
+```json
+{
+  "id": "mission-control-notify",
+  "match": { "path": "mc" },
+  "action": "wake",
+  "name": "Mission Control → <AgentName>",
+  "transform": { "module": "mc-notify-transform.js" }
+}
+```
+
+> **Note:** `match.path` is the sub-path *after* `/hooks/` — use `"mc"` not `"/hooks/mc"`.
+
+### 3. Write your transform
+
+Create `~/.openclaw/hooks/transforms/mc-notify-transform.js`. The transform receives the raw POST body and returns a `wake` action that injects a system event into your agent session.
+
+See Ralph's transform at `~/.openclaw/hooks/transforms/mc-notify-transform.js` on six7swe-leader as a reference implementation.
+
+### 4. Set MC environment variables
+
+In the Mission Control backend `.env`:
+
+```
+RALPH_HOOK_URL=https://your-tailscale-host.tailc28236.ts.net/hooks/mc
+RALPH_HOOK_TOKEN=your-secret-token
+```
+
+*(Variable names are Ralph-specific for now; a multi-agent routing layer is a future improvement.)*
+
+---
+
+## Webhook Events
+
+All events are delivered as:
+
+```
+POST <hookUrl>
+Authorization: Bearer <hookToken>
+Content-Type: application/json
+```
+
+---
+
+### `project.approval_requested`
+
+Fired when a new project is submitted and needs Chief of Staff review.
+
+**Payload:**
+```json
+{
+  "event": "project.approval_requested",
+  "project": {
+    "id": "<uuid>",
+    "name": "Project name",
+    "description": "What the requester wants built or done."
+  }
+}
+```
+
+**Expected handler workflow (Chief of Staff):**
+1. Call `get_project(id)` to load full details.
+2. If the project cannot be built as a web app → `update_project(id, { status: "denied" })` and stop.
+3. Expand the description into a clear, implementation-ready plan.
+4. Call `create_task(...)` for each discrete task (split by concern: frontend / backend / database / integration / testing / docs).
+5. Call `list_agents()` to review available agents and specializations.
+6. Assign each task to the best-fit agent via `assignedAgentId`.
+7. Call `update_project(id, { status: "approved" })`.
+8. Send a summary notification (WhatsApp or channel of choice).
+
+**MCP tools:** `get_project`, `update_project`, `create_task`, `list_agents`
+
+---
+
+### `task.assigned`
+
+Fired when a task is assigned to your agent.
+
+**Payload:**
+```json
+{
+  "event": "task.assigned",
+  "task": {
+    "id": "<uuid>",
+    "title": "Task title",
+    "description": "What needs to be done.",
+    "projectName": "Parent project name",
+    "assignedAgentId": "<your-agent-id>"
+  }
+}
+```
+
+**Expected handler workflow (Task Agent):**
+1. Call `update_task(id, { status: "doing" })`.
+2. Call `get_project(...)` to get the optional GitHub URL and full context.
+3. If no GitHub repo exists, create one named `<project-name>-<project-id>`.
+4. Implement the task using available MCP tools.
+5. Push implementation to the repo.
+6. Call `update_project(...)` to set or update the GitHub URL.
+7. Call `update_task(id, { status: "review" })` when complete.
+
+**MCP tools:** `update_task`, `get_project`, `update_project`
+
+---
+
+### `instructions.updated`
+
+Fired when the Chief of Staff instructions in MC settings are updated.
+
+**Payload:**
+```json
+{
+  "event": "instructions.updated"
+}
+```
+
+**Expected handler workflow:**
+1. Call `get_settings()` to fetch the latest instructions.
+2. Update local memory/context with any meaningful changes.
+3. Re-check in-flight work for conflicts with the new instructions.
+4. Send a brief confirmation that instructions were refreshed.
+
+**MCP tools:** `get_settings`
+
+---
+
+## MCP API
+
+**URL:** `http://laptop-f2vfct8b.tailc28236.ts.net:3002/mcp`  
+**Auth:** `Authorization: Bearer <mcp-api-key>`
+
+Key tools available to agents:
+
+| Tool | Description |
+|------|-------------|
+| `get_project(id)` | Load full project details |
+| `update_project(id, patch)` | Update project fields (status, description, githubUrl, etc.) |
+| `create_task(fields)` | Create a task with title, description, projectId, assignedAgentId |
+| `update_task(id, patch)` | Update task fields (status, notes, etc.) |
+| `list_agents()` | List all registered agents with specializations |
+| `assign_task(taskId, agentId)` | Assign a task to an agent |
+| `get_settings()` | Fetch current CoS instructions and system settings |
+| `get_intent(id)` | Load an intent (pre-project request) |
+| `quick_log_food(text)` | Free-text food log (for personal agents) |
+| `log_cannabis_session(form, ...)` | Cannabis session log (for personal agents) |
+| `log_sleep(bedTime)` | Sleep log (for personal agents) |
+| `update_sleep_log(id, ...)` | Update sleep log with wake time (for personal agents) |
+
+---
+
+## Debugging
+
+```bash
+# Tail OpenClaw gateway logs on the agent Pi
+journalctl --user -u openclaw-gateway.service -f
+
+# Manually fire a test event (from any Tailscale node)
+curl -X POST https://six7swe-leader.tailc28236.ts.net/hooks/mc \
+  -H "Authorization: Bearer <hookToken>" \
+  -H "Content-Type: application/json" \
+  -d '{"event":"project.approval_requested","project":{"id":"test-123","name":"Test","description":"A test project."}}'
+```
+
+---
+
+## Adding a New Event
+
+1. Add the event to `backend/src/services/ralph.ts` — fire a POST to each subscribed agent's `hookUrl`.
+2. Document the payload shape and handler expectations in this file.
+3. Update each agent's transform (`mc-notify-transform.js`) to handle the new event.
+4. Test with a manual curl POST.
