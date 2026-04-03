@@ -11,6 +11,35 @@ import { ApiError, parseBody } from '../../lib/errors.js';
 const createTaskSchema = backendRequestSchemas.createTask;
 const updateTaskSchema = backendRequestSchemas.updateTask;
 
+const taskActivityMeta = (task: {
+  id: string;
+  projectId: string;
+  title: string;
+  status: string;
+  projectName: string;
+}) => ({
+  taskId: task.id,
+  projectId: task.projectId,
+  projectName: task.projectName,
+  title: task.title,
+  status: task.status,
+});
+
+/** Inserts a fleet-visible row in `agent_activities` and updates MCP presence for that agent. */
+async function logFleetTaskActivity(
+  agentId: string | null | undefined,
+  args: { type: string; description: string; metadata: Record<string, unknown> },
+): Promise<void> {
+  if (!agentId) return;
+  await agentsDb.insertActivity({
+    agentId,
+    type: args.type,
+    description: args.description,
+    metadata: args.metadata,
+  });
+  await touchMcpActivity([agentId]);
+}
+
 async function notifyAssignedAgent(
   taskId: string,
   assignedAgentId: string,
@@ -78,7 +107,11 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
     await fastify.finalizeIdempotency(request, 201, task);
 
     if (body.assignedAgentId) {
-      await touchMcpActivity([body.assignedAgentId]);
+      await logFleetTaskActivity(body.assignedAgentId, {
+        type: 'task_created',
+        description: `Task "${task.title}" created in ${project.name}`,
+        metadata: taskActivityMeta({ ...task, projectName: project.name }),
+      });
       await notifyAssignedAgent(task.id, body.assignedAgentId, request.log);
     }
 
@@ -88,6 +121,9 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.patch('/:id', { preHandler: fastify.authenticate }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const body = parseBody(updateTaskSchema, request.body);
+
+    const existing = await projectsDb.getTask(id);
+    if (!existing) throw new ApiError(404, 'NOT_FOUND', 'Not found');
 
     // Auto-unassign when status moves to review
     const updateData =
@@ -103,7 +139,30 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
     const task = await projectsDb.updateTask(id, updateData);
     if (!task) throw new ApiError(404, 'NOT_FOUND', 'Not found');
 
-    await touchMcpActivity([task.assignedAgentId]);
+    const project = await projectsDb.getProject(task.projectId);
+    const projectName = project?.name ?? 'Project';
+    const meta = taskActivityMeta({ ...task, projectName });
+
+    if (existing.assignedAgentId && existing.assignedAgentId !== task.assignedAgentId) {
+      await logFleetTaskActivity(existing.assignedAgentId, {
+        type: 'task_unassigned',
+        description: `No longer assigned to "${task.title}" in ${projectName}`,
+        metadata: meta,
+      });
+    }
+    if (task.assignedAgentId && task.assignedAgentId !== existing.assignedAgentId) {
+      await logFleetTaskActivity(task.assignedAgentId, {
+        type: 'task_assigned',
+        description: `Assigned "${task.title}" in ${projectName}`,
+        metadata: meta,
+      });
+    } else if (task.assignedAgentId && task.assignedAgentId === existing.assignedAgentId) {
+      await logFleetTaskActivity(task.assignedAgentId, {
+        type: 'task_updated',
+        description: `Task "${task.title}" updated in ${projectName}`,
+        metadata: meta,
+      });
+    }
 
     // Notify newly assigned agent (skip if we're also clearing via review auto-unassign)
     if (body.assignedAgentId && body.status !== 'review') {
@@ -117,7 +176,13 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
     const { id } = request.params as { id: string };
     const existing = await projectsDb.getTask(id);
     if (existing?.assignedAgentId) {
-      await touchMcpActivity([existing.assignedAgentId]);
+      const project = await projectsDb.getProject(existing.projectId);
+      const projectName = project?.name ?? 'Project';
+      await logFleetTaskActivity(existing.assignedAgentId, {
+        type: 'task_deleted',
+        description: `Task "${existing.title}" removed from ${projectName}`,
+        metadata: taskActivityMeta({ ...existing, projectName }),
+      });
     }
     await projectsDb.deleteTask(id);
     return reply.code(204).send();
