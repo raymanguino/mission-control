@@ -1,1 +1,96 @@
-IyBNaXNzaW9uIENvbnRyb2wKCk1vbm9yZXBvIGZvciB0aGUgTWlzc2lvbiBDb250cm9sIGRhc2hib2FyZDogYSAqKkZhc3RpZnkqKiBiYWNrZW5kLCAqKlJlYWN0KiogKFZpdGUpIGZyb250ZW5kLCAqKk1DUCoqIHNlcnZlciBmb3IgdG9vbCBpbnRlZ3JhdGlvbnMsIGFuZCBzaGFyZWQgKipUeXBlU2NyaXB0KiogdHlwZXMuCgojIyBSZXBvc2l0b3J5IGxheW91dAoKfCBQYWNrYWdlIHwgUGF0aCB8IFJvbGUgfAp8LS0tLS0tLS18LS0tLS0tfC0tLS0tLXwKfCBCYWNrZW5kIEFQSSB8IFtgYmFja2VuZC9gXShiYWNrZW5kLykgfCBSRVNUIEFQSSwgYXV0aCwgam9icywgRGlzY29yZCBpbnRlZ3JhdGlvbiwgUG9zdGdyZXMgdmlhIERyaXp6bGUgfAp8IFdlYiBVSSB8IFtgZnJvbnRlbmQvYF0oZnJvbnRlbmQvKSB8IFZpdGUgKyBSZWFjdCArIFRhaWx3aW5kIHwKfCBNQ1Agc2VydmVyIHwgW2BtY3AvYF0obWNwLykgfCBNb2RlbCBDb250ZXh0IFByb3RvY29sIHNlcnZlciB0aGF0IHRhbGtzIHRvIHRoZSBiYWNrZW5kIHwKfCBTaGFyZWQgdHlwZXMgfCBbYHBhY2thZ2VzL3R5cGVzL2BdKHBhY2thZ2VzL3R5cGVzLykgfCBXb3Jrc3BhY2UgcGFja2FnZSBgQG1pc3Npb24tY29udHJvbC90eXBlc2AgfAoKU2NyaXB0cyBmb3IgdGhlIHdob2xlIHJlcG8gbGl2ZSBpbiB0aGUgcm9vdCBbYHBhY2thZ2UuanNvbmBdKHBhY2thZ2UuanNvbikuCgojIyBQcmVyZXF1aXNpdGVzCgotICoqTm9kZS5qcyoqIChMVFMgcmVjb21tZW5kZWQpIGFuZCAqKnBucG0qKgotICoqUG9zdGdyZVNRTCoqIHJlYWNoYWJsZSBieSB0aGUgYmFja2VuZCAoY29ubmVjdGlvbiBzdHJpbmcgYmVsb25ncyBpbiBbYGJhY2tlbmQvLmVudi5leGFtcGxlYF0oYmFja2VuZC8uZW52LmV4YW1wbGUpKQoKIyMgUXVpY2sgc3RhcnQKCkZyb20gdGhpcyBkaXJlY3Rvcnk6CgpgYGBiYXNoCnBucG0gaW5zdGFsbApwbnBtIGRldgpgYGAKClRoYXQgcnVucyB0aGUgYmFja2VuZCwgZnJvbnRlbmQsIGFuZCBNQ1Agc2VydmVyIGluIHBhcmFsbGVsIChzZWUgcm9vdCBgcGFja2FnZS5qc29uYCBgZGV2YCBzY3JpcHQpLiBQcmVmbGlnaHQgY2hlY2tzIHRoYXQgZGV2IHBvcnRzICoqMzAwMSoqLCAqKjMwMDIqKiwgYW5kICoqNTE3MyoqIGFyZSBmcmVlLgoKLSAqKmBwbnBtIGRldjphcHBgKiog4oCUIGJhY2tlbmQgKyBmcm9udGVuZCBvbmx5IChubyBNQ1ApCi0gKipgcG5wbSBkZXY6bWNwYCoqIOKAlCBNQ1AgcGFja2FnZSBvbmx5CgpPdGhlciByb290IGNvbW1hbmRzOiBgcG5wbSBidWlsZGAsIGBwbnBtIHRlc3RgLCBgcG5wbSBsaW50YCwgYHBucG0gZm9ybWF0YC4KCiMjIERhdGFiYXNlIG1pZ3JhdGlvbiBiYXNlbGluZQoKLSBNaWdyYXRpb24gaGlzdG9yeSB3YXMgY29uc29saWRhdGVkIGludG8gYSBzaW5nbGUgYmFzZWxpbmUgZmlsZSBpbiBbYHN1cGFiYXNlL21pZ3JhdGlvbnMvYF0oc3VwYWJhc2UvbWlncmF0aW9ucy8pLgotIFRoaXMgaXMgYSBicmVha2luZyByZXNldCBvZiBtaWdyYXRpb24gaGlzdG9yeTogZXhpc3RpbmcgZGF0YWJhc2VzIG11c3QgYmUgZHJvcHBlZC9yZXNldCBiZWZvcmUgYXBwbHlpbmcgY3VycmVudCBtaWdyYXRpb25zLgotIEZvciBhIGZyZXNoIGRhdGFiYXNlLCBydW46CgpgYGBiYXNoCnBucG0gLS1maWx0ZXIgYmFja2VuZCBkYjptaWdyYXRlCmBgYAoKIyMgQ29uZmlndXJhdGlvbgoKRG8gbm90IGR1cGxpY2F0ZSBlbnZpcm9ubWVudCB2YXJpYWJsZXMgaGVyZS4gQ29weSBlYWNoIHBhY2thZ2UncyAqKmAuZW52LmV4YW1wbGVgKiogdG8gKipgLmVudmAqKiBhbmQgYWRqdXN0OgoKLSBbYGJhY2tlbmQvLmVudi5leGFtcGxlYF0oYmFja2VuZC8uZW52LmV4YW1wbGUpIOKAlCBkYXRhYmFzZSwgQVBJIGtleXMsIGRhc2hib2FyZCBzZWNyZXRzLCBEaXNjb3JkIChvcHRpb25hbCksIGBQT1JUYCAoZGVmYXVsdCAqKjMwMDEqKikKLSBbYGZyb250ZW5kLy5lbnYuZXhhbXBsZWBdKGZyb250ZW5kLy5lbnYuZXhhbXBsZSkg4oCUIEFQSSBVUkwgZm9yIHRoZSBWaXRlIGRldiBwcm94eQotIFtgbWNwLy5lbnYuZXhhbXBsZWBdKG1jcC8uZW52LmV4YW1wbGUpIOKAlCBiYWNrZW5kIFVSTCwgSldULCBNQ1AgQVBJIGtleSwgYFBPUlRgIChkZWZhdWx0ICoqMzAwMioqKQoKUGFja2FnZS1sZXZlbCBSRUFETUVzIGRlc2NyaWJlIGhvdyBlYWNoIHBpZWNlIHVzZXMgdGhvc2UgZmlsZXMuCgojIyBBcmNoaXRlY3R1cmUgKGhpZ2ggbGV2ZWwpCgpgYGBtZXJtYWlkCmZsb3djaGFydCBMUgogIHN1YmdyYXBoIGNsaWVudHMgW0NsaWVudHNdCiAgICBCcm93c2VyW0Jyb3dzZXJdCiAgICBNY3BDbGllbnRbIk1DUCBjbGllbnRzIl0KICBlbmQKICBzdWJncmFwaCByZXBvIFtUaGlzX3JlcG9dCiAgICBGcm9udGVuZFsiZnJvbnRlbmQgKDUxNzMpIl0KICAgIEJhY2tlbmRbImJhY2tlbmQgKDMwMDEpIl0KICAgIE1jcFNlcnZlclsibWNwICgzMDAyKSJdCiAgICBUeXBlc1BrZ1siQG1pc3Npb24tY29udHJvbC90eXBlcyJdCiAgZW5kCiAgQnJvd3NlciAtLT4gRnJvbnRlbmQKICBGcm9udGVuZCAtLT58IlZpdGUgL2FwaSBwcm94eSJ8IEJhY2tlbmQKICBNY3BDbGllbnQgLS0+IE1jcFNlcnZlcgogIE1jcFNlcnZlciAtLT4gQmFja2VuZAogIEJhY2tlbmQgLS0+IFR5cGVzUGtnCiAgRnJvbnRlbmQgLS0+IFR5cGVzUGtnCiAgTWNwU2VydmVyIC0tPiBUeXBlc1BrZwpgYGAKCgojIyBBZ2VudCBJbnRlZ3JhdGlvbgoKTWlzc2lvbiBDb250cm9sIG5vdGlmaWVzIHJlZ2lzdGVyZWQgQUkgYWdlbnRzIHZpYSB3ZWJob29rcyBvdmVyIFRhaWxzY2FsZS4gQWdlbnRzIGNhbiByZWNlaXZlIHByb2plY3QgYXBwcm92YWxzLCB0YXNrIGFzc2lnbm1lbnRzLCBhbmQgaW5zdHJ1Y3Rpb24gdXBkYXRlcy4KCuKGkiAqKltBZ2VudCBJbnRlZ3JhdGlvbiBHdWlkZV0oZG9jcy9hZ2VudC1pbnRlZ3JhdGlvbi5tZCkqKiDigJQgcGF5bG9hZCBzaGFwZXMsIGhhbmRsZXIgd29ya2Zsb3dzLCByZWdpc3RyYXRpb24gc3RlcHMsIE1DUCB0b29scywgYW5kIGRlYnVnZ2luZy4KCiMjIENvbnRyaWJ1dGluZwoKV2hlbiB5b3UgY2hhbmdlIGRlZmF1bHQgcG9ydHMsIHJlcXVpcmVkIGVudmlyb25tZW50IHZhcmlhYmxlcywgb3IgcHJpbWFyeSBgcG5wbWAgc2NyaXB0cywgdXBkYXRlIHRoZSByZWxldmFudCAqKmAuZW52LmV4YW1wbGVgKiogYW5kIHNraW0gdGhlIFJFQURNRXMgc28gbGlua3MgYW5kIG9uZS1saW5lIGJlaGF2aW9yIG5vdGVzIHN0YXkgYWNjdXJhdGUuCg==
+# Mission Control
+
+Monorepo for the Mission Control dashboard: a **Fastify** backend, **React** (Vite) frontend, **MCP** server for tool integrations, and shared **TypeScript** types.
+
+## Repository layout
+
+| Package | Path | Role |
+|--------|------|------|
+| Backend API | [`backend/`](backend/) | REST API, auth, jobs, Discord integration, Postgres via Drizzle |
+| Web UI | [`frontend/`](frontend/) | Vite + React + Tailwind |
+| MCP server | [`mcp/`](mcp/) | Model Context Protocol server that talks to the backend |
+| Shared types | [`packages/types/`](packages/types/) | Workspace package `@mission-control/types` |
+
+Scripts for the whole repo live in the root [`package.json`](package.json).
+
+## Prerequisites
+
+- **Node.js** (LTS recommended) and **pnpm**
+- **PostgreSQL** reachable by the backend (connection string belongs in [`backend/.env.example`](backend/.env.example))
+
+## Quick start
+
+From this directory:
+
+```bash
+pnpm install
+pnpm dev
+```
+
+That runs the backend, frontend, and MCP server in parallel (see root `package.json` `dev` script). Preflight checks that dev ports **3001**, **3002**, and **5173** are free.
+
+- **`pnpm dev:app`** — backend + frontend only (no MCP)
+- **`pnpm dev:mcp`** — MCP package only
+
+Other root commands: `pnpm build`, `pnpm test`, `pnpm lint`, `pnpm format`.
+
+## Database migration baseline
+
+- Migration history was consolidated into a single baseline file in [`supabase/migrations/`](supabase/migrations/).
+- This is a breaking reset of migration history: existing databases must be dropped/reset before applying current migrations.
+- For a fresh database, run:
+
+```bash
+pnpm --filter backend db:migrate
+```
+
+## Configuration
+
+Do not duplicate environment variables here. Copy each package's **`.env.example`** to **`.env`** and adjust:
+
+- [`backend/.env.example`](backend/.env.example) — database, API keys, dashboard secrets, Discord (optional), `PORT` (default **3001**)
+- [`frontend/.env.example`](frontend/.env.example) — API URL for the Vite dev proxy
+- [`mcp/.env.example`](mcp/.env.example) — backend URL, JWT, MCP API key, `PORT` (default **3002**)
+
+Package-level READMEs describe how each piece uses those files.
+
+## Architecture (high level)
+
+```mermaid
+flowchart LR
+  subgraph clients [Clients]
+    Browser[Browser]
+    McpClient["MCP clients"]
+  end
+  subgraph repo [This_repo]
+    Frontend["frontend (5173)"]
+    Backend["backend (3001)"]
+    McpServer["mcp (3002)"]
+    TypesPkg["@mission-control/types"]
+  end
+  Browser --> Frontend
+  Frontend -->|"Vite /api proxy"| Backend
+  McpClient --> McpServer
+  McpServer --> Backend
+  Backend --> TypesPkg
+  Frontend --> TypesPkg
+  McpServer --> TypesPkg
+```
+
+
+## Agent Integration
+
+Mission Control notifies registered AI agents via webhooks over Tailscale. Agents can receive project approvals, task assignments, and instruction updates.
+
+→ **[Agent Integration Guide](docs/agent-integration.md)** — payload shapes, handler workflows, registration steps, MCP tools, and debugging.
+
+
+## Agent Integration
+
+Mission Control notifies registered AI agents via webhooks over Tailscale. Agents can receive project approvals, task assignments, and instruction updates.
+
+→ **[Agent Integration Guide](docs/agent-integration.md)** — payload shapes, handler workflows, registration steps, MCP tools, and debugging.
+
+## Contributing
+
+When you change default ports, required environment variables, or primary `pnpm` scripts, update the relevant **`.env.example`** and skim the READMEs so links and one-line behavior notes stay accurate.
