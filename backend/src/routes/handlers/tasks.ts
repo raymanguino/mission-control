@@ -3,7 +3,10 @@ import * as projectsDb from '../../db/api/projects.js';
 import * as agentsDb from '../../db/api/agents.js';
 import * as settingsDb from '../../db/api/settings.js';
 import * as emailService from '../../services/email.js';
-import { notifyAssignedAgentOfTask } from '../../services/agentNotifier.js';
+import {
+  notifyAssignedAgentOfTask,
+  notifyChiefOfStaffOfTaskCompleted,
+} from '../../services/agentNotifier.js';
 import { backendRequestSchemas } from '../../contracts/mcp-contract.js';
 import { touchMcpActivity } from '../../lib/mcpActivity.js';
 import { ApiError, parseBody } from '../../lib/errors.js';
@@ -167,6 +170,12 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
     // Notify newly assigned agent (skip if we're also clearing via review auto-unassign)
     if (body.assignedAgentId && body.status !== 'review') {
       await notifyAssignedAgent(id, body.assignedAgentId, request.log);
+    }
+
+    if (existing.status !== 'review' && task.status === 'review') {
+      notifyChiefOfStaffOfTaskCompleted(task, projectName).catch((err) =>
+        request.log.error({ err }, 'Failed to POST task.completed to chief of staff webhook'),
+      );
     }
 
     return task;

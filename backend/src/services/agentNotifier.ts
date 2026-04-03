@@ -1,6 +1,6 @@
 /**
  * POSTs JSON event payloads to each agent's configured `hookUrl` with `Authorization: Bearer <hookToken>`.
- * Used for task assignment (assigned agent) and org-wide events (chief of staff agent).
+ * Used for task assignment (assigned agent), task.completed / review handoff (chief of staff), and org-wide events.
  *
  * OpenClaw gateway `POST /hooks/agent` requires a `message` string; instruction payloads include it
  * so hooks work when `hookUrl` points at that endpoint. Custom receivers may ignore extra fields.
@@ -73,6 +73,26 @@ export async function notifyChiefOfStaffOfProject(
       id: project.id,
       name: project.name,
       description: project.description ?? null,
+    },
+  });
+}
+
+/** When a task moves into the Review column: notify the first chief_of_staff agent that has a webhook. */
+export async function notifyChiefOfStaffOfTaskCompleted(
+  task: { id: string; title: string; description: string | null },
+  projectName: string,
+): Promise<void> {
+  const cosRows = await agentsDb.getCoSAgents();
+  const agent = cosRows.find((a) => a.hookUrl?.trim() && a.hookToken?.trim());
+  if (!agent) return;
+
+  await postToAgentWebhook(agent.hookUrl, agent.hookToken, {
+    event: 'task.completed',
+    task: {
+      id: task.id,
+      title: task.title,
+      description: task.description ?? null,
+      projectName,
     },
   });
 }

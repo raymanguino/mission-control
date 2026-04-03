@@ -274,9 +274,10 @@ export default function AgentDetail() {
         <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wide mb-3">Webhook</h2>
         <p className="text-xs text-gray-500 mb-3">
           Required. Mission Control POSTs JSON events to this URL with{' '}
-          <code className="text-gray-400">Authorization: Bearer &lt;token&gt;</code>. Task assignments
-          go to the assigned agent; new projects and Chief of Staff instruction saves go to the CoS
-          agent. Saving Agent playbook instructions in Settings notifies Engineer and QA agents (
+          <code className="text-gray-400">Authorization: Bearer &lt;token&gt;</code>.           Task assignments
+          go to the assigned agent; new projects, tasks moved to Review (
+          <code className="text-gray-400">task.completed</code>), and Chief of Staff instruction
+          saves go to the CoS agent. Saving Agent playbook instructions in Settings notifies Engineer and QA agents (
           <code className="text-gray-400">instructions.updated</code>).
         </p>
         <div className="space-y-3 max-w-xl">
