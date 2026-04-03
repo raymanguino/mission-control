@@ -21,7 +21,7 @@ export const agents = pgTable('agents', {
   device: text('device'),
   ip: text('ip'),
   apiKeyHash: text('api_key_hash').notNull(),
-  orgRole: text('org_role').notNull().default('member'),
+  orgRole: text('org_role').notNull().default('engineer'),
   specialization: text('specialization'),
   description: text('description'),
   reportsToAgentId: uuid('reports_to_agent_id').references((): AnyPgColumn => agents.id, {

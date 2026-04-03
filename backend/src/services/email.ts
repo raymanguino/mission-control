@@ -1,4 +1,11 @@
+import type { AgentOrgRole } from '../lib/agentOrgRoles.js';
 import { Resend } from 'resend';
+
+const INSTRUCTION_ROLE_LABEL: Record<AgentOrgRole, string> = {
+  chief_of_staff: 'Chief of Staff',
+  engineer: 'Engineer',
+  qa: 'QA',
+};
 
 const resend = new Resend(process.env['RESEND_API_KEY']);
 const FROM = process.env['RESEND_FROM_EMAIL'] ?? 'noreply@example.com';
@@ -54,9 +61,9 @@ export async function notifyAgentOfTask(
 
 export async function notifyAgentInstructionsUpdated(
   agent: { email: string; name: string },
-  kind: 'chief_of_staff' | 'member',
+  kind: AgentOrgRole,
 ): Promise<void> {
-  const roleLabel = kind === 'chief_of_staff' ? 'Chief of Staff' : 'Task Agent';
+  const roleLabel = INSTRUCTION_ROLE_LABEL[kind];
   const subject = '[Mission Control] Instructions updated — refresh your local copy';
   const text = [
     `Hello ${agent.name},`,

@@ -175,10 +175,11 @@ export default function Settings() {
       <div className="bg-gray-900 rounded-xl p-5 border border-gray-800 space-y-3">
         <h2 className="text-sm font-semibold text-white">Agent Instructions</h2>
         <p className="text-xs text-gray-500">
-          Sent to member agents on registration, task assignment, and with every report response. On
-          Save, Mission Control POSTs <code className="text-gray-400">instructions.updated</code> to
-          each <span className="text-gray-400">member</span> agent with a webhook configured—not to
-          the Chief of Staff.
+          Sent to Engineer and QA agents on registration, task assignment, and with every report
+          response. On Save, Mission Control POSTs{' '}
+          <code className="text-gray-400">instructions.updated</code> to each{' '}
+          <span className="text-gray-400">engineer</span> or <span className="text-gray-400">qa</span>{' '}
+          agent with a webhook configured—not to the Chief of Staff.
         </p>
         {settingsLoading ? (
           <p className="text-xs text-gray-500">Loading…</p>

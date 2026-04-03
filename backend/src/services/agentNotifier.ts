@@ -113,13 +113,13 @@ export async function notifyChiefOfStaffInstructionsUpdated(
   }
 }
 
-/** When shared member playbook text is saved: notify each member agent that has a webhook. */
-export async function notifyMemberAgentsInstructionsUpdated(
+/** When shared agent playbook text is saved: notify each engineer/QA agent that has a webhook. */
+export async function notifyEngineerAndQaAgentsInstructionsUpdated(
   log?: FastifyBaseLogger,
 ): Promise<void> {
   if (!agentWebhooksEnabled()) return;
 
-  const rows = await agentsDb.listAgentsByOrgRole('member');
+  const rows = await agentsDb.listAgentsForSharedAgentInstructions();
   let posted = 0;
   for (const agent of rows) {
     if (!agent.hookUrl?.trim() || !agent.hookToken?.trim()) continue;
@@ -129,7 +129,7 @@ export async function notifyMemberAgentsInstructionsUpdated(
 
   if (posted === 0) {
     log?.warn(
-      'Skipping instructions.updated webhook: no member agent has both hook URL and hook token set.',
+      'Skipping instructions.updated webhook: no engineer or QA agent has both hook URL and hook token set.',
     );
   }
 }

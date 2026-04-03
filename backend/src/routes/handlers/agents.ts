@@ -8,6 +8,7 @@ import * as settingsDb from '../../db/api/settings.js';
 import { backendRequestSchemas } from '../../contracts/mcp-contract.js';
 import { ApiError, parseBody } from '../../lib/errors.js';
 import { touchMcpActivity } from '../../lib/mcpActivity.js';
+import { defaultOrgRoleForRegistration } from '../../lib/agentOrgRoles.js';
 import { toPublicAgent } from '../../lib/publicAgent.js';
 
 const agentAvatarIdSchema = z
@@ -20,7 +21,7 @@ const updateAgentSchema = z.object({
   email: z.string().email().optional(),
   device: z.string().optional(),
   ip: z.string().optional(),
-  orgRole: z.enum(['chief_of_staff', 'member']).optional(),
+  orgRole: z.enum(['chief_of_staff', 'engineer', 'qa']).optional(),
   specialization: z.string().optional(),
   description: z.string().optional(),
   reportsToAgentId: z.string().uuid().nullable().optional(),
@@ -65,9 +66,8 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
     const rawKey = crypto.randomBytes(32).toString('hex');
     const apiKeyHash = await bcrypt.hash(rawKey, 10);
 
-    // Auto-assign CoS role: first agent becomes Chief of Staff
-    const existingCoS = await agentsDb.getCoSAgents();
-    const orgRole = existingCoS.length === 0 ? 'chief_of_staff' : 'member';
+    const existingCount = await agentsDb.countAgents();
+    const orgRole = defaultOrgRoleForRegistration(existingCount);
     const avatarId = AGENT_AVATAR_IDS[crypto.randomInt(0, AGENT_AVATAR_IDS.length)];
 
     const agent = await agentsDb.createAgent({ ...body, apiKeyHash, orgRole, avatarId });
@@ -116,11 +116,11 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
     const agent = await agentsDb.getAgent(id);
     if (!agent) throw new ApiError(404, 'NOT_FOUND', 'Not found');
     await touchMcpActivity([id]);
-    const orgRole = agent.orgRole as 'chief_of_staff' | 'member';
+    const { id: agentId, orgRole } = toPublicAgent(agent);
     const key = instructionKeyForOrgRole(orgRole);
     const instructions = (await settingsDb.getSetting(key)) ?? '';
     return {
-      agentId: agent.id,
+      agentId,
       orgRole,
       instructions,
     };

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AgentAvatar } from '../components/agents/AgentAvatar.js';
 import { FleetActivityTimeline } from '../components/agents/ActivityTimeline.js';
 import { api } from '../utils/api.js';
-import type { Agent } from '@mission-control/types';
+import type { Agent, AgentOrgRole } from '@mission-control/types';
 
 const statusColor: Record<string, string> = {
   online: 'bg-green-500',
@@ -11,9 +11,10 @@ const statusColor: Record<string, string> = {
   offline: 'bg-gray-500',
 };
 
-const roleLabel: Record<string, string> = {
+const roleLabel: Record<AgentOrgRole, string> = {
   chief_of_staff: 'Chief of Staff',
-  member: 'Member',
+  engineer: 'Engineer',
+  qa: 'QA',
 };
 
 export default function Agents() {
@@ -44,7 +45,7 @@ export default function Agents() {
           >
             <div className="flex shrink-0 flex-col items-center justify-center gap-2 self-stretch border-r border-gray-800 pr-4">
               <span className="text-center text-[10px] uppercase tracking-wide text-indigo-300 bg-indigo-950/70 px-2 py-0.5 rounded-full max-w-[7rem] leading-tight">
-                {roleLabel[agent.orgRole] ?? agent.orgRole}
+                {roleLabel[agent.orgRole]}
               </span>
               <span className="relative inline-block">
                 <AgentAvatar avatarId={agent.avatarId} size={52} />

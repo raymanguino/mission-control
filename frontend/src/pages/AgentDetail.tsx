@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { AgentAvatar } from '../components/agents/AgentAvatar.js';
 import { ActivityTimeline } from '../components/agents/ActivityTimeline.js';
 import { api } from '../utils/api.js';
-import { AGENT_AVATAR_IDS, type Agent, type AgentAvatarId } from '@mission-control/types';
+import { AGENT_AVATAR_IDS, type Agent, type AgentAvatarId, type AgentOrgRole } from '@mission-control/types';
 
 const statusColor: Record<string, string> = {
   online: 'bg-green-500',
@@ -11,9 +11,10 @@ const statusColor: Record<string, string> = {
   offline: 'bg-gray-500',
 };
 
-const roleLabel: Record<string, string> = {
+const roleLabel: Record<AgentOrgRole, string> = {
   chief_of_staff: 'Chief of Staff',
-  member: 'Member',
+  engineer: 'Engineer',
+  qa: 'QA',
 };
 
 function avatarChoiceLabel(id: AgentAvatarId): string {
@@ -182,7 +183,7 @@ export default function AgentDetail() {
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-semibold text-white">{agent.name}</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {roleLabel[agent.orgRole] ?? agent.orgRole} · {agent.status}
+            {roleLabel[agent.orgRole]} · {agent.status}
           </p>
         </div>
       </div>
@@ -275,7 +276,7 @@ export default function AgentDetail() {
           Required. Mission Control POSTs JSON events to this URL with{' '}
           <code className="text-gray-400">Authorization: Bearer &lt;token&gt;</code>. Task assignments
           go to the assigned agent; new projects and Chief of Staff instruction saves go to the CoS
-          agent. Saving Agent playbook instructions in Settings notifies member agents (
+          agent. Saving Agent playbook instructions in Settings notifies Engineer and QA agents (
           <code className="text-gray-400">instructions.updated</code>).
         </p>
         <div className="space-y-3 max-w-xl">

@@ -78,7 +78,7 @@ const BODY_JSON: Partial<Record<string, object>> = {
     name: 'Updated name',
     email: 'updated@example.com',
     specialization: 'Backend',
-    orgRole: 'member',
+    orgRole: 'engineer',
     reportsToAgentId: null,
   },
   create_project: {

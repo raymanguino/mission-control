@@ -1,6 +1,9 @@
 // Agent types
 export type AgentStatus = 'online' | 'idle' | 'offline';
-export type AgentOrgRole = 'chief_of_staff' | 'member';
+export type AgentOrgRole = 'chief_of_staff' | 'engineer' | 'qa';
+
+/** Roles that receive the shared `agent_instructions` playbook (non–Chief of Staff). */
+export const SHARED_AGENT_INSTRUCTION_ORG_ROLES: readonly AgentOrgRole[] = ['engineer', 'qa'];
 
 /** Preset block-style avatars (filenames under `/avatars/{id}.svg`). */
 export const AGENT_AVATAR_IDS = [

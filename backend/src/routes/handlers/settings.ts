@@ -5,8 +5,9 @@ import * as settingsDb from '../../db/api/settings.js';
 import * as emailService from '../../services/email.js';
 import {
   notifyChiefOfStaffInstructionsUpdated,
-  notifyMemberAgentsInstructionsUpdated,
+  notifyEngineerAndQaAgentsInstructionsUpdated,
 } from '../../services/agentNotifier.js';
+import type { AgentOrgRole } from '../../lib/agentOrgRoles.js';
 import { ApiError, parseBody } from '../../lib/errors.js';
 import { AGENT_PRESENCE_SETTING_KEYS } from '../../lib/agentPresenceConfig.js';
 
@@ -94,23 +95,39 @@ async function notifyAgentsOfInstructionChanges(
       }
     } else if (key === 'agent_instructions') {
       try {
-        await notifyMemberAgentsInstructionsUpdated(request.log);
+        await notifyEngineerAndQaAgentsInstructionsUpdated(request.log);
       } catch (err) {
-        request.log.error({ err }, 'Failed to notify member agent webhooks of instructions update');
+        request.log.error({ err }, 'Failed to notify engineer/QA agent webhooks of instructions update');
       }
     }
 
     if (unchanged) continue;
 
-    const role = key === 'cos_instructions' ? 'chief_of_staff' : 'member';
-
-    const agents = await agentsDb.listAgentsWithEmailByOrgRole(role);
-    for (const a of agents) {
-      if (!a.email) continue;
-      try {
-        await emailService.notifyAgentInstructionsUpdated({ email: a.email, name: a.name }, role);
-      } catch (err) {
-        request.log.error({ err, agentId: a.id }, 'Failed to send instruction update email');
+    if (key === 'cos_instructions') {
+      const cosAgents = await agentsDb.listAgentsWithEmailByOrgRole('chief_of_staff');
+      for (const a of cosAgents) {
+        if (!a.email) continue;
+        try {
+          await emailService.notifyAgentInstructionsUpdated(
+            { email: a.email, name: a.name },
+            'chief_of_staff',
+          );
+        } catch (err) {
+          request.log.error({ err, agentId: a.id }, 'Failed to send instruction update email');
+        }
+      }
+    } else {
+      const sharedAgents = await agentsDb.listAgentsWithEmailForSharedAgentInstructions();
+      for (const a of sharedAgents) {
+        if (!a.email) continue;
+        try {
+          await emailService.notifyAgentInstructionsUpdated(
+            { email: a.email, name: a.name },
+            a.orgRole as AgentOrgRole,
+          );
+        } catch (err) {
+          request.log.error({ err, agentId: a.id }, 'Failed to send instruction update email');
+        }
       }
     }
   }

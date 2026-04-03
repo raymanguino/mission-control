@@ -29,7 +29,7 @@ export const backendRequestSchemas = {
     email: z.string().email().optional(),
     device: z.string().optional(),
     ip: z.string().optional(),
-    orgRole: z.enum(['chief_of_staff', 'member']).optional(),
+    orgRole: z.enum(['chief_of_staff', 'engineer', 'qa']).optional(),
     specialization: z.string().optional(),
     description: z.string().optional(),
     reportsToAgentId: z.string().uuid().nullable().optional(),

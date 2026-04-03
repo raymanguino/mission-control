@@ -53,7 +53,7 @@ export function registerAgentTools(server: McpServer) {
 
   server.tool(
     'create_agent',
-    'Register a new agent.\n\nRequired: `name`, `hookUrl` (HTTPS URL for inbound JSON webhooks), `hookToken` (Bearer secret for Authorization header).\nOptional: `email`, `specialization`, `description`, `device`, `ip`, `reportsToAgentId`.\nThe first agent to register is automatically assigned the Chief of Staff role.\nReturns the agent record, a one-time plaintext API key, and role-based instructions.',
+    'Register a new agent.\n\nRequired: `name`, `hookUrl` (HTTPS URL for inbound JSON webhooks), `hookToken` (Bearer secret for Authorization header).\nOptional: `email`, `specialization`, `description`, `device`, `ip`, `reportsToAgentId`.\nOrg roles are assigned automatically in order: 1st registration → Chief of Staff, 2nd → Engineer, 3rd → QA, further registrations → Engineer.\nReturns the agent record, a one-time plaintext API key, and role-based instructions.',
     {
       name: z.string().describe('Display name for the agent (required).'),
       hookUrl: z.string().url().describe('Inbound webhook URL (required), e.g. OpenClaw gateway /hooks/agent.'),
@@ -103,7 +103,7 @@ export function registerAgentTools(server: McpServer) {
       device: z.string().optional().describe('Updated hardware description (omit to keep unchanged).'),
       ip: z.string().optional().describe('Updated IP address (omit to keep unchanged).'),
       orgRole: z
-        .enum(['chief_of_staff', 'member'])
+        .enum(['chief_of_staff', 'engineer', 'qa'])
         .optional()
         .describe('Override org role (omit to keep unchanged).'),
       reportsToAgentId: z
