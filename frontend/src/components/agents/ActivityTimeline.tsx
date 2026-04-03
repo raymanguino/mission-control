@@ -6,6 +6,13 @@ import type { AgentActivity, FleetActivityEntry } from '@mission-control/types';
 const PAGE_SIZE = 50;
 const POLL_MAX = 200;
 
+/** Scrollable list area for agent + fleet activity (shared). */
+const ACTIVITY_LIST_MAX_HEIGHT_CLASS =
+  'max-h-[min(70vh,28rem)] overflow-y-auto overflow-x-hidden';
+
+/** Shared default for agent + fleet activity feeds: rows start collapsed. */
+const ACTIVITY_ROW_DEFAULT_OPEN = false;
+
 export type TimelineEntry = AgentActivity & { agentName?: string };
 
 type EventTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
@@ -114,6 +121,30 @@ function groupByDay(activities: AgentActivity[]): { dayKey: string; items: Agent
   return Array.from(map.entries()).map(([dayKey, items]) => ({ dayKey, items }));
 }
 
+function CollapsibleActivityCard({
+  defaultOpen,
+  summary,
+  children,
+}: {
+  defaultOpen: boolean;
+  summary: ReactNode;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <details
+      className="group rounded-lg border border-gray-800 bg-gray-900/80 overflow-hidden"
+      open={open}
+      onToggle={(e) => setOpen(e.currentTarget.open)}
+    >
+      <summary className="list-none cursor-pointer select-none px-3 py-2.5 [&::-webkit-details-marker]:hidden">
+        {summary}
+      </summary>
+      {children}
+    </details>
+  );
+}
+
 function TimelineGroupedList({
   entries,
   showAgent,
@@ -135,43 +166,74 @@ function TimelineGroupedList({
             {items.map((a) => {
               const tone = eventTone(a.type);
               const entry = a as TimelineEntry;
+              const hasBody =
+                Boolean(a.description) ||
+                Boolean(a.metadata && Object.keys(a.metadata).length > 0);
+
               return (
                 <li key={a.id} className="relative pb-6 last:pb-0">
                   <span
                     className={`absolute -left-[25px] top-1.5 flex h-3 w-3 items-center justify-center rounded-full border-2 ring-2 ring-gray-800 ${toneDot[tone]}`}
                     aria-hidden
                   />
-                  <div className="rounded-lg border border-gray-800 bg-gray-900/80 px-3 py-2.5">
-                    <div className="flex flex-wrap items-center gap-2 gap-y-1">
-                      <span
-                        className={`inline-flex max-w-full items-center rounded-md border px-2 py-0.5 text-xs font-medium ${toneChip[tone]}`}
-                      >
-                        {formatEventTypeLabel(a.type)}
-                      </span>
-                      {showAgent && entry.agentName && (
-                        <Link
-                          to={`/agents/${a.agentId}`}
-                          className="text-xs font-medium text-indigo-400 hover:text-indigo-300 truncate max-w-[12rem]"
+                  <CollapsibleActivityCard
+                    defaultOpen={ACTIVITY_ROW_DEFAULT_OPEN}
+                    summary={
+                      <div className="flex flex-wrap items-center gap-2 gap-y-1">
+                        <span
+                          className="inline-flex h-5 w-5 shrink-0 items-center justify-center text-gray-500 group-open:rotate-90 transition-transform"
+                          aria-hidden
                         >
-                          {entry.agentName}
-                        </Link>
+                          <svg
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            className="h-4 w-4"
+                            aria-hidden
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </span>
+                        <span
+                          className={`inline-flex max-w-full items-center rounded-md border px-2 py-0.5 text-xs font-medium ${toneChip[tone]}`}
+                        >
+                          {formatEventTypeLabel(a.type)}
+                        </span>
+                        {showAgent && entry.agentName && (
+                          <Link
+                            to={`/agents/${a.agentId}`}
+                            className="text-xs font-medium text-indigo-400 hover:text-indigo-300 truncate max-w-[12rem]"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {entry.agentName}
+                          </Link>
+                        )}
+                        <span className="text-xs text-gray-500 tabular-nums ml-auto sm:ml-0">
+                          {new Date(a.createdAt).toLocaleString()}
+                        </span>
+                        <span className="text-xs text-gray-600 tabular-nums">
+                          {formatRelativeShort(a.createdAt)}
+                        </span>
+                      </div>
+                    }
+                  >
+                    <div className="border-t border-gray-800/80 px-3 pb-2.5 pt-0">
+                      {a.description && (
+                        <p className="text-sm text-gray-300 mt-2 whitespace-pre-wrap">{a.description}</p>
                       )}
-                      <span className="text-xs text-gray-500 tabular-nums ml-auto sm:ml-0">
-                        {new Date(a.createdAt).toLocaleString()}
-                      </span>
-                      <span className="text-xs text-gray-600 tabular-nums">
-                        {formatRelativeShort(a.createdAt)}
-                      </span>
+                      {a.metadata && Object.keys(a.metadata).length > 0 && (
+                        <pre className="text-xs text-gray-500 mt-2 overflow-x-auto font-mono bg-gray-950/60 rounded-md p-2 border border-gray-800/80">
+                          {JSON.stringify(a.metadata, null, 2)}
+                        </pre>
+                      )}
+                      {!hasBody && (
+                        <p className="text-xs text-gray-600 mt-2 italic">No additional details.</p>
+                      )}
                     </div>
-                    {a.description && (
-                      <p className="text-sm text-gray-300 mt-2 whitespace-pre-wrap">{a.description}</p>
-                    )}
-                    {a.metadata && Object.keys(a.metadata).length > 0 && (
-                      <pre className="text-xs text-gray-500 mt-2 overflow-x-auto font-mono bg-gray-950/60 rounded-md p-2 border border-gray-800/80">
-                        {JSON.stringify(a.metadata, null, 2)}
-                      </pre>
-                    )}
-                  </div>
+                  </CollapsibleActivityCard>
                 </li>
               );
             })}
@@ -216,7 +278,9 @@ function TimelineChrome({
       )}
       {!loading && !loadError && empty && <p className="text-sm text-gray-500">No activity yet.</p>}
 
-      {children}
+      {children ? (
+        <div className={ACTIVITY_LIST_MAX_HEIGHT_CLASS}>{children}</div>
+      ) : null}
 
       {hasMore && (
         <div className="mt-4 flex justify-center">
