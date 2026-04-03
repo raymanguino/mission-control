@@ -5,7 +5,6 @@ import { api } from '../../utils/api.js';
 import type { Agent, Channel, Project } from '@mission-control/types';
 import { useAuth } from '../../contexts/AuthContext.js';
 import { useDashboardTitle } from '../../contexts/DashboardTitleContext.js';
-import { PROJECT_STATUS_BADGE_CLASS, PROJECT_STATUS_LABELS } from '../../utils/projectLabels.js';
 import AddProjectModal from '../AddProjectModal.js';
 
 const OVERVIEW_NAV_ITEMS: readonly {
@@ -259,6 +258,14 @@ export default function Sidebar() {
   }, [location.pathname]);
 
   useEffect(() => {
+    const onProjectsUpdated = () => {
+      loadProjects();
+    };
+    window.addEventListener('mission-control-projects-updated', onProjectsUpdated);
+    return () => window.removeEventListener('mission-control-projects-updated', onProjectsUpdated);
+  }, []);
+
+  useEffect(() => {
     setOpenSection(sectionFromPath(location.pathname));
   }, [location.pathname]);
 
@@ -374,17 +381,15 @@ export default function Sidebar() {
         >
           {projects.map((p) => (
             <div key={p.id} className="flex items-start gap-1">
-              <NavLink to={`/projects/${p.id}`} className={({ isActive }) => projectRowLinkClass(isActive)}>
+              <NavLink
+                to={`/projects/${p.id}?details=1`}
+                className={({ isActive }) => projectRowLinkClass(isActive)}
+              >
                 {({ isActive }) => (
                   <>
                     <SidebarNavIcon isActive={isActive} paths={PROJECT_FOLDER_PATHS} />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate">{p.name}</span>
-                      <span
-                        className={`mt-0.5 inline-block text-[10px] px-1.5 py-0.5 rounded-full ${PROJECT_STATUS_BADGE_CLASS[p.status]}`}
-                      >
-                        {PROJECT_STATUS_LABELS[p.status]}
-                      </span>
                     </span>
                   </>
                 )}

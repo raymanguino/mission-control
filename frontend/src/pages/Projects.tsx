@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   DndContext,
   PointerSensor,
@@ -12,8 +12,144 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities';
 import { AgentAvatar } from '../components/agents/AgentAvatar.js';
 import { api, ApiError } from '../utils/api.js';
-import type { Project, Task, TaskStatus, Agent } from '@mission-control/types';
+import type { Project, ProjectStatus, Task, TaskStatus, Agent } from '@mission-control/types';
 import { PROJECT_STATUS_LABELS } from '../utils/projectLabels.js';
+
+function notifyProjectsUpdated() {
+  window.dispatchEvent(new Event('mission-control-projects-updated'));
+}
+
+/** Centered overlay modal — same shell as wellness sleep/diet/meds log modals (Health.tsx). */
+function ProjectDetailsModal({
+  open,
+  project,
+  onClose,
+  onSaved,
+}: {
+  open: boolean;
+  project: Project;
+  onClose: () => void;
+  onSaved: (p: Project) => void;
+}) {
+  const [name, setName] = useState(project.name);
+  const [description, setDescription] = useState(project.description ?? '');
+  const [url, setUrl] = useState(project.url ?? '');
+  const [status, setStatus] = useState<ProjectStatus>(project.status);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setName(project.name);
+    setDescription(project.description ?? '');
+    setUrl(project.url ?? '');
+    setStatus(project.status);
+  }, [open, project.id, project.name, project.description, project.url, project.status]);
+
+  const dirty =
+    name !== project.name ||
+    (description || '') !== (project.description ?? '') ||
+    (url || '') !== (project.url ?? '') ||
+    status !== project.status;
+
+  async function save() {
+    if (!name.trim()) {
+      window.alert('Project name is required.');
+      return;
+    }
+    setSaving(true);
+    try {
+      const trimmedUrl = url.trim();
+      const body: {
+        name: string;
+        description: string;
+        url: string | null;
+        status: ProjectStatus;
+      } = {
+        name: name.trim(),
+        description: description.trim(),
+        url: trimmedUrl ? trimmedUrl : null,
+        status,
+      };
+      const updated = await api.patch<Project>(`/api/projects/${project.id}`, body);
+      onSaved(updated);
+      notifyProjectsUpdated();
+      onClose();
+    } catch (e) {
+      const message = e instanceof ApiError ? e.message : 'Failed to save project';
+      window.alert(message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!open) return null;
+
+  const fieldClass =
+    'w-full bg-gray-800 rounded-md px-3 py-2 text-sm text-white border border-gray-700 focus:outline-none focus:border-indigo-500';
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-900 rounded-xl p-6 w-full max-w-md space-y-4 border border-gray-700 max-h-[90vh] overflow-y-auto">
+        <h2 className="text-lg font-semibold text-white">Project details</h2>
+        <div>
+          <label className="text-xs text-gray-400 block mb-1">Name</label>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className={fieldClass}
+            autoFocus
+          />
+        </div>
+        <div>
+          <label className="text-xs text-gray-400 block mb-1">Description</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={3}
+            className={`${fieldClass} resize-none`}
+          />
+        </div>
+        <div>
+          <label className="text-xs text-gray-400 block mb-1">Status</label>
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value as ProjectStatus)}
+            className={fieldClass}
+          >
+            {(Object.keys(PROJECT_STATUS_LABELS) as ProjectStatus[]).map((s) => (
+              <option key={s} value={s}>
+                {PROJECT_STATUS_LABELS[s]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="text-xs text-gray-400 block mb-1">Project URL (optional)</label>
+          <input
+            type="url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://example.com"
+            className={fieldClass}
+          />
+        </div>
+        <div className="flex gap-2 justify-end pt-2">
+          <button type="button" onClick={onClose} className="px-3 py-1.5 text-sm text-gray-400 hover:text-white">
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={save}
+            disabled={saving || !dirty}
+            className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm rounded-md"
+          >
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const COLUMNS: { id: TaskStatus; label: string }[] = [
   { id: 'backlog', label: 'Backlog' },
@@ -267,41 +403,62 @@ function TaskSlideOver({
 export default function Projects() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
-  const [projects, setProjects] = useState<Project[] | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [project, setProject] = useState<Project | null>(null);
+  const [projectLoadError, setProjectLoadError] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [slideOver, setSlideOver] = useState<Task | null | 'new'>(null);
 
-  const loadProjectList = () =>
-    api
-      .get<Project[]>('/api/projects')
-      .then(setProjects)
-      .catch(() => {
-        setProjects([]);
-      });
+  const detailsOpen = searchParams.get('details') === '1';
+  const closeProjectDetails = () => {
+    setSearchParams(
+      (prev) => {
+        if (!prev.get('details')) return prev;
+        const next = new URLSearchParams(prev);
+        next.delete('details');
+        return next;
+      },
+      { replace: true },
+    );
+  };
 
   const loadTasks = (id: string) => {
     api.get<Task[]>(`/api/projects/${id}/tasks`).then(setTasks).catch(() => {});
   };
 
-  const selectedProject =
-    projectId && projects ? projects.find((p) => p.id === projectId) : undefined;
-
   useEffect(() => {
-    loadProjectList();
     api.get<Agent[]>('/api/agents').then(setAgents).catch(() => {});
   }, []);
 
   useEffect(() => {
-    if (!selectedProject) return;
-    loadTasks(selectedProject.id);
+    if (!projectId) return;
+    let cancelled = false;
+    setProject(null);
+    setProjectLoadError(false);
+    api
+      .get<Project>(`/api/projects/${projectId}`)
+      .then((p) => {
+        if (!cancelled) setProject(p);
+      })
+      .catch(() => {
+        if (!cancelled) setProjectLoadError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId]);
+
+  useEffect(() => {
+    if (!project) return;
+    loadTasks(project.id);
 
     const pollId = setInterval(() => {
-      loadTasks(selectedProject.id);
+      loadTasks(project.id);
     }, 10_000);
 
     return () => clearInterval(pollId);
-  }, [selectedProject]);
+  }, [project?.id]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -334,21 +491,22 @@ export default function Projects() {
   }
 
   const reload = () => {
-    if (!selectedProject) return;
-    loadTasks(selectedProject.id);
+    if (!project) return;
+    loadTasks(project.id);
   };
 
   async function deleteSelectedProject() {
-    if (!selectedProject) return;
+    if (!project) return;
     if (
       !window.confirm(
-        `Delete project "${selectedProject.name}" and all its tasks? This cannot be undone.`,
+        `Delete project "${project.name}" and all its tasks? This cannot be undone.`,
       )
     ) {
       return;
     }
     try {
-      await api.delete(`/api/projects/${selectedProject.id}`);
+      await api.delete(`/api/projects/${project.id}`);
+      notifyProjectsUpdated();
       navigate('/projects');
     } catch (e) {
       const message = e instanceof ApiError ? e.message : 'Failed to delete project';
@@ -371,79 +529,72 @@ export default function Projects() {
     return <Navigate to="/projects" replace />;
   }
 
-  if (projects === null) {
-    return <p className="text-gray-500 text-sm">Loading…</p>;
+  if (projectLoadError) {
+    return <Navigate to="/projects" replace />;
   }
 
-  if (!selectedProject) {
-    return <Navigate to="/projects" replace />;
+  if (!project) {
+    return <p className="text-gray-500 text-sm">Loading…</p>;
   }
 
   return (
     <div className="flex h-full gap-0 -mx-6 overflow-hidden">
       <div className="flex-1 overflow-x-auto px-6 py-6">
-        {selectedProject && selectedProject.status === 'approved' && (
-          <>
-            <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
-              <h1 className="text-xl font-semibold text-white">{selectedProject.name}</h1>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={deleteSelectedProject}
-                  className="px-3 py-1.5 text-red-400 hover:text-red-300 text-sm border border-red-900/60 hover:border-red-800 rounded-md"
-                >
-                  Delete project
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSlideOver('new')}
-                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-md"
-                >
-                  + Task
-                </button>
-              </div>
+        <div className="flex justify-end gap-2 mb-4 flex-wrap">
+          <button
+            type="button"
+            onClick={deleteSelectedProject}
+            className="px-3 py-1.5 text-red-400 hover:text-red-300 text-sm border border-red-900/60 hover:border-red-800 rounded-md"
+          >
+            Delete project
+          </button>
+          {project.status === 'approved' ? (
+            <button
+              type="button"
+              onClick={() => setSlideOver('new')}
+              className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-md"
+            >
+              + Task
+            </button>
+          ) : null}
+        </div>
+
+        <ProjectDetailsModal
+          open={detailsOpen}
+          project={project}
+          onClose={closeProjectDetails}
+          onSaved={setProject}
+        />
+
+        {project.status === 'approved' && (
+          <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+            <div className="flex gap-4 min-w-max">
+              {COLUMNS.map((col) => {
+                const colTasks = tasks.filter((t) => t.status === col.id);
+                return (
+                  <KanbanColumn
+                    key={col.id}
+                    column={col}
+                    tasks={colTasks}
+                    agents={agents}
+                    onEdit={(task) => setSlideOver(task)}
+                    onDeleteTask={deleteTaskFromBoard}
+                  />
+                );
+              })}
             </div>
-            <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-              <div className="flex gap-4 min-w-max">
-                {COLUMNS.map((col) => {
-                  const colTasks = tasks.filter((t) => t.status === col.id);
-                  return (
-                    <KanbanColumn
-                      key={col.id}
-                      column={col}
-                      tasks={colTasks}
-                      agents={agents}
-                      onEdit={(task) => setSlideOver(task)}
-                      onDeleteTask={deleteTaskFromBoard}
-                    />
-                  );
-                })}
-              </div>
-            </DndContext>
-          </>
+          </DndContext>
         )}
-        {selectedProject && selectedProject.status !== 'approved' && (
-          <>
-            <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
-              <h1 className="text-xl font-semibold text-white">{selectedProject.name}</h1>
-              <button
-                type="button"
-                onClick={deleteSelectedProject}
-                className="px-3 py-1.5 text-red-400 hover:text-red-300 text-sm border border-red-900/60 hover:border-red-800 rounded-md"
-              >
-                Delete project
-              </button>
-            </div>
-            <div className="flex flex-col items-center justify-center h-64 text-center">
-              <p className="text-gray-400 text-sm">
-                This project is{' '}
-                <span className="font-medium">{PROJECT_STATUS_LABELS[selectedProject.status]}</span>.
-              </p>
-              <p className="text-gray-500 text-xs mt-1">
-                Task management is only available for approved projects.
-              </p>
-            </div>
-          </>
+        {project.status !== 'approved' && (
+          <div className="flex flex-col items-center justify-center min-h-[12rem] text-center rounded-lg border border-dashed border-gray-800 bg-gray-900/30">
+            <p className="text-gray-400 text-sm max-w-md">
+              The task board opens after this project is approved. Click the project in the sidebar
+              to open project details and change status or other fields.
+            </p>
+            <p className="text-gray-500 text-xs mt-2 max-w-md">
+              Task management is only available for approved projects.
+            </p>
+          </div>
         )}
       </div>
 
@@ -451,7 +602,7 @@ export default function Projects() {
         <TaskSlideOver
           task={slideOver === 'new' ? null : slideOver}
           agents={agents}
-          projectId={selectedProject?.id ?? ''}
+          projectId={project.id}
           onClose={() => setSlideOver(null)}
           onSaved={reload}
         />
