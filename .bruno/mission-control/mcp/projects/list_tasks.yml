@@ -11,6 +11,11 @@ http:
       value: Bearer {{dashboardJwt}}
   auth: inherit
 
+runtime:
+  variables:
+    - name: projectId
+      value: 30f95d76-4e77-4b98-9dad-1a34f290361f
+
 settings:
   encodeUrl: false
   timeout: 0

@@ -60,6 +60,14 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
     if (!project) {
       throw new ApiError(400, 'BAD_REQUEST', 'Unknown projectId');
     }
+    if (project.status !== 'approved') {
+      throw new ApiError(
+        409,
+        'CONFLICT',
+        'Project must be approved before tasks can be created',
+        { reason: 'project_not_approved', status: project.status },
+      );
+    }
     if (body.assignedAgentId) {
       const agent = await agentsDb.getAgent(body.assignedAgentId);
       if (!agent) {

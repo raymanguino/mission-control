@@ -133,7 +133,7 @@ export function registerProjectTools(server: McpServer) {
 
   server.tool(
     'create_task',
-    'Create a new task in a project.\n\nRequired: `projectId`, `title`.\nOptional: `description`, `status` (default: backlog), `assignedAgentId`.',
+    'Create a new task in a project. The project must have status `approved` (use update_project first).\n\nRequired: `projectId`, `title`.\nOptional: `description`, `status` (default: backlog), `assignedAgentId`.',
     {
       projectId: z.string().describe('Project UUID (required).'),
       title: z.string().describe('Task title (required).'),

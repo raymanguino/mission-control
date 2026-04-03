@@ -1,0 +1,67 @@
+info:
+  name: update_settings (member)
+  type: http
+  seq: 3
+
+http:
+  method: patch
+  url: http://{{host}}:{{port}}/api/settings
+  headers:
+    - name: Authorization
+      value: Bearer {{dashboardJwt}}
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      ## Mission Control Agent Playbook
+
+      Use this as the primary execution guide. Event handlers are authoritative.
+
+      ### Authentication (how requests are authorized)
+      Primary path — Mission Control MCP tools (get_project, create_task, list_agents, get_settings, etc.)
+
+      1. Connect to the MCP HTTP endpoint your operator provides (for example …/mcp), not raw backend URLs, unless you are deliberately using the REST API below.
+      2. Authenticate each request to MCP with the shared MCP key: send Authorization: Bearer <MCP_API_KEY>, or set header x-mcp-key to the same value. Without this, the MCP server returns 401.
+      3. Trust boundary: The MCP server holds DASHBOARD_PASSWORD (same value as the backend’s dashboard PIN) and BACKEND_URL; it obtains a dashboard JWT via POST /api/auth/login and uses Authorization: Bearer <JWT> for backend calls. You do not put the dashboard PIN in agent prompts; ensure the host running MCP is configured with those env vars.
+
+      If calling the backend REST API directly (not via MCP)
+      - Dashboard / same capabilities as the web UI: POST /api/auth/login with { "password": "<DASHBOARD_PASSWORD>" }, then send the returned token as Authorization: Bearer <token> on subsequent requests.
+      - Agent-authenticated routes only (for example agent report endpoints): Authorization: Bearer <agent API key> matching the key issued when the agent was registered (stored hashed server-side).
+
+      ### Event: `task.assigned` (Task Agent)
+      1. Call `update_task` and set `status` to `"doing"`.
+      2. Call `get_project` to get the optional url. 
+      3. If no url is given, then create a new repository with the project name and id as the unique repository name.  
+      2. Implement the task using available MCP tools and the project standards.
+      3. Publish or update the implementation to either the new repository if one was created or the given one.
+      4. Call `update_project` to set or update the GitHub URL when applicable.
+      5. Call `update_task` and set `status` to `"review"` when complete.
+
+      ### Event: `instructions.updated` (All Roles)
+      1. Call `get_settings` immediately.
+      2. Refresh your local instruction context from the updated settings.
+      3. Continue execution using the refreshed instructions for all subsequent actions.
+
+      ---
+
+      ## Role Principles
+
+      ### Task Agent Principles
+      - Prioritize completion quality: implement, verify, and leave the task in review-ready condition.
+      - Follow existing project conventions and architecture before introducing new patterns.
+      - Document meaningful design decisions when alternatives were considered.
+      - Keep project metadata current (especially GitHub URL) as part of delivery hygiene.
+
+      ### Global Operating Rules
+      - Treat event workflows as the source of truth for sequencing.
+      - If two instructions conflict, prefer the newest instructions retrieved after `instructions.updated`.
+      - Do not skip status transitions (`doing` → `review`) for assigned tasks.
+      - When blocked, record enough context in task/project updates for fast handoff or review.
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
