@@ -46,7 +46,7 @@ pnpm --filter backend db:migrate
 
 ## Configuration
 
-Do not duplicate environment variables here. Copy each package’s **`.env.example`** to **`.env`** and adjust:
+Do not duplicate environment variables here. Copy each package's **`.env.example`** to **`.env`** and adjust:
 
 - [`backend/.env.example`](backend/.env.example) — database, API keys, dashboard secrets, Discord (optional), `PORT` (default **3001**)
 - [`frontend/.env.example`](frontend/.env.example) — API URL for the Vite dev proxy
@@ -76,6 +76,20 @@ flowchart LR
   Frontend --> TypesPkg
   McpServer --> TypesPkg
 ```
+
+
+## Agent Integration
+
+Mission Control notifies registered AI agents via webhooks over Tailscale. Agents can receive project approvals, task assignments, and instruction updates.
+
+→ **[Agent Integration Guide](docs/agent-integration.md)** — payload shapes, handler workflows, registration steps, MCP tools, and debugging.
+
+
+## Agent Integration
+
+Mission Control notifies registered AI agents via webhooks over Tailscale. Agents can receive project approvals, task assignments, and instruction updates.
+
+→ **[Agent Integration Guide](docs/agent-integration.md)** — payload shapes, handler workflows, registration steps, MCP tools, and debugging.
 
 ## Contributing
 
