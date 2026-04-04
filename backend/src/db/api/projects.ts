@@ -118,3 +118,17 @@ export async function projectTasksAllDone(projectId: string): Promise<boolean> {
   if (list.length === 0) return false;
   return list.every((t) => t.status === 'done');
 }
+
+/** True when the project has at least one task and every task is `review`. */
+export async function projectTasksAllInReview(projectId: string): Promise<boolean> {
+  const list = await listTasks(projectId);
+  if (list.length === 0) return false;
+  return list.every((t) => t.status === 'review');
+}
+
+/** True when the project has at least one task and every task is `not_done`. */
+export async function projectTasksAllNotDone(projectId: string): Promise<boolean> {
+  const list = await listTasks(projectId);
+  if (list.length === 0) return false;
+  return list.every((t) => t.status === 'not_done');
+}

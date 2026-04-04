@@ -1,14 +1,14 @@
 info:
   name: delete_project
   type: http
-  seq: 4
+  seq: 5
 
 http:
   method: delete
   url: http://{{host}}:{{port}}/api/projects/{{projectId}}
   headers:
     - name: Authorization
-      value: Bearer {{dashboardJwt}}
+      value: Bearer {{token}}
   auth: inherit
 
 settings:

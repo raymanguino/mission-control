@@ -97,7 +97,7 @@ Content-Type: application/json
 
 ### `project.approval_requested`
 
-Fired when a new project is submitted and needs Chief of Staff review.
+Fired when a new project is submitted and needs Chief of Staff review. Mission Control picks **one** `chief_of_staff` agent that has both `hookUrl` and `hookToken` set, using the same least-loaded heuristic as other roles (fewest assigned tasks whose status is not `done`).
 
 **Payload:**
 ```json
@@ -137,13 +137,13 @@ Fired when a task is assigned to your agent.
     "id": "<uuid>",
     "title": "Task title",
     "description": "What needs to be done.",
-    "projectName": "Parent project name",
-    "assignedAgentId": "<your-agent-id>"
+    "resolution": null,
+    "projectName": "Parent project name"
   }
 }
 ```
 
-**Agent filtering:** Each agent's transform should check `task.assignedAgentId` against its own agent ID and return `null` (ignore the event) if the task belongs to a different agent. This is defensive even when MC fires to individual `hookUrl`s, and essential in any broadcast model.
+**Agent filtering:** Webhooks are sent to the assigned agent’s `hookUrl` when configured. Custom transforms may still validate assignment if you share one endpoint across agents.
 
 **Expected handler workflow (Task Agent):**
 1. Call `update_task(id, { status: "doing" })`.
@@ -155,6 +155,32 @@ Fired when a task is assigned to your agent.
 7. Call `update_task(id, { status: "review" })` when complete.
 
 **MCP tools:** `update_task`, `get_project`, `update_project`
+
+---
+
+### `review.assigned` (QA batch)
+
+When **every** task in a project is in `review` status, Mission Control notifies a **QA** agent (least-loaded among `qa` role) that the batch is ready. The event name is still `review.assigned`, with extra fields:
+
+```json
+{
+  "event": "review.assigned",
+  "allTasksInReview": true,
+  "project": {
+    "id": "<uuid>",
+    "name": "Project name"
+  },
+  "task": {
+    "id": "<uuid>",
+    "title": "Task title",
+    "description": null,
+    "resolution": null,
+    "projectName": "Project name"
+  }
+}
+```
+
+The `task` object refers to the task that completed the “all in review” condition (e.g. the last one moved into review). Engineers remain the assignee on task rows during review; QA uses this webhook to start batch review.
 
 ---
 

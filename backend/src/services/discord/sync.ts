@@ -298,6 +298,27 @@ export class DiscordSyncService {
    * When `prefixMissionControl` is true, prepends an italic line so Discord readers see the message is from Mission Control.
    * Stored DB content should remain the unprefixed text.
    */
+  /**
+   * Finds a guild text channel by exact name (e.g. `general`). Returns null if missing or not sendable.
+   */
+  async getTextChannelIdByName(channelName: string): Promise<string | null> {
+    if (!this.client || !this.guildId) return null;
+    try {
+      const guild = await this.client.guilds.fetch(this.guildId);
+      const channels = await guild.channels.fetch();
+      for (const ch of channels.values()) {
+        if (!ch) continue;
+        if ('name' in ch && ch.name === channelName && isSupportedGuildTextChannel(ch)) {
+          return String(ch.id);
+        }
+      }
+    } catch (error) {
+      const mapped = mapDiscordError(error);
+      this.logger.warn({ code: mapped.code, message: mapped.message }, 'Discord getTextChannelIdByName failed');
+    }
+    return null;
+  }
+
   async sendMessage(
     externalChannelId: string,
     content: string,

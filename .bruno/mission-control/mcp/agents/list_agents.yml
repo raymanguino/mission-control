@@ -8,7 +8,7 @@ http:
   url: http://{{host}}:{{port}}/api/agents
   headers:
     - name: Authorization
-      value: Bearer {{dashboardJwt}}
+      value: Bearer {{token}}
   auth: inherit
 
 settings:

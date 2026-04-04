@@ -1,14 +1,14 @@
 info:
   name: delete_task
   type: http
-  seq: 9
+  seq: 10
 
 http:
   method: delete
-  url: http://{{host}}:{{port}}/api/tasks/{{taskId}}
+  url: http://{{host}}:{{port}}/api/projects/{{projectId}}/tasks/{{taskId}}
   headers:
     - name: Authorization
-      value: Bearer {{dashboardJwt}}
+      value: Bearer {{token}}
   auth: inherit
 
 settings:

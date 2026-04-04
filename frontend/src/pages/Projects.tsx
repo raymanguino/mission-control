@@ -391,7 +391,7 @@ function TaskSlideOver({
 
   async function save() {
     if (task) {
-      await api.patch(`/api/tasks/${task.id}`, {
+      await api.patch(`/api/projects/${projectId}/tasks/${task.id}`, {
         title,
         description,
         resolution,
@@ -399,8 +399,7 @@ function TaskSlideOver({
         assignedAgentId: agentId || null,
       });
     } else {
-      await api.post('/api/tasks', {
-        projectId,
+      await api.post(`/api/projects/${projectId}/tasks`, {
         title,
         description,
         resolution: resolution || undefined,
@@ -415,7 +414,7 @@ function TaskSlideOver({
     if (!task) return;
     if (!window.confirm(`Delete task "${task.title}"?`)) return;
     try {
-      await api.delete(`/api/tasks/${task.id}`);
+      await api.delete(`/api/projects/${projectId}/tasks/${task.id}`);
       onSaved();
       onClose();
     } catch (e) {
@@ -601,7 +600,7 @@ export default function Projects() {
     setTasks((prev) =>
       prev.map((t) => (t.id === task.id ? { ...t, status: targetStatus } : t)),
     );
-    await api.patch(`/api/tasks/${task.id}`, { status: targetStatus });
+    await api.patch(`/api/projects/${project.id}/tasks/${task.id}`, { status: targetStatus });
   }
 
   const reload = () => {
@@ -612,7 +611,7 @@ export default function Projects() {
   async function deleteTaskFromBoard(task: Task) {
     if (!window.confirm(`Delete task "${task.title}"?`)) return;
     try {
-      await api.delete(`/api/tasks/${task.id}`);
+      await api.delete(`/api/projects/${project.id}/tasks/${task.id}`);
       reload();
     } catch (e) {
       const message = e instanceof ApiError ? e.message : 'Failed to delete task';

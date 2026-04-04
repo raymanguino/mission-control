@@ -129,8 +129,15 @@ describe('MCP tool unit tests', () => {
     const updated = { id: 't1', status: 'backlog', assignedAgentId: null };
     apiPatchMock.mockResolvedValueOnce(updated as any);
 
-    const res = await handlers.update_task({ taskId: 't1', assignedAgentId: null });
-    expect(apiPatchMock).toHaveBeenCalledWith('/api/tasks/t1', {});
+    const res = await handlers.update_task({
+      projectId: '00000000-0000-4000-8000-000000000001',
+      taskId: 't1',
+      assignedAgentId: null,
+    });
+    expect(apiPatchMock).toHaveBeenCalledWith(
+      '/api/projects/00000000-0000-4000-8000-000000000001/tasks/t1',
+      {},
+    );
 
     const parsed = JSON.parse((res as any).content[0].text as string);
     expect(parsed).toEqual(updated);

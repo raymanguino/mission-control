@@ -8,17 +8,17 @@ http:
   url: http://{{host}}:{{port}}/api/agents
   headers:
     - name: Authorization
-      value: Bearer {{dashboardJwt}}
+      value: Bearer {{token}}
     - name: Content-Type
       value: application/json
   body:
     type: json
     data: |-
       {
-        "name": "Agent Beta",
-        "email": "agent2@example.com",
+        "name": "Agent Alpha",
+        "email": "agent@example.com",
         "specialization": "Frontend React",
-        "description": "Senior full-stack software engineer specializing in front end",
+        "description": "Detailed skills profile",
         "device": "Laptop",
         "ip": "192.168.1.10"
       }

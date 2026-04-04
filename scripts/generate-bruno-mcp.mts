@@ -24,6 +24,7 @@ const FOLDER_TOOLS: Record<string, string[]> = {
   agents: ['list_agents', 'get_agent_activity', 'create_agent', 'update_agent', 'delete_agent'],
   projects: [
     'list_projects',
+    'get_project',
     'create_project',
     'update_project',
     'delete_project',
@@ -93,11 +94,9 @@ const BODY_JSON: Partial<Record<string, object>> = {
     url: 'https://example.com',
   },
   create_task: {
-    projectId: '00000000-0000-4000-8000-000000000002',
     title: 'Implement feature',
     description: 'Task details',
     status: 'backlog',
-    assignedAgentId: '00000000-0000-4000-8000-000000000001',
   },
   update_task: {
     title: 'Updated title',

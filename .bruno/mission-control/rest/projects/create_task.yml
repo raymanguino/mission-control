@@ -1,25 +1,23 @@
 info:
   name: create_task
   type: http
-  seq: 7
+  seq: 8
 
 http:
   method: post
-  url: http://{{host}}:{{port}}/api/tasks
+  url: http://{{host}}:{{port}}/api/projects/{{projectId}}/tasks
   headers:
     - name: Authorization
-      value: Bearer {{dashboardJwt}}
+      value: Bearer {{token}}
     - name: Content-Type
       value: application/json
   body:
     type: json
     data: |-
       {
-        "projectId": "00000000-0000-4000-8000-000000000002",
         "title": "Implement feature",
         "description": "Task details",
-        "status": "backlog",
-        "assignedAgentId": "00000000-0000-4000-8000-000000000001"
+        "status": "backlog"
       }
   auth: inherit
 

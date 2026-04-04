@@ -1,14 +1,14 @@
 info:
   name: update_task
   type: http
-  seq: 8
+  seq: 9
 
 http:
   method: patch
-  url: http://{{host}}:{{port}}/api/tasks/{{taskId}}
+  url: http://{{host}}:{{port}}/api/projects/{{projectId}}/tasks/{{taskId}}
   headers:
     - name: Authorization
-      value: Bearer {{dashboardJwt}}
+      value: Bearer {{token}}
     - name: Content-Type
       value: application/json
   body:

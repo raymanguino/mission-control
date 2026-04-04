@@ -9,6 +9,7 @@
 
 import type { FastifyBaseLogger } from 'fastify';
 import * as agentsDb from '../db/api/agents.js';
+import { pickAgentByOrgRoleLeastLoaded } from '../lib/pickAgentByLoad.js';
 
 /** Set `AGENT_WEBHOOKS_ENABLED=false` (or `0` / `no`) to disable all outbound agent webhook POSTs. Default: enabled. */
 function agentWebhooksEnabled(): boolean {
@@ -23,6 +24,7 @@ export async function postToAgentWebhook(
   hookToken: string | null,
   payload: Record<string, unknown>,
 ): Promise<void> {
+  console.log('postToAgentWebhook', hookUrl, hookToken, payload);
   if (!agentWebhooksEnabled()) {
     return;
   }
@@ -80,11 +82,34 @@ export async function notifyAssignedAgentOfReviewAssigned(
   });
 }
 
+/** When every task in the project is in Review: notify QA that the batch is ready (`allTasksInReview`). */
+export async function notifyQaOfProjectAllTasksInReviewWebhook(
+  agent: { hookUrl: string | null; hookToken: string | null },
+  task: { id: string; title: string; description: string | null; resolution?: string | null },
+  project: { id: string; name: string },
+  projectName: string,
+): Promise<void> {
+  await postToAgentWebhook(agent.hookUrl, agent.hookToken, {
+    event: 'review.assigned',
+    allTasksInReview: true,
+    project: {
+      id: project.id,
+      name: project.name,
+    },
+    task: {
+      id: task.id,
+      title: task.title,
+      description: task.description ?? null,
+      resolution: task.resolution ?? null,
+      projectName,
+    },
+  });
+}
+
 export async function notifyChiefOfStaffOfProject(
   project: { id: string; name: string; description: string | null },
 ): Promise<void> {
-  const cosRows = await agentsDb.getCoSAgents();
-  const agent = cosRows.find((a) => a.hookUrl?.trim() && a.hookToken?.trim());
+  const agent = await pickAgentByOrgRoleLeastLoaded('chief_of_staff', { requireWebhook: true });
   if (!agent) return;
 
   await postToAgentWebhook(agent.hookUrl, agent.hookToken, {

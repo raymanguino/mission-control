@@ -8,14 +8,18 @@ http:
   url: http://{{host}}:{{port}}/api/agents/{{agentId}}
   headers:
     - name: Authorization
-      value: Bearer {{dashboardJwt}}
+      value: Bearer {{token}}
     - name: Content-Type
       value: application/json
   body:
     type: json
     data: |-
       {
-        "orgRole": "qa"
+        "name": "Updated name",
+        "email": "updated@example.com",
+        "specialization": "Backend",
+        "orgRole": "engineer",
+        "reportsToAgentId": null
       }
   auth: inherit
 

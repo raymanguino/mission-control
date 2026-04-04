@@ -1,14 +1,14 @@
 info:
   name: update_project
   type: http
-  seq: 3
+  seq: 4
 
 http:
   method: patch
   url: http://{{host}}:{{port}}/api/projects/{{projectId}}
   headers:
     - name: Authorization
-      value: Bearer {{dashboardJwt}}
+      value: Bearer {{token}}
     - name: Content-Type
       value: application/json
   body:
@@ -18,14 +18,9 @@ http:
         "name": "Updated project name",
         "description": "Updated optional description",
         "status": "approved",
-        "approvedByAgentId": "6fe64e94-edbd-428f-8fd5-fad96250a762"
+        "url": "https://example.com"
       }
   auth: inherit
-
-runtime:
-  variables:
-    - name: projectId
-      value: 3a0fa54d-8bef-4895-a836-762a130082ed
 
 settings:
   encodeUrl: false

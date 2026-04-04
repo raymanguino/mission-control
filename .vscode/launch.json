@@ -4,26 +4,50 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Backend",
+      "name": "mission-control: Backend",
       "runtimeExecutable": "node",
       "runtimeArgs": ["--import", "tsx/esm"],
-      "args": ["src/index.ts"],
+      "program": "${workspaceFolder}/backend/src/index.ts",
       "cwd": "${workspaceFolder}/backend",
       "envFile": "${workspaceFolder}/backend/.env",
       "console": "integratedTerminal",
-      "skipFiles": ["<node_internals>/**", "**/node_modules/**"]
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+      "smartStep": true
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "mission-control: MCP server",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--import", "tsx/esm"],
+      "program": "${workspaceFolder}/mcp/src/index.ts",
+      "cwd": "${workspaceFolder}/mcp",
+      "envFile": "${workspaceFolder}/mcp/.env",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+      "smartStep": true
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "mission-control: Frontend (Vite)",
+      "program": "${workspaceFolder}/frontend/node_modules/vite/bin/vite.js",
+      "cwd": "${workspaceFolder}/frontend",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+      "smartStep": true
     },
     {
       "type": "chrome",
       "request": "launch",
-      "name": "Frontend (Chrome)",
+      "name": "mission-control: Frontend (Chrome)",
       "url": "http://localhost:5173",
       "webRoot": "${workspaceFolder}/frontend"
     },
     {
       "type": "node",
       "request": "launch",
-      "name": "Backend: Vitest (current file)",
+      "name": "mission-control: Backend Vitest (current file)",
       "program": "${workspaceFolder}/backend/node_modules/vitest/vitest.mjs",
       "args": ["run", "${file}"],
       "cwd": "${workspaceFolder}/backend",
@@ -34,20 +58,76 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Backend: Vitest (all)",
+      "name": "mission-control: Backend Vitest (all)",
       "program": "${workspaceFolder}/backend/node_modules/vitest/vitest.mjs",
       "args": ["run"],
       "cwd": "${workspaceFolder}/backend",
       "envFile": "${workspaceFolder}/backend/.env",
       "console": "integratedTerminal",
       "skipFiles": ["<node_internals>/**", "**/node_modules/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "mission-control: MCP Vitest (current file)",
+      "program": "${workspaceFolder}/mcp/node_modules/vitest/vitest.mjs",
+      "args": ["run", "${file}"],
+      "cwd": "${workspaceFolder}/mcp",
+      "envFile": "${workspaceFolder}/mcp/.env",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "mission-control: MCP Vitest (all)",
+      "program": "${workspaceFolder}/mcp/node_modules/vitest/vitest.mjs",
+      "args": ["run"],
+      "cwd": "${workspaceFolder}/mcp",
+      "envFile": "${workspaceFolder}/mcp/.env",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"]
+    },
+    {
+      "type": "node",
+      "request": "attach",
+      "name": "mission-control: Attach to Node (9229)",
+      "port": 9229,
+      "restart": true,
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"]
     }
   ],
   "compounds": [
     {
-      "name": "Backend + Frontend (Chrome)",
-      "configurations": ["Backend", "Frontend (Chrome)"],
-      "stopAll": true
+      "name": "mission-control: Backend + Chrome",
+      "configurations": ["mission-control: Backend", "mission-control: Frontend (Chrome)"],
+      "stopAll": true,
+      "presentation": {
+        "group": "mission-control",
+        "order": 1
+      }
+    },
+    {
+      "name": "mission-control: Full stack (Backend + Vite + Chrome)",
+      "configurations": [
+        "mission-control: Backend",
+        "mission-control: Frontend (Vite)",
+        "mission-control: Frontend (Chrome)"
+      ],
+      "stopAll": true,
+      "presentation": {
+        "group": "mission-control",
+        "order": 2
+      }
+    },
+    {
+      "name": "mission-control: Backend + MCP",
+      "configurations": ["mission-control: Backend", "mission-control: MCP server"],
+      "stopAll": true,
+      "presentation": {
+        "group": "mission-control",
+        "order": 3
+      }
     }
   ]
 }

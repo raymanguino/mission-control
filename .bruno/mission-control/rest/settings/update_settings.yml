@@ -8,7 +8,7 @@ http:
   url: http://{{host}}:{{port}}/api/settings
   headers:
     - name: Authorization
-      value: Bearer {{dashboardJwt}}
+      value: Bearer {{token}}
     - name: Content-Type
       value: application/json
   body:

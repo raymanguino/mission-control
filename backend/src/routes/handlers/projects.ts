@@ -84,11 +84,6 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
     await projectsDb.deleteProject(id);
     return reply.code(204).send();
   });
-
-  fastify.get('/:id/tasks', { preHandler: fastify.authenticate }, async (request) => {
-    const { id } = request.params as { id: string };
-    return projectsDb.listTasks(id);
-  });
 };
 
 export default projectRoutes;

@@ -13,9 +13,16 @@ http:
     type: json
     data: |-
       {
-        "password": "YOUR_DASHBOARD_PASSWORD"
+        "password": "{{dashboardPw}}"
       }
   auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        let data = res.getBody();
+        bru.setEnvVar("dashboardJwt", data.token);
 
 settings:
   encodeUrl: false

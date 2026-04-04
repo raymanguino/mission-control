@@ -12,7 +12,9 @@ export async function registerRoutes(app: FastifyInstance) {
   await app.register(authRoutes, { prefix: '/api/auth' });
   await app.register(agentRoutes, { prefix: '/api/agents' });
   await app.register(projectRoutes, { prefix: '/api/projects' });
-  await app.register(taskRoutes, { prefix: '/api/tasks' });
+  await app.register(async (fastify) => {
+    await fastify.register(taskRoutes, { prefix: '/:projectId/tasks' });
+  }, { prefix: '/api/projects' });
   await app.register(wellnessRoutes, { prefix: '/api/health' });
   await app.register(channelRoutes, { prefix: '/api/channels' });
   await app.register(usageRoutes, { prefix: '/api/usage' });

@@ -171,9 +171,9 @@ export const mcpToolContracts: Record<string, McpToolContract> = {
   },
   get_task: {
     method: 'GET',
-    path: '/api/tasks/:taskId',
+    path: '/api/projects/:projectId/tasks/:taskId',
     params: 'path+query',
-    input: { taskId: z.string() },
+    input: { projectId: z.string().uuid(), taskId: z.string() },
   },
   list_tasks: {
     method: 'GET',
@@ -183,10 +183,10 @@ export const mcpToolContracts: Record<string, McpToolContract> = {
   },
   create_task: {
     method: 'POST',
-    path: '/api/tasks',
-    params: 'body',
+    path: '/api/projects/:projectId/tasks',
+    params: 'path+body',
     input: {
-      projectId: backendRequestSchemas.createTask.shape.projectId,
+      projectId: z.string().uuid(),
       title: backendRequestSchemas.createTask.shape.title,
       description: backendRequestSchemas.createTask.shape.description,
       resolution: backendRequestSchemas.createTask.shape.resolution,
@@ -195,9 +195,10 @@ export const mcpToolContracts: Record<string, McpToolContract> = {
   },
   update_task: {
     method: 'PATCH',
-    path: '/api/tasks/:taskId',
+    path: '/api/projects/:projectId/tasks/:taskId',
     params: 'path+body',
     input: {
+      projectId: z.string().uuid(),
       taskId: z.string(),
       status: backendRequestSchemas.updateTask.shape.status,
       title: backendRequestSchemas.updateTask.shape.title,
@@ -208,9 +209,9 @@ export const mcpToolContracts: Record<string, McpToolContract> = {
   },
   delete_task: {
     method: 'DELETE',
-    path: '/api/tasks/:taskId',
+    path: '/api/projects/:projectId/tasks/:taskId',
     params: 'path+query',
-    input: { taskId: z.string().uuid() },
+    input: { projectId: z.string().uuid(), taskId: z.string().uuid() },
   },
   list_channels: { method: 'GET', path: '/api/channels', params: 'none', input: {} },
   get_messages: {

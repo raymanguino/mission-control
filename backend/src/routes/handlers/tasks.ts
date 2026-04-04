@@ -4,17 +4,24 @@ import * as agentsDb from '../../db/api/agents.js';
 import * as settingsDb from '../../db/api/settings.js';
 import * as emailService from '../../services/email.js';
 import {
-  notifyAssignedAgentOfReviewAssigned,
   notifyAssignedAgentOfTask,
   notifyChiefOfStaffOfProjectCompleted,
+  notifyQaOfProjectAllTasksInReviewWebhook,
 } from '../../services/agentNotifier.js';
+import { getDiscordSyncService } from '../../services/discord/index.js';
+import {
+  formatDiscordProjectFailure,
+  formatDiscordProjectSuccess,
+  resolveGeneralDiscordChannelId,
+  sendDiscordToGeneral,
+} from '../../services/discord/projectAnnouncements.js';
 import { pickAgentByOrgRoleLeastLoaded } from '../../lib/pickAgentByLoad.js';
 import { backendRequestSchemas } from '../../contracts/mcp-contract.js';
 import { touchMcpActivity } from '../../lib/mcpActivity.js';
 import { ApiError, parseBody } from '../../lib/errors.js';
 import { instructionKeyForOrgRole } from '../../lib/agentOrgRoles.js';
 
-const createTaskSchema = backendRequestSchemas.createTask;
+const createTaskBodySchema = backendRequestSchemas.createTask.omit({ projectId: true });
 const updateTaskSchema = backendRequestSchemas.updateTask;
 
 const taskActivityMeta = (task: {
@@ -61,7 +68,7 @@ async function notifyAssignedAgent(
     if (!project) return;
 
     if (agent.hookUrl?.trim() && agent.hookToken?.trim()) {
-      notifyAssignedAgentOfTask(agent, task, project.name).catch((err) =>
+      notifyAssignedAgentOfTask(agent, task, project.name).catch((err: unknown) =>
         log.error({ err }, 'Failed to POST task assignment to agent webhook'),
       );
     }
@@ -81,14 +88,15 @@ async function notifyAssignedAgent(
   }
 }
 
-async function notifyReviewAssignedAgent(
+/** QA batch gate: every task in the project is `review` (webhook includes `allTasksInReview`). */
+async function notifyQaBatchWhenAllTasksInReview(
   taskId: string,
-  assignedAgentId: string,
+  qaAgentId: string,
   log: FastifyBaseLogger,
 ): Promise<void> {
   try {
     const [agent, task] = await Promise.all([
-      agentsDb.getAgent(assignedAgentId),
+      agentsDb.getAgent(qaAgentId),
       projectsDb.getTask(taskId),
     ]);
     if (!agent || !task) return;
@@ -96,8 +104,8 @@ async function notifyReviewAssignedAgent(
     if (!project) return;
 
     if (agent.hookUrl?.trim() && agent.hookToken?.trim()) {
-      notifyAssignedAgentOfReviewAssigned(agent, task, project.name).catch((err) =>
-        log.error({ err }, 'Failed to POST review.assigned to agent webhook'),
+      notifyQaOfProjectAllTasksInReviewWebhook(agent, task, project, project.name).catch((err) =>
+        log.error({ err }, 'Failed to POST review.assigned (batch) to QA webhook'),
       );
     }
 
@@ -112,22 +120,28 @@ async function notifyReviewAssignedAgent(
       );
     }
   } catch (err) {
-    log.error({ err }, 'Failed to notify agent of review task assignment');
+    log.error({ err }, 'Failed to notify QA of batch review');
   }
 }
 
 const taskRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.get('/:id', { preHandler: fastify.authenticate }, async (request) => {
-    const { id } = request.params as { id: string };
-    const task = await projectsDb.getTask(id);
-    if (!task) throw new ApiError(404, 'NOT_FOUND', 'Not found');
+  fastify.get('/', { preHandler: fastify.authenticate }, async (request) => {
+    const { projectId } = request.params as { projectId: string };
+    return projectsDb.listTasks(projectId);
+  });
+
+  fastify.get('/:taskId', { preHandler: fastify.authenticate }, async (request) => {
+    const { projectId, taskId } = request.params as { projectId: string; taskId: string };
+    const task = await projectsDb.getTask(taskId);
+    if (!task || task.projectId !== projectId) throw new ApiError(404, 'NOT_FOUND', 'Not found');
     await touchMcpActivity([task.assignedAgentId]);
     return task;
   });
 
   fastify.post('/', { preHandler: [fastify.authenticate, fastify.enforceIdempotency] }, async (request, reply) => {
-    const body = parseBody(createTaskSchema, request.body);
-    const project = await projectsDb.getProject(body.projectId);
+    const { projectId } = request.params as { projectId: string };
+    const body = parseBody(createTaskBodySchema, request.body);
+    const project = await projectsDb.getProject(projectId);
     if (!project) {
       throw new ApiError(400, 'BAD_REQUEST', 'Unknown projectId');
     }
@@ -139,21 +153,13 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
         { reason: 'project_not_approved', status: project.status },
       );
     }
-    let createPayload: Parameters<typeof projectsDb.createTask>[0] = body;
-    if (body.status === 'review') {
-      const qa = await pickAgentByOrgRoleLeastLoaded('qa');
-      createPayload = {
-        ...body,
-        assignedAgentId: qa?.id ?? null,
-        implementerAgentId: null,
-      };
-    } else {
-      const engineer = await pickAgentByOrgRoleLeastLoaded('engineer');
-      createPayload = {
-        ...body,
-        assignedAgentId: engineer?.id ?? null,
-      };
-    }
+    const engineer = await pickAgentByOrgRoleLeastLoaded('engineer');
+    const createPayload: Parameters<typeof projectsDb.createTask>[0] = {
+      ...body,
+      projectId,
+      assignedAgentId: engineer?.id ?? null,
+      implementerAgentId: null,
+    };
 
     const task = await projectsDb.createTask(createPayload);
     await fastify.finalizeIdempotency(request, 201, task);
@@ -164,34 +170,53 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
         description: `Task "${task.title}" created in ${project.name}`,
         metadata: taskActivityMeta({ ...task, projectName: project.name }),
       });
-      if (task.status === 'review') {
-        await notifyReviewAssignedAgent(task.id, task.assignedAgentId, request.log);
-      } else {
-        await notifyAssignedAgent(task.id, task.assignedAgentId, request.log);
+      await notifyAssignedAgent(task.id, task.assignedAgentId, request.log);
+    }
+
+    if (
+      (await projectsDb.projectTasksAllInReview(task.projectId)) &&
+      task.status === 'review'
+    ) {
+      const qa = await pickAgentByOrgRoleLeastLoaded('qa');
+      if (qa?.id) {
+        await notifyQaBatchWhenAllTasksInReview(task.id, qa.id, request.log);
       }
     }
 
     return reply.code(201).send(task);
   });
 
-  fastify.patch('/:id', { preHandler: fastify.authenticate }, async (request, reply) => {
-    const { id } = request.params as { id: string };
+  fastify.patch('/:taskId', { preHandler: fastify.authenticate }, async (request, reply) => {
+    const { projectId, taskId } = request.params as { projectId: string; taskId: string };
     const body = parseBody(updateTaskSchema, request.body);
 
-    const existing = await projectsDb.getTask(id);
-    if (!existing) throw new ApiError(404, 'NOT_FOUND', 'Not found');
+    const existing = await projectsDb.getTask(taskId);
+    if (!existing || existing.projectId !== projectId) throw new ApiError(404, 'NOT_FOUND', 'Not found');
+
+    const explicitAssignee = 'assignedAgentId' in body;
 
     let updateData = { ...body } as Parameters<typeof projectsDb.updateTask>[1];
 
-    if (body.status === 'review' && existing.status !== 'review') {
+    if (body.status === 'review' && existing.status !== 'review' && !explicitAssignee) {
       const implementer =
         existing.status === 'doing' && existing.assignedAgentId
           ? existing.assignedAgentId
           : null;
-      const qa = await pickAgentByOrgRoleLeastLoaded('qa');
+      const engineer = await pickAgentByOrgRoleLeastLoaded('engineer');
       updateData = {
         ...updateData,
-        assignedAgentId: qa?.id ?? null,
+        assignedAgentId: engineer?.id ?? null,
+        implementerAgentId: implementer,
+      };
+    }
+
+    if (body.status === 'review' && existing.status !== 'review' && explicitAssignee) {
+      const implementer =
+        existing.status === 'doing' && existing.assignedAgentId
+          ? existing.assignedAgentId
+          : null;
+      updateData = {
+        ...updateData,
         implementerAgentId: implementer,
       };
     }
@@ -221,7 +246,7 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
 
-    const task = await projectsDb.updateTask(id, updateData);
+    const task = await projectsDb.updateTask(taskId, updateData);
     if (!task) throw new ApiError(404, 'NOT_FOUND', 'Not found');
 
     const project = await projectsDb.getProject(task.projectId);
@@ -252,36 +277,61 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
     const enteringReview = body.status === 'review' && existing.status !== 'review';
 
     if (enteringReview && task.assignedAgentId) {
-      await notifyReviewAssignedAgent(id, task.assignedAgentId, request.log);
+      await notifyAssignedAgent(taskId, task.assignedAgentId, request.log);
     } else if (
       task.assignedAgentId &&
       existing.assignedAgentId !== task.assignedAgentId
     ) {
-      if (task.status === 'review') {
-        await notifyReviewAssignedAgent(id, task.assignedAgentId, request.log);
-      } else {
-        await notifyAssignedAgent(id, task.assignedAgentId, request.log);
-      }
+      await notifyAssignedAgent(taskId, task.assignedAgentId, request.log);
     }
 
     if (
-      existing.status === 'review' &&
-      body.status === 'done' &&
+      (await projectsDb.projectTasksAllInReview(task.projectId)) &&
+      enteringReview
+    ) {
+      const qa = await pickAgentByOrgRoleLeastLoaded('qa');
+      if (qa?.id) {
+        await notifyQaBatchWhenAllTasksInReview(taskId, qa.id, request.log);
+      }
+    }
+
+    const transitionedToDone = existing.status !== 'done' && task.status === 'done';
+    if (
+      transitionedToDone &&
       project &&
       (await projectsDb.projectTasksAllDone(task.projectId))
     ) {
       notifyChiefOfStaffOfProjectCompleted(project, request.log).catch((err) =>
         request.log.error({ err }, 'Failed to POST project.completed to agent webhook'),
       );
+      const discord = getDiscordSyncService();
+      const channelId = await resolveGeneralDiscordChannelId(discord, request.log);
+      const taskList = await projectsDb.listTasks(task.projectId);
+      const discordBody = formatDiscordProjectSuccess(project, taskList);
+      await sendDiscordToGeneral(discord, channelId, discordBody, request.log);
+    }
+
+    const transitionedToNotDone = existing.status !== 'not_done' && task.status === 'not_done';
+    if (
+      transitionedToNotDone &&
+      project &&
+      (await projectsDb.projectTasksAllNotDone(task.projectId))
+    ) {
+      const discord = getDiscordSyncService();
+      const channelId = await resolveGeneralDiscordChannelId(discord, request.log);
+      const taskList = await projectsDb.listTasks(task.projectId);
+      const discordBody = formatDiscordProjectFailure(project, taskList);
+      await sendDiscordToGeneral(discord, channelId, discordBody, request.log);
     }
 
     return task;
   });
 
-  fastify.delete('/:id', { preHandler: fastify.authenticate }, async (request, reply) => {
-    const { id } = request.params as { id: string };
-    const existing = await projectsDb.getTask(id);
-    if (existing?.assignedAgentId) {
+  fastify.delete('/:taskId', { preHandler: fastify.authenticate }, async (request, reply) => {
+    const { projectId, taskId } = request.params as { projectId: string; taskId: string };
+    const existing = await projectsDb.getTask(taskId);
+    if (!existing || existing.projectId !== projectId) throw new ApiError(404, 'NOT_FOUND', 'Not found');
+    if (existing.assignedAgentId) {
       const project = await projectsDb.getProject(existing.projectId);
       const projectName = project?.name ?? 'Project';
       await logFleetTaskActivity(existing.assignedAgentId, {
@@ -290,7 +340,7 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
         metadata: taskActivityMeta({ ...existing, projectName }),
       });
     }
-    await projectsDb.deleteTask(id);
+    await projectsDb.deleteTask(taskId);
     return reply.code(204).send();
   });
 };

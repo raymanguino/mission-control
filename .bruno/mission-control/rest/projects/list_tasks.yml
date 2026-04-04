@@ -1,14 +1,14 @@
 info:
   name: list_tasks
   type: http
-  seq: 6
+  seq: 7
 
 http:
   method: get
   url: http://{{host}}:{{port}}/api/projects/{{projectId}}/tasks
   headers:
     - name: Authorization
-      value: Bearer {{dashboardJwt}}
+      value: Bearer {{token}}
   auth: inherit
 
 settings:

@@ -8,7 +8,7 @@ http:
   url: http://{{host}}:{{port}}/api/usage/records?limit=50&offset=0
   headers:
     - name: Authorization
-      value: Bearer {{dashboardJwt}}
+      value: Bearer {{token}}
   auth: inherit
 
 settings:

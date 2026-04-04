@@ -5,10 +5,10 @@ info:
 
 http:
   method: delete
-  url: http://{{host}}:{{port}}/api/agents/f14f1ea0-d771-4ecf-ad1c-83a0519880b8
+  url: http://{{host}}:{{port}}/api/agents/{{agentId}}
   headers:
     - name: Authorization
-      value: Bearer {{dashboardJwt}}
+      value: Bearer {{token}}
   auth: inherit
 
 settings:

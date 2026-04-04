@@ -7,12 +7,13 @@ import type { Project, Task } from '@mission-control/types';
 export function registerProjectTools(server: McpServer) {
   server.tool(
     'get_task',
-    'Get a single task by ID.\n\nRequired: `taskId`.',
+    'Get a single task by ID.\n\nRequired: `projectId`, `taskId`.',
     {
+      projectId: z.string().uuid().describe('Project UUID (required).'),
       taskId: z.string().describe('Task UUID (required).'),
     },
-    async ({ taskId }) => {
-      const task = await apiGet<Task>(`/api/tasks/${taskId}`);
+    async ({ projectId, taskId }) => {
+      const task = await apiGet<Task>(`/api/projects/${projectId}/tasks/${taskId}`);
       return {
         content: [{ type: 'text', text: JSON.stringify(task, null, 2) }],
       };
@@ -161,8 +162,8 @@ export function registerProjectTools(server: McpServer) {
     },
     async ({ projectId, title, description, resolution, status }) => {
       const task = await apiPost<Task>(
-        '/api/tasks',
-        omitNullValues({ projectId, title, description, resolution, status }),
+        `/api/projects/${projectId}/tasks`,
+        omitNullValues({ title, description, resolution, status }),
       );
       return {
         content: [{ type: 'text', text: JSON.stringify(task, null, 2) }],
@@ -172,8 +173,9 @@ export function registerProjectTools(server: McpServer) {
 
   server.tool(
     'update_task',
-    'Update a task.\n\nRequired: `taskId`.\nOptional: `status`, `title`, `description`, `resolution`, `assignedAgentId`.\nIf `assignedAgentId` is set to `null`, the task is unassigned.',
+    'Update a task.\n\nRequired: `projectId`, `taskId`.\nOptional: `status`, `title`, `description`, `resolution`, `assignedAgentId`.\nIf `assignedAgentId` is set to `null`, the task is unassigned.',
     {
+      projectId: z.string().uuid().describe('Project UUID (required).'),
       taskId: z.string().describe('Task UUID (required).'),
       status: z.enum(['backlog', 'doing', 'review', 'not_done', 'done']).optional(),
       title: z.string().optional().describe('Updated task title (omit to keep unchanged).'),
@@ -191,8 +193,11 @@ export function registerProjectTools(server: McpServer) {
         .optional()
         .describe('Set to agent UUID to assign, or `null` to unassign (omit to keep unchanged).'),
     },
-    async ({ taskId, ...updates }) => {
-      const task = await apiPatch<Task>(`/api/tasks/${taskId}`, omitNullValues(updates));
+    async ({ projectId, taskId, ...updates }) => {
+      const task = await apiPatch<Task>(
+        `/api/projects/${projectId}/tasks/${taskId}`,
+        omitNullValues(updates),
+      );
       return {
         content: [{ type: 'text', text: JSON.stringify(task, null, 2) }],
       };
@@ -201,12 +206,13 @@ export function registerProjectTools(server: McpServer) {
 
   server.tool(
     'delete_task',
-    'Permanently delete a task.\n\nRequired: `taskId`.',
+    'Permanently delete a task.\n\nRequired: `projectId`, `taskId`.',
     {
+      projectId: z.string().uuid().describe('Project UUID (required).'),
       taskId: z.string().uuid().describe('Task UUID (required).'),
     },
-    async ({ taskId }) => {
-      await apiDelete(`/api/tasks/${taskId}`);
+    async ({ projectId, taskId }) => {
+      await apiDelete(`/api/projects/${projectId}/tasks/${taskId}`);
       return {
         content: [{ type: 'text', text: `Task deleted (id: ${taskId}).` }],
       };
