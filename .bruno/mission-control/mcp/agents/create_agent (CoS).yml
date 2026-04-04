@@ -1,0 +1,33 @@
+info:
+  name: create_agent (CoS)
+  type: http
+  seq: 3
+
+http:
+  method: post
+  url: http://{{host}}:{{port}}/api/agents
+  headers:
+    - name: Authorization
+      value: Bearer {{dashboardJwt}}
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "name": "Ralph",
+        "email": "ralph.six7swe@agentmail.to",
+        "specialization": "project management",
+        "description": "Chief of Staff. Receives project.approval_requested events, decomposes projects into tasks, assigns to best-fit agents. Also handles instructions.updated. Personal assistant to Mr. with WhatsApp access.",
+        "device": "Raspberry Pi 4, 1.5GHz 64-bit quad-core ARMv8 CPU, 2GB RAM",
+        "ip": "100.108.70.74",
+        "hookUrl": "https://six7swe-leader.tailc28236.ts.net/hooks/mc",
+        "hookToken": "f2c3cab4ac54bbbffd473baa6bbdfc3fd96aab9d1d3ec2aec184d5e162c97c9f"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

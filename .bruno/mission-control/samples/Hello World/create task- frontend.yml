@@ -1,0 +1,31 @@
+info:
+  name: "create task: frontend"
+  type: http
+  seq: 3
+
+http:
+  method: post
+  url: http://{{host}}:{{port}}/api/projects/{{projectId}}/tasks
+  headers:
+    - name: Authorization
+      value: Bearer {{dashboardJwt}}
+    - name: Content-Type
+      value: application/json
+  body:
+    type: file
+    data:
+      - filePath: samples\Hello World\create_task.json
+        contentType: application/json; charset=utf-8
+        selected: true
+  auth: inherit
+
+runtime:
+  variables:
+    - name: projectId
+      value: 77bc5ddb-9cd5-4aec-be9d-994d3134cca7
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

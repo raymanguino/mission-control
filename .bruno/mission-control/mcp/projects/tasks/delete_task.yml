@@ -1,0 +1,18 @@
+info:
+  name: delete_task
+  type: http
+  seq: 3
+
+http:
+  method: delete
+  url: http://{{host}}:{{port}}/api/projects/{{projectId}}/tasks/{{taskId}}
+  headers:
+    - name: Authorization
+      value: Bearer {{token}}
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
