@@ -8,7 +8,7 @@ import {
   notifyAssignedAgentOfTask,
   notifyChiefOfStaffOfProjectCompleted,
 } from '../../services/agentNotifier.js';
-import { pickQaReviewerAgent } from '../../lib/pickQaReviewer.js';
+import { pickAgentByOrgRoleLeastLoaded } from '../../lib/pickAgentByLoad.js';
 import { backendRequestSchemas } from '../../contracts/mcp-contract.js';
 import { touchMcpActivity } from '../../lib/mcpActivity.js';
 import { ApiError, parseBody } from '../../lib/errors.js';
@@ -139,19 +139,19 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
         { reason: 'project_not_approved', status: project.status },
       );
     }
-    if (body.assignedAgentId) {
-      const agent = await agentsDb.getAgent(body.assignedAgentId);
-      if (!agent) {
-        throw new ApiError(400, 'BAD_REQUEST', 'Unknown assignedAgentId');
-      }
-    }
     let createPayload: Parameters<typeof projectsDb.createTask>[0] = body;
     if (body.status === 'review') {
-      const qa = await pickQaReviewerAgent();
+      const qa = await pickAgentByOrgRoleLeastLoaded('qa');
       createPayload = {
         ...body,
         assignedAgentId: qa?.id ?? null,
         implementerAgentId: null,
+      };
+    } else {
+      const engineer = await pickAgentByOrgRoleLeastLoaded('engineer');
+      createPayload = {
+        ...body,
+        assignedAgentId: engineer?.id ?? null,
       };
     }
 
@@ -188,7 +188,7 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
         existing.status === 'doing' && existing.assignedAgentId
           ? existing.assignedAgentId
           : null;
-      const qa = await pickQaReviewerAgent();
+      const qa = await pickAgentByOrgRoleLeastLoaded('qa');
       updateData = {
         ...updateData,
         assignedAgentId: qa?.id ?? null,

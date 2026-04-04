@@ -294,7 +294,6 @@ function TaskSlideOver({
         title,
         description,
         status,
-        assignedAgentId: agentId || undefined,
       });
     }
     onSaved();
@@ -356,21 +355,28 @@ function TaskSlideOver({
               ))}
             </select>
           </div>
-          <div>
-            <label className="text-xs text-gray-400">Assigned Agent</label>
-            <select
-              value={agentId}
-              onChange={(e) => setAgentId(e.target.value)}
-              className="w-full mt-1 bg-gray-800 rounded-md px-3 py-2 text-sm text-white border border-gray-700 focus:outline-none"
-            >
-              <option value="">None</option>
-              {agents.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {task ? (
+            <div>
+              <label className="text-xs text-gray-400">Assigned Agent</label>
+              <select
+                value={agentId}
+                onChange={(e) => setAgentId(e.target.value)}
+                className="w-full mt-1 bg-gray-800 rounded-md px-3 py-2 text-sm text-white border border-gray-700 focus:outline-none"
+              >
+                <option value="">None</option>
+                {agents.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <p className="text-xs text-gray-500">
+              Assignee is set automatically: an engineer with the fewest open tasks (or a QA agent if
+              status is Review).
+            </p>
+          )}
         </div>
         <div className="px-5 py-4 border-t border-gray-800 flex justify-between">
           {task ? (

@@ -133,7 +133,7 @@ export function registerProjectTools(server: McpServer) {
 
   server.tool(
     'create_task',
-    'Create a new task in a project. The project must have status `approved` (use update_project first).\n\nRequired: `projectId`, `title`.\nOptional: `description`, `status` (default: backlog), `assignedAgentId`.',
+    'Create a new task in a project. The project must have status `approved` (use update_project first).\n\nRequired: `projectId`, `title`.\nOptional: `description`, `status` (default: backlog).\n\nAssignee is chosen automatically: an engineer with the fewest open (non-done) tasks (random tie-break), or a QA agent if `status` is `review`.',
     {
       projectId: z.string().describe('Project UUID (required).'),
       title: z.string().describe('Task title (required).'),
@@ -145,15 +145,11 @@ export function registerProjectTools(server: McpServer) {
         .enum(['backlog', 'doing', 'review', 'done'])
         .optional()
         .describe('Initial status (default: backlog).'),
-      assignedAgentId: z
-        .string()
-        .optional()
-        .describe('Agent UUID to assign (omit to leave unassigned).'),
     },
-    async ({ projectId, title, description, status, assignedAgentId }) => {
+    async ({ projectId, title, description, status }) => {
       const task = await apiPost<Task>(
         '/api/tasks',
-        omitNullValues({ projectId, title, description, status, assignedAgentId }),
+        omitNullValues({ projectId, title, description, status }),
       );
       return {
         content: [{ type: 'text', text: JSON.stringify(task, null, 2) }],

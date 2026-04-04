@@ -56,7 +56,6 @@ export const backendRequestSchemas = {
     title: z.string(),
     description: z.string().optional(),
     status: z.enum(['backlog', 'doing', 'review', 'done']).optional(),
-    assignedAgentId: z.string().uuid().optional(),
     order: z.number().int().optional(),
   }),
   updateTask: z.object({
@@ -187,7 +186,6 @@ export const mcpToolContracts: Record<string, McpToolContract> = {
       title: backendRequestSchemas.createTask.shape.title,
       description: backendRequestSchemas.createTask.shape.description,
       status: backendRequestSchemas.createTask.shape.status,
-      assignedAgentId: z.string().optional(),
     },
   },
   update_task: {
