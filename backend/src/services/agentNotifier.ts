@@ -97,7 +97,7 @@ export async function notifyChiefOfStaffOfProject(
 
 /** When every task in a project is Done: notify each chief_of_staff agent that has a webhook. */
 export async function notifyChiefOfStaffOfProjectCompleted(
-  project: { id: string; name: string; description: string | null },
+  project: { id: string; name: string; description: string | null; url: string | null },
   log?: FastifyBaseLogger,
 ): Promise<void> {
   if (!agentWebhooksEnabled()) return;
@@ -112,6 +112,7 @@ export async function notifyChiefOfStaffOfProjectCompleted(
         id: project.id,
         name: project.name,
         description: project.description ?? null,
+        url: project.url ?? null,
       },
     });
     posted += 1;
