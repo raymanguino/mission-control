@@ -49,6 +49,7 @@ export async function createTask(data: {
   projectId: string;
   title: string;
   description?: string;
+  resolution?: string | null;
   status?: string;
   assignedAgentId?: string | null;
   implementerAgentId?: string | null;
@@ -63,6 +64,7 @@ export async function updateTask(
   data: Partial<{
     title: string;
     description: string;
+    resolution: string | null;
     status: string;
     assignedAgentId: string | null;
     implementerAgentId: string | null;

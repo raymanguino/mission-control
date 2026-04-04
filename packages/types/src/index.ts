@@ -118,13 +118,15 @@ export interface Project {
   updatedAt: string;
 }
 
-export type TaskStatus = 'backlog' | 'doing' | 'review' | 'done';
+export type TaskStatus = 'backlog' | 'doing' | 'review' | 'not_done' | 'done';
 
 export interface Task {
   id: string;
   projectId: string;
   title: string;
   description: string | null;
+  /** Optional resolution notes (outcome / how it was closed). */
+  resolution: string | null;
   status: TaskStatus;
   assignedAgentId: string | null;
   /** Set when moving Doing → Review; used when moving Review → Backlog to reassign the implementer. */

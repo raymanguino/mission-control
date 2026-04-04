@@ -226,6 +226,7 @@ const COLUMNS: { id: TaskStatus; label: string }[] = [
   { id: 'backlog', label: 'Backlog' },
   { id: 'doing', label: 'Doing' },
   { id: 'review', label: 'Review' },
+  { id: 'not_done', label: 'Not Done' },
   { id: 'done', label: 'Done' },
 ];
 
@@ -276,6 +277,11 @@ function TaskCard({
       </div>
       {task.description && (
         <p className="text-xs text-gray-400 mt-1 line-clamp-2">{task.description}</p>
+      )}
+      {task.resolution && (
+        <p className="text-xs text-amber-200/90 mt-1 line-clamp-2" title={task.resolution}>
+          Resolution: {task.resolution}
+        </p>
       )}
       {assignedAgent && (
         <span className="mt-2 inline-flex items-center gap-1.5 text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded-full">
@@ -348,14 +354,24 @@ function TaskSlideOver({
 }) {
   const [title, setTitle] = useState(task?.title ?? '');
   const [description, setDescription] = useState(task?.description ?? '');
+  const [resolution, setResolution] = useState(task?.resolution ?? '');
   const [status, setStatus] = useState<TaskStatus>(task?.status ?? 'backlog');
   const [agentId, setAgentId] = useState(task?.assignedAgentId ?? '');
+
+  useEffect(() => {
+    setTitle(task?.title ?? '');
+    setDescription(task?.description ?? '');
+    setResolution(task?.resolution ?? '');
+    setStatus((task?.status ?? 'backlog') as TaskStatus);
+    setAgentId(task?.assignedAgentId ?? '');
+  }, [task]);
 
   async function save() {
     if (task) {
       await api.patch(`/api/tasks/${task.id}`, {
         title,
         description,
+        resolution,
         status,
         assignedAgentId: agentId || null,
       });
@@ -364,6 +380,7 @@ function TaskSlideOver({
         projectId,
         title,
         description,
+        resolution: resolution || undefined,
         status,
       });
     }
@@ -410,6 +427,16 @@ function TaskSlideOver({
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               className="w-full mt-1 bg-gray-800 rounded-md px-3 py-2 text-sm text-white border border-gray-700 focus:outline-none resize-none"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-400">Resolution</label>
+            <textarea
+              value={resolution}
+              onChange={(e) => setResolution(e.target.value)}
+              rows={3}
+              placeholder="How this task was resolved or closed (optional)"
+              className="w-full mt-1 bg-gray-800 rounded-md px-3 py-2 text-sm text-white border border-gray-700 focus:outline-none resize-none placeholder:text-gray-600"
             />
           </div>
           <div>

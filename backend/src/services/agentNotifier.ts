@@ -47,7 +47,7 @@ export async function postToAgentWebhook(
 
 export async function notifyAssignedAgentOfTask(
   agent: { hookUrl: string | null; hookToken: string | null },
-  task: { id: string; title: string; description: string | null },
+  task: { id: string; title: string; description: string | null; resolution?: string | null },
   projectName: string,
 ): Promise<void> {
   await postToAgentWebhook(agent.hookUrl, agent.hookToken, {
@@ -56,6 +56,7 @@ export async function notifyAssignedAgentOfTask(
       id: task.id,
       title: task.title,
       description: task.description ?? null,
+      resolution: task.resolution ?? null,
       projectName,
     },
   });
@@ -64,7 +65,7 @@ export async function notifyAssignedAgentOfTask(
 /** When a task already in Review gets a new assignee (reviewer): notify that agent's webhook. */
 export async function notifyAssignedAgentOfReviewAssigned(
   agent: { hookUrl: string | null; hookToken: string | null },
-  task: { id: string; title: string; description: string | null },
+  task: { id: string; title: string; description: string | null; resolution?: string | null },
   projectName: string,
 ): Promise<void> {
   await postToAgentWebhook(agent.hookUrl, agent.hookToken, {
@@ -73,6 +74,7 @@ export async function notifyAssignedAgentOfReviewAssigned(
       id: task.id,
       title: task.title,
       description: task.description ?? null,
+      resolution: task.resolution ?? null,
       projectName,
     },
   });

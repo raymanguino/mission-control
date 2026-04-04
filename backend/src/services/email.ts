@@ -39,7 +39,7 @@ export async function notifyCoSOfProject(
 
 export async function notifyAgentOfTask(
   agent: { email: string; name: string },
-  task: { id: string; title: string; description: string | null },
+  task: { id: string; title: string; description: string | null; resolution?: string | null },
   project: { name: string },
   instructions: string,
 ): Promise<void> {
@@ -51,6 +51,9 @@ export async function notifyAgentOfTask(
     `Task ID: ${task.id}`,
     `Title: ${task.title}`,
     `Description: ${task.description ?? '(none)'}`,
+    ...(task.resolution?.trim()
+      ? [`Resolution: ${task.resolution}`]
+      : []),
     ``,
     `---`,
     `Your instructions:`,
@@ -61,7 +64,7 @@ export async function notifyAgentOfTask(
 
 export async function notifyAgentOfReviewTask(
   agent: { email: string; name: string },
-  task: { id: string; title: string; description: string | null },
+  task: { id: string; title: string; description: string | null; resolution?: string | null },
   project: { name: string },
   instructions: string,
 ): Promise<void> {
@@ -73,6 +76,9 @@ export async function notifyAgentOfReviewTask(
     `Task ID: ${task.id}`,
     `Title: ${task.title}`,
     `Description: ${task.description ?? '(none)'}`,
+    ...(task.resolution?.trim()
+      ? [`Resolution: ${task.resolution}`]
+      : []),
     ``,
     `---`,
     `Your instructions:`,

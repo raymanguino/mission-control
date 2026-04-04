@@ -23,7 +23,7 @@ function eventTone(type: string): EventTone {
   if (
     t.includes('complete') ||
     t.includes('success') ||
-    t.includes('done') ||
+    /\bdone\b/.test(t) ||
     t === 'ok'
   ) {
     return 'success';

@@ -131,6 +131,7 @@ export function registerProjectTools(server: McpServer) {
         backlog: tasks.filter((t) => t.status === 'backlog'),
         doing: tasks.filter((t) => t.status === 'doing'),
         review: tasks.filter((t) => t.status === 'review'),
+        not_done: tasks.filter((t) => t.status === 'not_done'),
         done: tasks.filter((t) => t.status === 'done'),
       };
       return {
@@ -141,7 +142,7 @@ export function registerProjectTools(server: McpServer) {
 
   server.tool(
     'create_task',
-    'Create a new task in a project. The project must have status `approved` (use update_project first).\n\nRequired: `projectId`, `title`.\nOptional: `description`, `status` (default: backlog).\n\nAssignee is chosen automatically: an engineer with the fewest open (non-done) tasks (random tie-break), or a QA agent if `status` is `review`.',
+    'Create a new task in a project. The project must have status `approved` (use update_project first).\n\nRequired: `projectId`, `title`.\nOptional: `description`, `resolution`, `status` (default: backlog).\n\nAssignee is chosen automatically: an engineer with the fewest open (non-done) tasks (random tie-break), or a QA agent if `status` is `review`.',
     {
       projectId: z.string().describe('Project UUID (required).'),
       title: z.string().describe('Task title (required).'),
@@ -149,15 +150,19 @@ export function registerProjectTools(server: McpServer) {
         .string()
         .optional()
         .describe('Optional longer description (omit if not needed).'),
+      resolution: z
+        .string()
+        .optional()
+        .describe('Optional resolution / outcome description (omit if not needed).'),
       status: z
-        .enum(['backlog', 'doing', 'review', 'done'])
+        .enum(['backlog', 'doing', 'review', 'not_done', 'done'])
         .optional()
         .describe('Initial status (default: backlog).'),
     },
-    async ({ projectId, title, description, status }) => {
+    async ({ projectId, title, description, resolution, status }) => {
       const task = await apiPost<Task>(
         '/api/tasks',
-        omitNullValues({ projectId, title, description, status }),
+        omitNullValues({ projectId, title, description, resolution, status }),
       );
       return {
         content: [{ type: 'text', text: JSON.stringify(task, null, 2) }],
@@ -167,15 +172,19 @@ export function registerProjectTools(server: McpServer) {
 
   server.tool(
     'update_task',
-    'Update a task.\n\nRequired: `taskId`.\nOptional: `status`, `title`, `description`, `assignedAgentId`.\nIf `assignedAgentId` is set to `null`, the task is unassigned.',
+    'Update a task.\n\nRequired: `taskId`.\nOptional: `status`, `title`, `description`, `resolution`, `assignedAgentId`.\nIf `assignedAgentId` is set to `null`, the task is unassigned.',
     {
       taskId: z.string().describe('Task UUID (required).'),
-      status: z.enum(['backlog', 'doing', 'review', 'done']).optional(),
+      status: z.enum(['backlog', 'doing', 'review', 'not_done', 'done']).optional(),
       title: z.string().optional().describe('Updated task title (omit to keep unchanged).'),
       description: z
         .string()
         .optional()
         .describe('Updated description (omit to keep unchanged).'),
+      resolution: z
+        .string()
+        .optional()
+        .describe('Updated resolution / outcome (omit to keep unchanged).'),
       assignedAgentId: z
         .string()
         .nullable()

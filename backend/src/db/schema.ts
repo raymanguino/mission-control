@@ -72,6 +72,8 @@ export const tasks = pgTable('tasks', {
     .references(() => projects.id, { onDelete: 'cascade' }),
   title: text('title').notNull(),
   description: text('description'),
+  /** How the task was resolved (e.g. when marked Done or Not Done). */
+  resolution: text('resolution'),
   status: text('status').notNull().default('backlog'),
   assignedAgentId: uuid('assigned_agent_id').references(() => agents.id, {
     onDelete: 'set null',

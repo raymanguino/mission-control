@@ -196,7 +196,10 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
       };
     }
 
-    if (existing.status === 'review' && body.status === 'backlog') {
+    if (
+      existing.status === 'review' &&
+      (body.status === 'backlog' || body.status === 'not_done')
+    ) {
       updateData = {
         ...updateData,
         assignedAgentId: existing.implementerAgentId ?? null,

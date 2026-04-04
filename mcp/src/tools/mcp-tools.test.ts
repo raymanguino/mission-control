@@ -106,7 +106,8 @@ describe('MCP tool unit tests', () => {
       { id: 't1', status: 'backlog' },
       { id: 't2', status: 'doing' },
       { id: 't3', status: 'doing' },
-      { id: 't4', status: 'done' },
+      { id: 't4', status: 'not_done' },
+      { id: 't5', status: 'done' },
     ];
     apiGetMock.mockResolvedValueOnce(tasks as any);
 
@@ -118,7 +119,8 @@ describe('MCP tool unit tests', () => {
       backlog: [tasks[0]],
       doing: [tasks[1], tasks[2]],
       review: [],
-      done: [tasks[3]],
+      not_done: [tasks[3]],
+      done: [tasks[4]],
     });
   });
 
