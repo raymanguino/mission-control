@@ -276,9 +276,10 @@ export default function AgentDetail() {
           Required. Mission Control POSTs JSON events to this URL with{' '}
           <code className="text-gray-400">Authorization: Bearer &lt;token&gt;</code>.           Task assignments
           go to the assigned agent (<code className="text-gray-400">task.assigned</code> or{' '}
-          <code className="text-gray-400">task.review_assigned</code> when the task is already in Review); new projects, tasks moved to Review (
-          <code className="text-gray-400">task.completed</code>), and Chief of Staff instruction
-          saves go to the CoS agent. Saving Agent playbook instructions in Settings notifies Engineer and QA agents (
+          <code className="text-gray-400">review.assigned</code> when the task is already in Review); new
+          projects (<code className="text-gray-400">project.approval_requested</code>) and Chief of Staff
+          instruction saves go to the CoS agent. Saving Agent Instructions in Settings notifies engineers;
+          saving QA Instruction notifies QA agents (
           <code className="text-gray-400">instructions.updated</code>).
         </p>
         <div className="space-y-3 max-w-xl">

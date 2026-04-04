@@ -47,6 +47,7 @@ export default function Settings() {
   const [dashboardTitle, setDashboardTitle] = useState('');
   const [cosInstructions, setCosInstructions] = useState('');
   const [agentInstructions, setAgentInstructions] = useState('');
+  const [qaInstructions, setQaInstructions] = useState('');
   const [activityStaleToIdleMin, setActivityStaleToIdleMin] = useState<number>(
     AGENT_PRESENCE_DEFAULTS.activityStaleToIdleMinutes,
   );
@@ -72,6 +73,7 @@ export default function Settings() {
         setDashboardTitle(s['dashboard_title'] ?? '');
         setCosInstructions(s['cos_instructions'] ?? '');
         setAgentInstructions(s['agent_instructions'] ?? '');
+        setQaInstructions(s['qa_instructions'] ?? '');
         const t1Raw =
           s[AGENT_PRESENCE_SETTING_KEYS.activityStaleToIdleMinutes] ??
           s[AGENT_PRESENCE_LEGACY_MCP_STALE_KEY] ??
@@ -171,15 +173,14 @@ export default function Settings() {
         )}
       </div>
 
-      {/* Agent Instructions */}
+      {/* Agent Instructions (engineers) */}
       <div className="bg-gray-900 rounded-xl p-5 border border-gray-800 space-y-3">
         <h2 className="text-sm font-semibold text-white">Agent Instructions</h2>
         <p className="text-xs text-gray-500">
-          Sent to Engineer and QA agents on registration, task assignment, and with every report
-          response. On Save, Mission Control POSTs{' '}
-          <code className="text-gray-400">instructions.updated</code> to each{' '}
-          <span className="text-gray-400">engineer</span> or <span className="text-gray-400">qa</span>{' '}
-          agent with a webhook configured—not to the Chief of Staff.
+          Sent to <span className="text-gray-400">engineer</span> agents on registration, task
+          assignment, and with every report response. On Save, Mission Control POSTs{' '}
+          <code className="text-gray-400">instructions.updated</code> to each engineer agent with a
+          webhook configured—not to QA or the Chief of Staff.
         </p>
         {settingsLoading ? (
           <p className="text-xs text-gray-500">Loading…</p>
@@ -196,6 +197,35 @@ export default function Settings() {
               className="px-3 py-1.5 text-xs rounded-md bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50"
             >
               {saving === 'agent_instructions' ? 'Saving…' : 'Save'}
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* QA Instructions */}
+      <div className="bg-gray-900 rounded-xl p-5 border border-gray-800 space-y-3">
+        <h2 className="text-sm font-semibold text-white">QA Instruction</h2>
+        <p className="text-xs text-gray-500">
+          Sent to <span className="text-gray-400">qa</span> agents on registration, task assignment,
+          and with every report response. On Save, Mission Control POSTs{' '}
+          <code className="text-gray-400">instructions.updated</code> to each QA agent with a webhook
+          configured—not to engineers or the Chief of Staff.
+        </p>
+        {settingsLoading ? (
+          <p className="text-xs text-gray-500">Loading…</p>
+        ) : (
+          <>
+            <textarea
+              className="w-full bg-gray-800 text-gray-200 text-xs rounded-md p-3 border border-gray-700 resize-y min-h-[120px] focus:outline-none focus:border-gray-600"
+              value={qaInstructions}
+              onChange={(e) => setQaInstructions(e.target.value)}
+            />
+            <button
+              onClick={() => saveSetting('qa_instructions', qaInstructions)}
+              disabled={saving === 'qa_instructions'}
+              className="px-3 py-1.5 text-xs rounded-md bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50"
+            >
+              {saving === 'qa_instructions' ? 'Saving…' : 'Save'}
             </button>
           </>
         )}

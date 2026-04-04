@@ -1,6 +1,5 @@
-import { and, count, desc, eq, inArray, isNotNull } from 'drizzle-orm';
+import { and, count, desc, eq, isNotNull } from 'drizzle-orm';
 import type { AgentOrgRole } from '../../lib/agentOrgRoles.js';
-import { SHARED_AGENT_INSTRUCTION_ORG_ROLES } from '../../lib/agentOrgRoles.js';
 import { db } from '../index.js';
 import { agents, agentActivities } from '../schema.js';
 
@@ -23,21 +22,6 @@ export async function listAgentsWithEmailByOrgRole(orgRole: AgentOrgRole) {
 /** All agents with the given org role (same pattern as {@link getCoSAgents}). */
 export async function listAgentsByOrgRole(orgRole: AgentOrgRole) {
   return db.select().from(agents).where(eq(agents.orgRole, orgRole));
-}
-
-/** Engineers and QA agents (shared `agent_instructions` playbook). */
-export async function listAgentsForSharedAgentInstructions() {
-  return db
-    .select()
-    .from(agents)
-    .where(inArray(agents.orgRole, [...SHARED_AGENT_INSTRUCTION_ORG_ROLES]));
-}
-
-export async function listAgentsWithEmailForSharedAgentInstructions() {
-  return db
-    .select()
-    .from(agents)
-    .where(and(inArray(agents.orgRole, [...SHARED_AGENT_INSTRUCTION_ORG_ROLES]), isNotNull(agents.email)));
 }
 
 export async function listAgents() {

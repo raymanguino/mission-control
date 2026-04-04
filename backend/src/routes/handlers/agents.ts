@@ -8,7 +8,10 @@ import * as settingsDb from '../../db/api/settings.js';
 import { backendRequestSchemas } from '../../contracts/mcp-contract.js';
 import { ApiError, parseBody } from '../../lib/errors.js';
 import { touchMcpActivity } from '../../lib/mcpActivity.js';
-import { defaultOrgRoleForRegistration } from '../../lib/agentOrgRoles.js';
+import {
+  defaultOrgRoleForRegistration,
+  instructionKeyForOrgRole,
+} from '../../lib/agentOrgRoles.js';
 import { toPublicAgent } from '../../lib/publicAgent.js';
 
 const agentAvatarIdSchema = z
@@ -73,7 +76,7 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
     const agent = await agentsDb.createAgent({ ...body, apiKeyHash, orgRole, avatarId });
     await touchMcpActivity([agent.id]);
 
-    const instrKey = orgRole === 'chief_of_staff' ? 'cos_instructions' : 'agent_instructions';
+    const instrKey = instructionKeyForOrgRole(orgRole);
     const agentInstructions = await settingsDb.getSetting(instrKey);
 
     const response = { ...toPublicAgent(agent), apiKey: rawKey, agentInstructions };
@@ -198,10 +201,6 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.code(201).send(response);
   });
 };
-
-function instructionKeyForOrgRole(orgRole: string): 'cos_instructions' | 'agent_instructions' {
-  return orgRole === 'chief_of_staff' ? 'cos_instructions' : 'agent_instructions';
-}
 
 function inferStatusFromType(type: string): 'online' | 'idle' | 'offline' {
   const normalized = type.toLowerCase();

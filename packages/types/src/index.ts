@@ -2,7 +2,10 @@
 export type AgentStatus = 'online' | 'idle' | 'offline';
 export type AgentOrgRole = 'chief_of_staff' | 'engineer' | 'qa';
 
-/** Roles that receive the shared `agent_instructions` playbook (non–Chief of Staff). */
+/**
+ * Engineer and QA roles (non–Chief of Staff). Playbook text is stored separately:
+ * `agent_instructions` for engineers, `qa_instructions` for QA (see Settings).
+ */
 export const SHARED_AGENT_INSTRUCTION_ORG_ROLES: readonly AgentOrgRole[] = ['engineer', 'qa'];
 
 /** Preset block-style avatars (filenames under `/avatars/{id}.svg`). */
@@ -122,6 +125,8 @@ export interface Task {
   description: string | null;
   status: TaskStatus;
   assignedAgentId: string | null;
+  /** Set when moving Doing → Review; used when moving Review → Backlog to reassign the implementer. */
+  implementerAgentId: string | null;
   order: number;
   createdAt: string;
   updatedAt: string;

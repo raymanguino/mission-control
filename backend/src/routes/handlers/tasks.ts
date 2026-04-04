@@ -6,11 +6,13 @@ import * as emailService from '../../services/email.js';
 import {
   notifyAssignedAgentOfReviewAssigned,
   notifyAssignedAgentOfTask,
-  notifyChiefOfStaffOfTaskCompleted,
+  notifyChiefOfStaffOfProjectCompleted,
 } from '../../services/agentNotifier.js';
+import { pickQaReviewerAgent } from '../../lib/pickQaReviewer.js';
 import { backendRequestSchemas } from '../../contracts/mcp-contract.js';
 import { touchMcpActivity } from '../../lib/mcpActivity.js';
 import { ApiError, parseBody } from '../../lib/errors.js';
+import { instructionKeyForOrgRole } from '../../lib/agentOrgRoles.js';
 
 const createTaskSchema = backendRequestSchemas.createTask;
 const updateTaskSchema = backendRequestSchemas.updateTask;
@@ -65,7 +67,8 @@ async function notifyAssignedAgent(
     }
 
     if (agent.email) {
-      const instructions = (await settingsDb.getSetting('agent_instructions')) ?? '';
+      const key = instructionKeyForOrgRole(agent.orgRole);
+      const instructions = (await settingsDb.getSetting(key)) ?? '';
       await emailService.notifyAgentOfTask(
         { email: agent.email, name: agent.name },
         task,
@@ -94,12 +97,13 @@ async function notifyReviewAssignedAgent(
 
     if (agent.hookUrl?.trim() && agent.hookToken?.trim()) {
       notifyAssignedAgentOfReviewAssigned(agent, task, project.name).catch((err) =>
-        log.error({ err }, 'Failed to POST task.review_assigned to agent webhook'),
+        log.error({ err }, 'Failed to POST review.assigned to agent webhook'),
       );
     }
 
     if (agent.email) {
-      const instructions = (await settingsDb.getSetting('agent_instructions')) ?? '';
+      const key = instructionKeyForOrgRole(agent.orgRole);
+      const instructions = (await settingsDb.getSetting(key)) ?? '';
       await emailService.notifyAgentOfReviewTask(
         { email: agent.email, name: agent.name },
         task,
@@ -141,19 +145,29 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
         throw new ApiError(400, 'BAD_REQUEST', 'Unknown assignedAgentId');
       }
     }
-    const task = await projectsDb.createTask(body);
+    let createPayload: Parameters<typeof projectsDb.createTask>[0] = body;
+    if (body.status === 'review') {
+      const qa = await pickQaReviewerAgent();
+      createPayload = {
+        ...body,
+        assignedAgentId: qa?.id ?? null,
+        implementerAgentId: null,
+      };
+    }
+
+    const task = await projectsDb.createTask(createPayload);
     await fastify.finalizeIdempotency(request, 201, task);
 
-    if (body.assignedAgentId) {
-      await logFleetTaskActivity(body.assignedAgentId, {
+    if (task.assignedAgentId) {
+      await logFleetTaskActivity(task.assignedAgentId, {
         type: 'task_created',
         description: `Task "${task.title}" created in ${project.name}`,
         metadata: taskActivityMeta({ ...task, projectName: project.name }),
       });
       if (task.status === 'review') {
-        await notifyReviewAssignedAgent(task.id, body.assignedAgentId, request.log);
+        await notifyReviewAssignedAgent(task.id, task.assignedAgentId, request.log);
       } else {
-        await notifyAssignedAgent(task.id, body.assignedAgentId, request.log);
+        await notifyAssignedAgent(task.id, task.assignedAgentId, request.log);
       }
     }
 
@@ -167,9 +181,35 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
     const existing = await projectsDb.getTask(id);
     if (!existing) throw new ApiError(404, 'NOT_FOUND', 'Not found');
 
-    // Auto-unassign when status moves to review
-    const updateData =
-      body.status === 'review' ? { ...body, assignedAgentId: null } : body;
+    let updateData = { ...body } as Parameters<typeof projectsDb.updateTask>[1];
+
+    if (body.status === 'review' && existing.status !== 'review') {
+      const implementer =
+        existing.status === 'doing' && existing.assignedAgentId
+          ? existing.assignedAgentId
+          : null;
+      const qa = await pickQaReviewerAgent();
+      updateData = {
+        ...updateData,
+        assignedAgentId: qa?.id ?? null,
+        implementerAgentId: implementer,
+      };
+    }
+
+    if (existing.status === 'review' && body.status === 'backlog') {
+      updateData = {
+        ...updateData,
+        assignedAgentId: existing.implementerAgentId ?? null,
+      };
+    }
+
+    if (existing.status === 'review' && body.status === 'done') {
+      updateData = {
+        ...updateData,
+        assignedAgentId: null,
+        implementerAgentId: null,
+      };
+    }
 
     if (updateData.assignedAgentId) {
       const agent = await agentsDb.getAgent(updateData.assignedAgentId);
@@ -206,19 +246,29 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
       });
     }
 
-    // Notify newly assigned agent (skip if we're also clearing via review auto-unassign)
-    const newAssigneeId = task.assignedAgentId;
-    if (newAssigneeId && existing.assignedAgentId !== newAssigneeId) {
+    const enteringReview = body.status === 'review' && existing.status !== 'review';
+
+    if (enteringReview && task.assignedAgentId) {
+      await notifyReviewAssignedAgent(id, task.assignedAgentId, request.log);
+    } else if (
+      task.assignedAgentId &&
+      existing.assignedAgentId !== task.assignedAgentId
+    ) {
       if (task.status === 'review') {
-        await notifyReviewAssignedAgent(id, newAssigneeId, request.log);
+        await notifyReviewAssignedAgent(id, task.assignedAgentId, request.log);
       } else {
-        await notifyAssignedAgent(id, newAssigneeId, request.log);
+        await notifyAssignedAgent(id, task.assignedAgentId, request.log);
       }
     }
 
-    if (existing.status !== 'review' && task.status === 'review') {
-      notifyChiefOfStaffOfTaskCompleted(task, projectName).catch((err) =>
-        request.log.error({ err }, 'Failed to POST task.completed to chief of staff webhook'),
+    if (
+      existing.status === 'review' &&
+      body.status === 'done' &&
+      project &&
+      (await projectsDb.projectTasksAllDone(task.projectId))
+    ) {
+      notifyChiefOfStaffOfProjectCompleted(project, request.log).catch((err) =>
+        request.log.error({ err }, 'Failed to POST project.completed to agent webhook'),
       );
     }
 

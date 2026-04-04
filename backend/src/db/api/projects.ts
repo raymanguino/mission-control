@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, count, eq, inArray, ne } from 'drizzle-orm';
 import { db } from '../index.js';
 import { projects, tasks } from '../schema.js';
 
@@ -44,7 +44,8 @@ export async function createTask(data: {
   title: string;
   description?: string;
   status?: string;
-  assignedAgentId?: string;
+  assignedAgentId?: string | null;
+  implementerAgentId?: string | null;
   order?: number;
 }) {
   const rows = await db.insert(tasks).values(data).returning();
@@ -58,6 +59,7 @@ export async function updateTask(
     description: string;
     status: string;
     assignedAgentId: string | null;
+    implementerAgentId: string | null;
     order: number;
   }>,
 ) {
@@ -76,4 +78,35 @@ export async function deleteTask(id: string) {
 export async function getTask(id: string) {
   const rows = await db.select().from(tasks).where(eq(tasks.id, id)).limit(1);
   return rows[0] ?? null;
+}
+
+/** Count tasks assigned to each agent where status is not `done` (load for QA routing). */
+export async function countNonDoneTasksByAssignedAgentIds(
+  agentIds: string[],
+): Promise<Record<string, number>> {
+  const out: Record<string, number> = Object.fromEntries(agentIds.map((id) => [id, 0]));
+  if (agentIds.length === 0) return out;
+
+  const rows = await db
+    .select({
+      assignedAgentId: tasks.assignedAgentId,
+      c: count(),
+    })
+    .from(tasks)
+    .where(and(inArray(tasks.assignedAgentId, agentIds), ne(tasks.status, 'done')))
+    .groupBy(tasks.assignedAgentId);
+
+  for (const row of rows) {
+    if (row.assignedAgentId) {
+      out[row.assignedAgentId] = Number(row.c);
+    }
+  }
+  return out;
+}
+
+/** True when the project has at least one task and every task is `done`. */
+export async function projectTasksAllDone(projectId: string): Promise<boolean> {
+  const list = await listTasks(projectId);
+  if (list.length === 0) return false;
+  return list.every((t) => t.status === 'done');
 }

@@ -17,7 +17,7 @@ export function registerSettingsTools(server: McpServer) {
 
   server.tool(
     'update_settings',
-    'Update one or more application settings.\n\nRequired: `updates` (key-value pairs to set, e.g. `{ "cos_instructions": "..." }`).',
+    'Update one or more application settings.\n\nRequired: `updates` (key-value pairs to set, e.g. `{ "cos_instructions": "...", "agent_instructions": "...", "qa_instructions": "..." }`).',
     {
       updates: z
         .record(z.string(), z.string())

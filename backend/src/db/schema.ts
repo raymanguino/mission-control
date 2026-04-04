@@ -72,6 +72,10 @@ export const tasks = pgTable('tasks', {
   assignedAgentId: uuid('assigned_agent_id').references(() => agents.id, {
     onDelete: 'set null',
   }),
+  /** Agent who had the task in Doing when it moved to Review (for return-to-implementer on Backlog). */
+  implementerAgentId: uuid('implementer_agent_id').references(() => agents.id, {
+    onDelete: 'set null',
+  }),
   order: integer('order').notNull().default(0),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),

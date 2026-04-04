@@ -1,6 +1,7 @@
 /**
  * POSTs JSON event payloads to each agent's configured `hookUrl` with `Authorization: Bearer <hookToken>`.
- * Used for task assignment (assigned agent), review assignment (`task.review_assigned`), task.completed / review handoff (chief of staff), and org-wide events.
+ * Used for task assignment (assigned agent), review assignment (`review.assigned`), project approval
+ * (chief of staff), `project.completed`, and org-wide instruction updates.
  *
  * OpenClaw gateway `POST /hooks/agent` requires a `message` string; instruction payloads include it
  * so hooks work when `hookUrl` points at that endpoint. Custom receivers may ignore extra fields.
@@ -67,7 +68,7 @@ export async function notifyAssignedAgentOfReviewAssigned(
   projectName: string,
 ): Promise<void> {
   await postToAgentWebhook(agent.hookUrl, agent.hookToken, {
-    event: 'task.review_assigned',
+    event: 'review.assigned',
     task: {
       id: task.id,
       title: task.title,
@@ -94,24 +95,33 @@ export async function notifyChiefOfStaffOfProject(
   });
 }
 
-/** When a task moves into the Review column: notify the first chief_of_staff agent that has a webhook. */
-export async function notifyChiefOfStaffOfTaskCompleted(
-  task: { id: string; title: string; description: string | null },
-  projectName: string,
+/** When every task in a project is Done: notify each chief_of_staff agent that has a webhook. */
+export async function notifyChiefOfStaffOfProjectCompleted(
+  project: { id: string; name: string; description: string | null },
+  log?: FastifyBaseLogger,
 ): Promise<void> {
-  const cosRows = await agentsDb.getCoSAgents();
-  const agent = cosRows.find((a) => a.hookUrl?.trim() && a.hookToken?.trim());
-  if (!agent) return;
+  if (!agentWebhooksEnabled()) return;
 
-  await postToAgentWebhook(agent.hookUrl, agent.hookToken, {
-    event: 'task.completed',
-    task: {
-      id: task.id,
-      title: task.title,
-      description: task.description ?? null,
-      projectName,
-    },
-  });
+  const cosRows = await agentsDb.getCoSAgents();
+  let posted = 0;
+  for (const agent of cosRows) {
+    if (!agent.hookUrl?.trim() || !agent.hookToken?.trim()) continue;
+    await postToAgentWebhook(agent.hookUrl, agent.hookToken, {
+      event: 'project.completed',
+      project: {
+        id: project.id,
+        name: project.name,
+        description: project.description ?? null,
+      },
+    });
+    posted += 1;
+  }
+
+  if (posted === 0) {
+    log?.warn(
+      'Skipping project.completed webhook: no chief_of_staff agent has both hook URL and hook token set.',
+    );
+  }
 }
 
 const INSTRUCTIONS_UPDATE_EVENT = 'instructions.updated' as const;
@@ -150,13 +160,13 @@ export async function notifyChiefOfStaffInstructionsUpdated(
   }
 }
 
-/** When shared agent playbook text is saved: notify each engineer/QA agent that has a webhook. */
-export async function notifyEngineerAndQaAgentsInstructionsUpdated(
+/** When engineer playbook text is saved: notify each engineer agent that has a webhook. */
+export async function notifyEngineerAgentsInstructionsUpdated(
   log?: FastifyBaseLogger,
 ): Promise<void> {
   if (!agentWebhooksEnabled()) return;
 
-  const rows = await agentsDb.listAgentsForSharedAgentInstructions();
+  const rows = await agentsDb.listAgentsByOrgRole('engineer');
   let posted = 0;
   for (const agent of rows) {
     if (!agent.hookUrl?.trim() || !agent.hookToken?.trim()) continue;
@@ -166,7 +176,26 @@ export async function notifyEngineerAndQaAgentsInstructionsUpdated(
 
   if (posted === 0) {
     log?.warn(
-      'Skipping instructions.updated webhook: no engineer or QA agent has both hook URL and hook token set.',
+      'Skipping instructions.updated webhook: no engineer agent has both hook URL and hook token set.',
+    );
+  }
+}
+
+/** When QA playbook text is saved: notify each QA agent that has a webhook. */
+export async function notifyQaAgentsInstructionsUpdated(log?: FastifyBaseLogger): Promise<void> {
+  if (!agentWebhooksEnabled()) return;
+
+  const rows = await agentsDb.listAgentsByOrgRole('qa');
+  let posted = 0;
+  for (const agent of rows) {
+    if (!agent.hookUrl?.trim() || !agent.hookToken?.trim()) continue;
+    await postToAgentWebhook(agent.hookUrl, agent.hookToken, instructionsUpdatePayload());
+    posted += 1;
+  }
+
+  if (posted === 0) {
+    log?.warn(
+      'Skipping instructions.updated webhook: no QA agent has both hook URL and hook token set.',
     );
   }
 }

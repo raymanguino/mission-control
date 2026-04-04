@@ -5,7 +5,8 @@ import * as settingsDb from '../../db/api/settings.js';
 import * as emailService from '../../services/email.js';
 import {
   notifyChiefOfStaffInstructionsUpdated,
-  notifyEngineerAndQaAgentsInstructionsUpdated,
+  notifyEngineerAgentsInstructionsUpdated,
+  notifyQaAgentsInstructionsUpdated,
 } from '../../services/agentNotifier.js';
 import type { AgentOrgRole } from '../../lib/agentOrgRoles.js';
 import { ApiError, parseBody } from '../../lib/errors.js';
@@ -16,7 +17,7 @@ const DASHBOARD_TITLE_MAX_LEN = 128;
 
 const updateSettingsSchema = z.record(z.string(), z.string());
 
-const INSTRUCTION_SETTING_KEYS = ['cos_instructions', 'agent_instructions'] as const;
+const INSTRUCTION_SETTING_KEYS = ['cos_instructions', 'agent_instructions', 'qa_instructions'] as const;
 
 function resolveDashboardTitle(raw: string | null): string {
   const t = raw?.trim() ?? '';
@@ -95,9 +96,15 @@ async function notifyAgentsOfInstructionChanges(
       }
     } else if (key === 'agent_instructions') {
       try {
-        await notifyEngineerAndQaAgentsInstructionsUpdated(request.log);
+        await notifyEngineerAgentsInstructionsUpdated(request.log);
       } catch (err) {
-        request.log.error({ err }, 'Failed to notify engineer/QA agent webhooks of instructions update');
+        request.log.error({ err }, 'Failed to notify engineer agent webhooks of instructions update');
+      }
+    } else if (key === 'qa_instructions') {
+      try {
+        await notifyQaAgentsInstructionsUpdated(request.log);
+      } catch (err) {
+        request.log.error({ err }, 'Failed to notify QA agent webhooks of instructions update');
       }
     }
 
@@ -116,14 +123,27 @@ async function notifyAgentsOfInstructionChanges(
           request.log.error({ err, agentId: a.id }, 'Failed to send instruction update email');
         }
       }
-    } else {
-      const sharedAgents = await agentsDb.listAgentsWithEmailForSharedAgentInstructions();
-      for (const a of sharedAgents) {
+    } else if (key === 'agent_instructions') {
+      const engineers = await agentsDb.listAgentsWithEmailByOrgRole('engineer');
+      for (const a of engineers) {
         if (!a.email) continue;
         try {
           await emailService.notifyAgentInstructionsUpdated(
             { email: a.email, name: a.name },
-            a.orgRole as AgentOrgRole,
+            'engineer',
+          );
+        } catch (err) {
+          request.log.error({ err, agentId: a.id }, 'Failed to send instruction update email');
+        }
+      }
+    } else if (key === 'qa_instructions') {
+      const qaAgents = await agentsDb.listAgentsWithEmailByOrgRole('qa');
+      for (const a of qaAgents) {
+        if (!a.email) continue;
+        try {
+          await emailService.notifyAgentInstructionsUpdated(
+            { email: a.email, name: a.name },
+            'qa',
           );
         } catch (err) {
           request.log.error({ err, agentId: a.id }, 'Failed to send instruction update email');
