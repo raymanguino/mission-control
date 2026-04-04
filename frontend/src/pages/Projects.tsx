@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import {
   DndContext,
   PointerSensor,
@@ -13,7 +13,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { AgentAvatar } from '../components/agents/AgentAvatar.js';
 import { api, ApiError } from '../utils/api.js';
 import type { Project, ProjectStatus, Task, TaskStatus, Agent } from '@mission-control/types';
-import { PROJECT_STATUS_BADGE_CLASS, PROJECT_STATUS_LABELS } from '../utils/projectLabels.js';
+import { PROJECT_STATUS_LABELS } from '../utils/projectLabels.js';
 
 function ApprovedByRow({
   agents,
@@ -29,7 +29,7 @@ function ApprovedByRow({
   const textClass = compact ? 'text-xs' : 'text-sm';
   return (
     <div className={`flex flex-wrap items-center gap-1.5 ${textClass}`}>
-      <span className="text-gray-500 shrink-0">Approved by</span>
+      <span className="text-green-400 shrink-0">Approved by</span>
       {approver ? (
         <span className="inline-flex items-center gap-1.5 text-gray-200 min-w-0">
           <AgentAvatar avatarId={approver.avatarId} size={avatarSize} className="rounded-sm shrink-0" />
@@ -50,6 +50,29 @@ function notifyProjectsUpdated() {
 
 const PROJECT_FIELD_CLASS =
   'w-full bg-gray-800 rounded-md px-3 py-2 text-sm text-white border border-gray-700 focus:outline-none focus:border-indigo-500';
+
+function OpensInNewTabIcon({ className = 'h-3.5 w-3.5' }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      aria-hidden
+      className={`shrink-0 text-gray-500 ${className}`}
+    >
+      <path
+        fillRule="evenodd"
+        d="M4.25 5.5a.75.75 0 0 0-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 0 0 .75-.75v-4a.75.75 0 0 1 1.5 0v4A2.25 2.25 0 0 1 12.75 17h-8.5A2.25 2.25 0 0 1 2 14.75v-8.5A2.25 2.25 0 0 1 4.25 4h5a.75.75 0 0 1 0 1.5h-5Z"
+        clipRule="evenodd"
+      />
+      <path
+        fillRule="evenodd"
+        d="M6.194 12.753a.75.75 0 0 0 1.06.053L16.5 4.44v2.81a.75.75 0 0 0 1.5 0v-4.5a.75.75 0 0 0-.75-.75h-4.5a.75.75 0 0 0 0 1.5h2.553l-9.056 8.194a.75.75 0 0 0 .053 1.06Z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
+}
 
 /** Same overlay shell as wellness log modals (Health.tsx Modal). */
 function ProjectEditModal({
@@ -611,20 +634,64 @@ export default function Projects() {
 
   const descTrim = project.description?.trim() ?? '';
   const hasDescription = descTrim.length > 0;
-  const descriptionPreview = descTrim.length > 48 ? `${descTrim.slice(0, 48)}…` : descTrim;
+  const urlTrim = project.url?.trim() ?? '';
+  const approver =
+    project.status === 'approved' && project.approvedByAgentId
+      ? agents.find((a) => a.id === project.approvedByAgentId)
+      : null;
 
   return (
     <div className="flex h-full min-h-0 flex-col -mx-6 overflow-hidden">
       <header className="sticky top-0 z-20 shrink-0 border-b border-gray-800/70 bg-gray-950 px-6 pt-4 pb-3">
         <div className="max-w-3xl space-y-2">
           <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
-            <div className="flex flex-wrap items-center gap-2 min-w-0">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0">
               <h1 className="text-lg font-semibold text-white tracking-tight truncate">{project.name}</h1>
-              <span
-                className={`text-[0.65rem] font-medium px-1.5 py-0.5 rounded ${PROJECT_STATUS_BADGE_CLASS[project.status]}`}
-              >
-                {PROJECT_STATUS_LABELS[project.status]}
-              </span>
+              {project.status === 'approved' ? (
+                <>
+                  <span className="text-xs text-green-400 shrink-0">Approved by</span>
+                  {project.approvedByAgentId ? (
+                    <Link
+                      to={`/agents/${project.approvedByAgentId}`}
+                      title={approver?.name ?? 'View agent'}
+                      aria-label={
+                        approver ? `View ${approver.name} profile` : 'View approving agent profile'
+                      }
+                      className="inline-flex rounded-sm ring-offset-2 ring-offset-gray-950 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <AgentAvatar
+                        avatarId={approver?.avatarId ?? null}
+                        size={22}
+                        className="rounded-sm"
+                      />
+                    </Link>
+                  ) : (
+                    <span
+                      className="inline-flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-sm border border-dashed border-gray-600 bg-gray-900/60 text-[10px] font-medium text-gray-500"
+                      title="Approver not recorded"
+                      aria-label="Approver not recorded"
+                    >
+                      ?
+                    </span>
+                  )}
+                </>
+              ) : project.status === 'pending_approval' ? (
+                <span className="text-xs text-yellow-400 shrink-0">Pending approval</span>
+              ) : (
+                <span className="text-xs text-red-300/90 shrink-0">{PROJECT_STATUS_LABELS[project.status]}</span>
+              )}
+              {urlTrim ? (
+                <a
+                  href={urlTrim}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Open project URL in a new tab"
+                  className="inline-flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 shrink-0"
+                >
+                  Open
+                  <OpensInNewTabIcon />
+                </a>
+              ) : null}
             </div>
             <div className="flex flex-wrap items-center justify-end gap-1.5 shrink-0">
               <button
@@ -646,57 +713,18 @@ export default function Projects() {
             </div>
           </div>
 
-          <div className="rounded-lg border border-gray-800/90 bg-gray-900/50 p-2 space-y-1.5">
-            <details className="group rounded border border-gray-800/80 overflow-hidden bg-gray-950/40">
-              <summary className="flex cursor-pointer items-center gap-1.5 px-2 py-1 text-xs list-none [&::-webkit-details-marker]:hidden hover:bg-gray-800/40 select-none">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  aria-hidden
-                  className="h-3 w-3 shrink-0 text-gray-500 transition-transform group-open:rotate-90"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <span className="font-medium text-gray-400">Description</span>
-                {!hasDescription ? (
-                  <span className="text-gray-600">(none)</span>
-                ) : (
-                  <span className="text-gray-600 truncate max-w-[12rem] sm:max-w-xs">{descriptionPreview}</span>
-                )}
-              </summary>
-              <div className="border-t border-gray-800/80 px-2 py-1.5 max-h-32 overflow-y-auto">
-                {hasDescription ? (
-                  <p className="text-xs text-gray-300 whitespace-pre-wrap leading-relaxed">{descTrim}</p>
-                ) : (
-                  <p className="text-xs text-gray-600 italic">No description.</p>
-                )}
-              </div>
-            </details>
-
-            {project.status === 'approved' ? (
-              <div className="px-0.5 pt-0.5 border-t border-gray-800/60">
-                <ApprovedByRow agents={agents} approvedByAgentId={project.approvedByAgentId} compact />
-              </div>
-            ) : null}
-
-            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs border-t border-gray-800/60 pt-1.5 px-0.5">
-              <span className="text-gray-500 shrink-0">URL</span>
-              {project.url?.trim() ? (
-                <a
-                  href={project.url.trim()}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-indigo-400 hover:text-indigo-300 hover:underline break-all min-w-0"
-                >
-                  {project.url.trim()}
-                </a>
+          <div className="h-36 rounded-lg border border-gray-800/90 bg-gray-900/50 flex flex-col min-h-0 overflow-hidden">
+            <div className="px-3 py-1.5 text-xs shrink-0">
+              <span className="font-medium text-gray-400">Description</span>
+              {!hasDescription ? (
+                <span className="text-gray-600 ml-1.5">(none)</span>
+              ) : null}
+            </div>
+            <div className="border-t border-gray-800/80 px-3 py-1.5 flex-1 min-h-0 overflow-y-auto">
+              {hasDescription ? (
+                <p className="text-xs text-gray-300 whitespace-pre-wrap leading-relaxed">{descTrim}</p>
               ) : (
-                <span className="text-gray-600">—</span>
+                <p className="text-xs text-gray-600 italic">No description.</p>
               )}
             </div>
           </div>
