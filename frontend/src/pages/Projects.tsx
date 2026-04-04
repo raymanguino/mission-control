@@ -643,7 +643,7 @@ export default function Projects() {
   return (
     <div className="flex h-full min-h-0 flex-col -mx-6 overflow-hidden">
       <header className="sticky top-0 z-20 shrink-0 border-b border-gray-800/70 bg-gray-950 px-6 pt-4 pb-3">
-        <div className="max-w-3xl space-y-2">
+        <div className="w-full space-y-2">
           <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0">
               <h1 className="text-lg font-semibold text-white tracking-tight truncate">{project.name}</h1>
@@ -714,13 +714,7 @@ export default function Projects() {
           </div>
 
           <div className="h-36 rounded-lg border border-gray-800/90 bg-gray-900/50 flex flex-col min-h-0 overflow-hidden">
-            <div className="px-3 py-1.5 text-xs shrink-0">
-              <span className="font-medium text-gray-400">Description</span>
-              {!hasDescription ? (
-                <span className="text-gray-600 ml-1.5">(none)</span>
-              ) : null}
-            </div>
-            <div className="border-t border-gray-800/80 px-3 py-1.5 flex-1 min-h-0 overflow-y-auto">
+            <div className="px-3 py-1.5 flex-1 min-h-0 overflow-y-auto">
               {hasDescription ? (
                 <p className="text-xs text-gray-300 whitespace-pre-wrap leading-relaxed">{descTrim}</p>
               ) : (
