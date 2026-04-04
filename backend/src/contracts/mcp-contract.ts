@@ -50,6 +50,7 @@ export const backendRequestSchemas = {
     description: z.string().optional(),
     status: z.enum(['pending_approval', 'approved', 'denied']).optional(),
     url: z.string().url().nullable().optional(),
+    approvedByAgentId: z.string().uuid().nullable().optional(),
   }),
   createTask: z.object({
     projectId: z.string().uuid(),
@@ -157,6 +158,7 @@ export const mcpToolContracts: Record<string, McpToolContract> = {
       description: backendRequestSchemas.updateProject.shape.description,
       status: backendRequestSchemas.updateProject.shape.status,
       url: backendRequestSchemas.updateProject.shape.url,
+      approvedByAgentId: backendRequestSchemas.updateProject.shape.approvedByAgentId,
     },
   },
   delete_project: {

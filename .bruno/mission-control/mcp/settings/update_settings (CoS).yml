@@ -14,71 +14,49 @@ http:
   body:
     type: json
     data: |-
-      ## Mission Control Agent Playbook
+      ## Mission Control Agent Playbook — Chief of Staff
 
       Use this as the primary execution guide. Event handlers are authoritative.
 
-      ### Authentication (how requests are authorized)
-      Primary path — Mission Control MCP tools (get_project, create_task, list_agents, get_settings, etc.)
+      ### Authentication
+      Connect to the MCP HTTP endpoint at .../mcp.
+      Authenticate with: Authorization: Bearer <MCP_API_KEY>
 
-      1. Connect to the MCP HTTP endpoint your operator provides (for example …/mcp), not raw backend URLs, unless you are deliberately using the REST API below.
-      2. Authenticate each request to MCP with the shared MCP key: send Authorization: Bearer <MCP_API_KEY>, or set header x-mcp-key to the same value. Without this, the MCP server returns 401.
-      3. Trust boundary: The MCP server holds DASHBOARD_PASSWORD (same value as the backend’s dashboard PIN) and BACKEND_URL; it obtains a dashboard JWT via POST /api/auth/login and uses Authorization: Bearer <JWT> for backend calls. You do not put the dashboard PIN in agent prompts; ensure the host running MCP is configured with those env vars.
+      ### Event: `project.approval_requested`
+      1. Call `get_project` to load full project details.
+      2. If the project cannot be built as a web app, call `update_project` to set status to `denied` and stop.
+      3. Otherwise, expand the description into a clear, implementation-ready plan:
+         - Resolve ambiguity
+         - Add architecture direction consistent with `CLAUDE.md`
+         - Define expected outcome and scope boundaries
+      4. Break the plan into discrete tasks. Call `create_task` for each:
+         - Split by concern (frontend / backend / database / integration / testing / docs)
+         - Keep tasks independently assignable and reviewable
+         - Leave `status` as `backlog` — the system assigns agents automatically
+         - Do NOT assign tasks yourself
+      5. Call `update_project` to set status to `approved`.
 
-      If calling the backend REST API directly (not via MCP)
-      - Dashboard / same capabilities as the web UI: POST /api/auth/login with { "password": "<DASHBOARD_PASSWORD>" }, then send the returned token as Authorization: Bearer <token> on subsequent requests.
-      - Agent-authenticated routes only (for example agent report endpoints): Authorization: Bearer <agent API key> matching the key issued when the agent was registered (stored hashed server-side).
+      ### Event: `project.completed`
+      1. Call `get_project` to retrieve the current project details, including its `url`.
+      2. Post the project URL to the #general Discord channel. Format: "✅ Project [name] is complete: <url>"
+      3. If no URL is set, note that in the message instead.
 
-      ### Event: `project.approval_requested` (Chief of Staff)
-      1. Call `get_project` to load complete project details.
-      2. If the details describe a project that cannot be created with a web app, then call update_project to mark the status to `denied` and exit this flow. Otherwise, call update_project to mark the status to `approved` and continue to the next step.
-      3. Expand the project description into a clear, implementation-ready plan:
-         - Resolve ambiguity.
-         - Add architecture direction consistent with `CLAUDE.md`.
-         - Define expected outcome and scope boundaries.
-      4. Break the plan into discrete tasks and call `create_task` for each:
-         - Split by concern where useful (frontend/backend/database/integration/testing/docs).
-         - Keep tasks independently assignable and reviewable.
-         - 
-      5. Call `list_agents` to review availability and specialization.
-      6. Assign each task via `assignedAgentId` to the best-fit agent (self-assignment allowed).
-      7. Call `update_project` to set the status to `approved`. 
-
-      ### Event: `task.assigned` (Task Agent)
-      1. Call `update_task` and set `status` to `"doing"`.
-      2. Call `get_project` to get the optional url. 
-      3. If no url is given, then create a new repository with the project name and id as the unique repository name.  
-      2. Implement the task using available MCP tools and the project standards.
-      3. Publish or update the implementation to either the new repository if one was created or the given one.
-      4. Call `update_project` to set or update the GitHub URL when applicable.
-      5. Call `update_task` and set `status` to `"review"` when complete.
-
-      ### Event: `instructions.updated` (All Roles)
+      ### Event: `instructions.updated`
       1. Call `get_settings` immediately.
-      2. Refresh your local instruction context from the updated settings.
-      3. Continue execution using the refreshed instructions for all subsequent actions.
-
-      ---
-
-      ## Role Principles
+      2. Refresh your local instruction context.
+      3. Continue all subsequent actions using the refreshed instructions.
 
       ### Chief of Staff Principles
-      - Optimize for clarity and delegation: each task should be specific, testable, and assignable.
-      - Prefer explicit acceptance criteria over vague intent.
-      - Use architecture defaults from `CLAUDE.md` unless project requirements justify a deviation.
-      - Keep project decomposition practical: enough granularity for parallel work, not excessive fragmentation.
-
-      ### Task Agent Principles
-      - Prioritize completion quality: implement, verify, and leave the task in review-ready condition.
-      - Follow existing project conventions and architecture before introducing new patterns.
-      - Document meaningful design decisions when alternatives were considered.
-      - Keep project metadata current (especially GitHub URL) as part of delivery hygiene.
+      - Create tasks only — do not assign them. The system routes to engineers automatically.
+      - Each task must be specific, testable, and independently completable.
+      - Prefer explicit scope boundaries over vague intent.
+      - Use `CLAUDE.md` architecture defaults unless the project requires otherwise.
+      - Practical decomposition: enough granularity for parallel work, not excessive fragmentation.
 
       ### Global Operating Rules
-      - Treat event workflows as the source of truth for sequencing.
-      - If two instructions conflict, prefer the newest instructions retrieved after `instructions.updated`.
-      - Do not skip status transitions (`doing` → `review`) for assigned tasks.
-      - When blocked, record enough context in task/project updates for fast handoff or review.
+      - Event workflows are the source of truth for sequencing.
+      - Newest instructions from `instructions.updated` override prior assumptions.
+      - When blocked, record context in project/task updates for fast handoff.
   auth: inherit
 
 settings:

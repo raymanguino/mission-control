@@ -57,6 +57,10 @@ export const projects = pgTable('projects', {
   description: text('description'),
   url: text('url'),
   status: text('status').notNull().default('pending_approval'),
+  /** Chief of Staff agent who approved the project (set when status becomes approved). */
+  approvedByAgentId: uuid('approved_by_agent_id').references(() => agents.id, {
+    onDelete: 'set null',
+  }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });

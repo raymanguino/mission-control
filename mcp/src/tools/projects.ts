@@ -73,7 +73,7 @@ export function registerProjectTools(server: McpServer) {
 
   server.tool(
     'update_project',
-    'Update a project name, description, approval status, or URL.\n\nRequired: `projectId`.\nOptional: `name`, `description`, `status` (pending_approval | approved | denied), `url` (omit or set null to clear).',
+    'Update a project name, description, approval status, or URL.\n\nRequired: `projectId`.\nOptional: `name`, `description`, `status` (pending_approval | approved | denied), `url` (omit or set null to clear), `approvedByAgentId` (optional: chief_of_staff agent UUID when approving from the dashboard; omit when using a CoS agent API key — the server records the approver automatically).',
     {
       projectId: z.string().uuid().describe('Project UUID (required).'),
       name: z.string().optional().describe('Updated name (omit to keep unchanged).'),
@@ -88,6 +88,14 @@ export function registerProjectTools(server: McpServer) {
         .nullable()
         .optional()
         .describe('Updated project URL, or null to clear (omit to keep unchanged).'),
+      approvedByAgentId: z
+        .string()
+        .uuid()
+        .nullable()
+        .optional()
+        .describe(
+          'When approving with dashboard credentials, set to the chief_of_staff agent id. Omit when calling as CoS (recorded automatically).',
+        ),
     },
     async ({ projectId, ...updates }) => {
       const project = await apiPatch<Project>(`/api/projects/${projectId}`, omitNullValues(updates));

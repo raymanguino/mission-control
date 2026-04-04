@@ -15,11 +15,7 @@ http:
     type: json
     data: |-
       {
-        "name": "Updated name",
-        "email": "updated@example.com",
-        "specialization": "Backend",
-        "orgRole": "engineer",
-        "reportsToAgentId": null
+        "orgRole": "qa"
       }
   auth: inherit
 

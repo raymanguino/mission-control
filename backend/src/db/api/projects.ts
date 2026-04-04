@@ -21,7 +21,13 @@ export async function createProject(data: { name: string; description?: string; 
 
 export async function updateProject(
   id: string,
-  data: Partial<{ name: string; description: string; status: string; url: string | null }>,
+  data: Partial<{
+    name: string;
+    description: string;
+    status: string;
+    url: string | null;
+    approvedByAgentId: string | null;
+  }>,
 ) {
   const rows = await db
     .update(projects)

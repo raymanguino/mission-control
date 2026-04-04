@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import {
   DndContext,
   PointerSensor,
@@ -13,29 +13,66 @@ import { CSS } from '@dnd-kit/utilities';
 import { AgentAvatar } from '../components/agents/AgentAvatar.js';
 import { api, ApiError } from '../utils/api.js';
 import type { Project, ProjectStatus, Task, TaskStatus, Agent } from '@mission-control/types';
-import { PROJECT_STATUS_LABELS } from '../utils/projectLabels.js';
+import { PROJECT_STATUS_BADGE_CLASS, PROJECT_STATUS_LABELS } from '../utils/projectLabels.js';
+
+function ApprovedByRow({
+  agents,
+  approvedByAgentId,
+  compact = false,
+}: {
+  agents: Agent[];
+  approvedByAgentId: string | null;
+  compact?: boolean;
+}) {
+  const approver = approvedByAgentId ? agents.find((a) => a.id === approvedByAgentId) : null;
+  const avatarSize = compact ? 18 : 22;
+  const textClass = compact ? 'text-xs' : 'text-sm';
+  return (
+    <div className={`flex flex-wrap items-center gap-1.5 ${textClass}`}>
+      <span className="text-gray-500 shrink-0">Approved by</span>
+      {approver ? (
+        <span className="inline-flex items-center gap-1.5 text-gray-200 min-w-0">
+          <AgentAvatar avatarId={approver.avatarId} size={avatarSize} className="rounded-sm shrink-0" />
+          <span className="truncate">{approver.name}</span>
+        </span>
+      ) : approvedByAgentId ? (
+        <span className="text-gray-400 font-mono text-[0.65rem] break-all">{approvedByAgentId}</span>
+      ) : (
+        <span className="text-gray-500 italic">Not recorded</span>
+      )}
+    </div>
+  );
+}
 
 function notifyProjectsUpdated() {
   window.dispatchEvent(new Event('mission-control-projects-updated'));
 }
 
-/** Centered overlay modal — same shell as wellness sleep/diet/meds log modals (Health.tsx). */
-function ProjectDetailsModal({
+const PROJECT_FIELD_CLASS =
+  'w-full bg-gray-800 rounded-md px-3 py-2 text-sm text-white border border-gray-700 focus:outline-none focus:border-indigo-500';
+
+/** Same overlay shell as wellness log modals (Health.tsx Modal). */
+function ProjectEditModal({
   open,
   project,
+  agents,
   onClose,
   onSaved,
+  onDeleted,
 }: {
   open: boolean;
   project: Project;
+  agents: Agent[];
   onClose: () => void;
   onSaved: (p: Project) => void;
+  onDeleted: () => void;
 }) {
   const [name, setName] = useState(project.name);
   const [description, setDescription] = useState(project.description ?? '');
   const [url, setUrl] = useState(project.url ?? '');
   const [status, setStatus] = useState<ProjectStatus>(project.status);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -43,7 +80,7 @@ function ProjectDetailsModal({
     setDescription(project.description ?? '');
     setUrl(project.url ?? '');
     setStatus(project.status);
-  }, [open, project.id, project.name, project.description, project.url, project.status]);
+  }, [open, project.id, project.name, project.description, project.url, project.status, project.approvedByAgentId]);
 
   const dirty =
     name !== project.name ||
@@ -59,18 +96,12 @@ function ProjectDetailsModal({
     setSaving(true);
     try {
       const trimmedUrl = url.trim();
-      const body: {
-        name: string;
-        description: string;
-        url: string | null;
-        status: ProjectStatus;
-      } = {
+      const updated = await api.patch<Project>(`/api/projects/${project.id}`, {
         name: name.trim(),
         description: description.trim(),
         url: trimmedUrl ? trimmedUrl : null,
         status,
-      };
-      const updated = await api.patch<Project>(`/api/projects/${project.id}`, body);
+      });
       onSaved(updated);
       notifyProjectsUpdated();
       onClose();
@@ -82,21 +113,41 @@ function ProjectDetailsModal({
     }
   }
 
-  if (!open) return null;
+  async function deleteProject() {
+    const displayName = name.trim() || project.name;
+    if (
+      !window.confirm(
+        `Delete project "${displayName}" and all its tasks? This cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+    setDeleting(true);
+    try {
+      await api.delete(`/api/projects/${project.id}`);
+      notifyProjectsUpdated();
+      onClose();
+      onDeleted();
+    } catch (e) {
+      const message = e instanceof ApiError ? e.message : 'Failed to delete project';
+      window.alert(message);
+    } finally {
+      setDeleting(false);
+    }
+  }
 
-  const fieldClass =
-    'w-full bg-gray-800 rounded-md px-3 py-2 text-sm text-white border border-gray-700 focus:outline-none focus:border-indigo-500';
+  if (!open) return null;
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-900 rounded-xl p-6 w-full max-w-md space-y-4 border border-gray-700 max-h-[90vh] overflow-y-auto">
-        <h2 className="text-lg font-semibold text-white">Project details</h2>
+        <h2 className="text-lg font-semibold text-white">Edit project</h2>
         <div>
           <label className="text-xs text-gray-400 block mb-1">Name</label>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className={fieldClass}
+            className={`${PROJECT_FIELD_CLASS} text-base font-semibold`}
             autoFocus
           />
         </div>
@@ -106,7 +157,7 @@ function ProjectDetailsModal({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className={`${fieldClass} resize-none`}
+            className={`${PROJECT_FIELD_CLASS} resize-none`}
           />
         </div>
         <div>
@@ -114,7 +165,7 @@ function ProjectDetailsModal({
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value as ProjectStatus)}
-            className={fieldClass}
+            className={PROJECT_FIELD_CLASS}
           >
             {(Object.keys(PROJECT_STATUS_LABELS) as ProjectStatus[]).map((s) => (
               <option key={s} value={s}>
@@ -123,6 +174,11 @@ function ProjectDetailsModal({
             ))}
           </select>
         </div>
+        {status === 'approved' ? (
+          <div className="rounded-lg border border-gray-700/80 bg-gray-800/40 px-3 py-2">
+            <ApprovedByRow agents={agents} approvedByAgentId={project.approvedByAgentId} />
+          </div>
+        ) : null}
         <div>
           <label className="text-xs text-gray-400 block mb-1">Project URL (optional)</label>
           <input
@@ -130,21 +186,36 @@ function ProjectDetailsModal({
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://example.com"
-            className={fieldClass}
+            className={PROJECT_FIELD_CLASS}
           />
         </div>
-        <div className="flex gap-2 justify-end pt-2">
-          <button type="button" onClick={onClose} className="px-3 py-1.5 text-sm text-gray-400 hover:text-white">
-            Cancel
-          </button>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-gray-800 pt-4">
           <button
             type="button"
-            onClick={save}
-            disabled={saving || !dirty}
-            className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm rounded-md"
+            onClick={() => void deleteProject()}
+            disabled={deleting || saving}
+            className="px-3 py-1.5 text-sm text-red-400 hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {saving ? 'Saving…' : 'Save'}
+            {deleting ? 'Deleting…' : 'Delete project'}
           </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={deleting}
+              className="px-3 py-1.5 text-sm text-gray-400 hover:text-white disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => void save()}
+              disabled={saving || deleting || !dirty}
+              className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm rounded-md"
+            >
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -409,35 +480,12 @@ function TaskSlideOver({
 export default function Projects() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
   const [project, setProject] = useState<Project | null>(null);
   const [projectLoadError, setProjectLoadError] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [slideOver, setSlideOver] = useState<Task | null | 'new'>(null);
-
-  const detailsOpen = searchParams.get('details') === '1';
-  const openProjectDetails = () => {
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        next.set('details', '1');
-        return next;
-      },
-      { replace: true },
-    );
-  };
-  const closeProjectDetails = () => {
-    setSearchParams(
-      (prev) => {
-        if (!prev.get('details')) return prev;
-        const next = new URLSearchParams(prev);
-        next.delete('details');
-        return next;
-      },
-      { replace: true },
-    );
-  };
+  const [editModalOpen, setEditModalOpen] = useState(false);
 
   const loadTasks = (id: string) => {
     api.get<Task[]>(`/api/projects/${id}/tasks`).then(setTasks).catch(() => {});
@@ -511,25 +559,6 @@ export default function Projects() {
     loadTasks(project.id);
   };
 
-  async function deleteSelectedProject() {
-    if (!project) return;
-    if (
-      !window.confirm(
-        `Delete project "${project.name}" and all its tasks? This cannot be undone.`,
-      )
-    ) {
-      return;
-    }
-    try {
-      await api.delete(`/api/projects/${project.id}`);
-      notifyProjectsUpdated();
-      navigate('/projects');
-    } catch (e) {
-      const message = e instanceof ApiError ? e.message : 'Failed to delete project';
-      window.alert(message);
-    }
-  }
-
   async function deleteTaskFromBoard(task: Task) {
     if (!window.confirm(`Delete task "${task.title}"?`)) return;
     try {
@@ -553,45 +582,113 @@ export default function Projects() {
     return <p className="text-gray-500 text-sm">Loading…</p>;
   }
 
-  return (
-    <div className="flex h-full gap-0 -mx-6 overflow-hidden">
-      <div className="flex-1 overflow-x-auto px-6 py-6">
-        <div className="flex justify-end gap-2 mb-4 flex-wrap">
-          <button
-            type="button"
-            onClick={openProjectDetails}
-            className="px-3 py-1.5 text-sm text-gray-200 border border-gray-700 hover:border-gray-600 hover:bg-gray-800 rounded-md"
-          >
-            Edit project
-          </button>
-          <button
-            type="button"
-            onClick={deleteSelectedProject}
-            className="px-3 py-1.5 text-red-400 hover:text-red-300 text-sm border border-red-900/60 hover:border-red-800 rounded-md"
-          >
-            Delete project
-          </button>
-          {project.status === 'approved' ? (
-            <button
-              type="button"
-              onClick={() => setSlideOver('new')}
-              className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-md"
-            >
-              + Task
-            </button>
-          ) : null}
-        </div>
+  const descTrim = project.description?.trim() ?? '';
+  const hasDescription = descTrim.length > 0;
+  const descriptionPreview = descTrim.length > 48 ? `${descTrim.slice(0, 48)}…` : descTrim;
 
-        <ProjectDetailsModal
-          open={detailsOpen}
+  return (
+    <div className="flex h-full min-h-0 flex-col -mx-6 overflow-hidden">
+      <header className="sticky top-0 z-20 shrink-0 border-b border-gray-800/70 bg-gray-950 px-6 pt-4 pb-3">
+        <div className="max-w-3xl space-y-2">
+          <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+            <div className="flex flex-wrap items-center gap-2 min-w-0">
+              <h1 className="text-lg font-semibold text-white tracking-tight truncate">{project.name}</h1>
+              <span
+                className={`text-[0.65rem] font-medium px-1.5 py-0.5 rounded ${PROJECT_STATUS_BADGE_CLASS[project.status]}`}
+              >
+                {PROJECT_STATUS_LABELS[project.status]}
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center justify-end gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => setEditModalOpen(true)}
+                className="px-2.5 py-1 text-xs text-gray-200 border border-gray-700 hover:border-gray-600 hover:bg-gray-800 rounded-md"
+              >
+                Edit project
+              </button>
+              {project.status === 'approved' ? (
+                <button
+                  type="button"
+                  onClick={() => setSlideOver('new')}
+                  className="px-2.5 py-1 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded-md"
+                >
+                  + Task
+                </button>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-gray-800/90 bg-gray-900/50 p-2 space-y-1.5">
+            <details className="group rounded border border-gray-800/80 overflow-hidden bg-gray-950/40">
+              <summary className="flex cursor-pointer items-center gap-1.5 px-2 py-1 text-xs list-none [&::-webkit-details-marker]:hidden hover:bg-gray-800/40 select-none">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  aria-hidden
+                  className="h-3 w-3 shrink-0 text-gray-500 transition-transform group-open:rotate-90"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <span className="font-medium text-gray-400">Description</span>
+                {!hasDescription ? (
+                  <span className="text-gray-600">(none)</span>
+                ) : (
+                  <span className="text-gray-600 truncate max-w-[12rem] sm:max-w-xs">{descriptionPreview}</span>
+                )}
+              </summary>
+              <div className="border-t border-gray-800/80 px-2 py-1.5 max-h-32 overflow-y-auto">
+                {hasDescription ? (
+                  <p className="text-xs text-gray-300 whitespace-pre-wrap leading-relaxed">{descTrim}</p>
+                ) : (
+                  <p className="text-xs text-gray-600 italic">No description.</p>
+                )}
+              </div>
+            </details>
+
+            {project.status === 'approved' ? (
+              <div className="px-0.5 pt-0.5 border-t border-gray-800/60">
+                <ApprovedByRow agents={agents} approvedByAgentId={project.approvedByAgentId} compact />
+              </div>
+            ) : null}
+
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs border-t border-gray-800/60 pt-1.5 px-0.5">
+              <span className="text-gray-500 shrink-0">URL</span>
+              {project.url?.trim() ? (
+                <a
+                  href={project.url.trim()}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-indigo-400 hover:text-indigo-300 hover:underline break-all min-w-0"
+                >
+                  {project.url.trim()}
+                </a>
+              ) : (
+                <span className="text-gray-600">—</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="min-h-0 flex-1 overflow-x-auto overflow-y-auto px-6 py-3">
+        <ProjectEditModal
+          open={editModalOpen}
           project={project}
-          onClose={closeProjectDetails}
+          agents={agents}
+          onClose={() => setEditModalOpen(false)}
           onSaved={setProject}
+          onDeleted={() => navigate('/projects')}
         />
 
         {project.status === 'approved' && (
           <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-            <div className="flex gap-4 min-w-max">
+            <div className="flex min-w-max gap-4 pb-2">
               {COLUMNS.map((col) => {
                 const colTasks = tasks.filter((t) => t.status === col.id);
                 return (
@@ -609,12 +706,12 @@ export default function Projects() {
           </DndContext>
         )}
         {project.status !== 'approved' && (
-          <div className="flex flex-col items-center justify-center min-h-[12rem] text-center rounded-lg border border-dashed border-gray-800 bg-gray-900/30">
-            <p className="text-gray-400 text-sm max-w-md">
-              The task board opens after this project is approved. Use Edit project above to change
-              status or other fields.
+          <div className="flex min-h-[12rem] flex-col items-center justify-center text-center rounded-lg border border-dashed border-gray-800 bg-gray-900/30 px-4">
+            <p className="max-w-md text-sm text-gray-400">
+              The task board opens after this project is approved. Use Edit project to change status
+              and other fields.
             </p>
-            <p className="text-gray-500 text-xs mt-2 max-w-md">
+            <p className="mt-2 max-w-md text-xs text-gray-500">
               Task management is only available for approved projects.
             </p>
           </div>

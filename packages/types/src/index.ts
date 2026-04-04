@@ -112,6 +112,8 @@ export interface Project {
   description: string | null;
   url: string | null;
   status: ProjectStatus;
+  /** Agent id of the Chief of Staff who approved, if recorded. */
+  approvedByAgentId: string | null;
   createdAt: string;
   updatedAt: string;
 }
