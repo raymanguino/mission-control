@@ -88,6 +88,9 @@ async function notifyAgentsOfInstructionChanges(
     const next = body[key];
     const unchanged = prev === next;
 
+    if (unchanged) continue;
+
+
     if (key === 'cos_instructions') {
       try {
         await notifyChiefOfStaffInstructionsUpdated(request.log);
@@ -107,8 +110,6 @@ async function notifyAgentsOfInstructionChanges(
         request.log.error({ err }, 'Failed to notify QA agent webhooks of instructions update');
       }
     }
-
-    if (unchanged) continue;
 
     if (key === 'cos_instructions') {
       const cosAgents = await agentsDb.listAgentsWithEmailByOrgRole('chief_of_staff');
