@@ -576,6 +576,7 @@ export default function Projects() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   async function handleDragEnd(event: DragEndEvent) {
+    if (!project) return;
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
@@ -609,6 +610,7 @@ export default function Projects() {
   };
 
   async function deleteTaskFromBoard(task: Task) {
+    if (!project) return;
     if (!window.confirm(`Delete task "${task.title}"?`)) return;
     try {
       await api.delete(`/api/projects/${project.id}/tasks/${task.id}`);

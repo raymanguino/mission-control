@@ -15,8 +15,8 @@ http:
     type: json
     data: |-
       {
-        "title": "Implement feature",
-        "description": "Task details",
+        "title": "Create a GitHub repository",
+        "description": "Create a Github repository named hello-world-app",
         "status": "backlog"
       }
   auth: inherit
@@ -24,7 +24,9 @@ http:
 runtime:
   variables:
     - name: projectId
-      value: b76ec9c8-bfeb-4166-95ff-3704fc338bd2
+      value: 8036e83e-a0dc-4b36-92b5-9471998630fb
+    - name: token
+      value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkYXNoYm9hcmQiLCJpYXQiOjE3NzUzOTE5NjcsImV4cCI6MTc3Nzk4Mzk2N30._50wonQpSMoWrPVhYUK1h7YcYZJumSBibKEifPN2JRw
 
 settings:
   encodeUrl: false

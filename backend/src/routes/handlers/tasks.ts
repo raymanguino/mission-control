@@ -67,6 +67,8 @@ async function notifyAssignedAgent(
     const project = await projectsDb.getProject(task.projectId);
     if (!project) return;
 
+    log.info(`notifyAssignedAgent: ${JSON.stringify(agent, null, 2)}`);
+
     if (agent.hookUrl?.trim() && agent.hookToken?.trim()) {
       notifyAssignedAgentOfTask(agent, task, project.name).catch((err: unknown) =>
         log.error({ err }, 'Failed to POST task assignment to agent webhook'),
