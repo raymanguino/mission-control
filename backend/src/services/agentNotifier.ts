@@ -135,9 +135,15 @@ export async function notifyQaOfProjectAllTasksInReviewWebhook(
 export async function notifyChiefOfStaffOfProject(
   project: { id: string; name: string; description: string | null },
 ): Promise<void> {
+  console.log('[NOTIFIER] notifyChiefOfStaffOfProject called for:', project);
   const agent = await pickAgentByOrgRoleLeastLoaded('chief_of_staff', { requireWebhook: true });
-  if (!agent) return;
+  console.log('[NOTIFIER] Found CoS agent:', agent ? agent.name : 'null');
+  if (!agent) {
+    console.warn('[NOTIFIER] No CoS agent found with webhook configured');
+    return;
+  }
 
+  console.log('[NOTIFIER] Sending webhook to:', agent.hookUrl);
   await postToAgentWebhook(agent.hookUrl, agent.hookToken, {
     event: 'project.approval_requested',
     project: {
@@ -146,6 +152,7 @@ export async function notifyChiefOfStaffOfProject(
       description: project.description ?? null,
     },
   });
+  console.log('[NOTIFIER] Webhook sent successfully');
 }
 
 /** When every task in a project is Done: notify each chief_of_staff agent that has a webhook. */
