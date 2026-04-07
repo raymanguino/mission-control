@@ -32,9 +32,11 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
     const project = await projectsDb.createProject(body);
     await fastify.finalizeIdempotency(request, 201, project);
 
-    notifyChiefOfStaffOfProject(project).catch((err) =>
-      request.log.error({ err }, 'Failed to notify chief of staff webhook of new project'),
-    );
+    notifyChiefOfStaffOfProject(project).catch((err) => {
+      request.log.error({ err }, 'Failed to notify chief of staff webhook of new project');
+      console.error('[PROJECTS] Webhook notification failed:', err);
+      console.error('[PROJECTS] Project:', project);
+    });
 
     return reply.code(201).send(project);
   });
