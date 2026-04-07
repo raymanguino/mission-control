@@ -9,7 +9,9 @@
 
 import type { FastifyBaseLogger } from 'fastify';
 import * as agentsDb from '../db/api/agents.js';
+import * as settingsDb from '../db/api/settings.js';
 import { pickAgentByOrgRoleLeastLoaded } from '../lib/pickAgentByLoad.js';
+import { instructionKeyForOrgRole } from '../lib/agentOrgRoles.js';
 
 /** Set `AGENT_WEBHOOKS_ENABLED=false` (or `0` / `no`) to disable all outbound agent webhook POSTs. Default: enabled. */
 function agentWebhooksEnabled(): boolean {
@@ -48,10 +50,21 @@ export async function postToAgentWebhook(
 }
 
 export async function notifyAssignedAgentOfTask(
-  agent: { hookUrl: string | null; hookToken: string | null },
+  agent: { hookUrl: string | null; hookToken: string | null; name?: string; orgRole?: string },
   task: { id: string; title: string; description: string | null; resolution?: string | null },
-  projectName: string,
+  project: { id: string; name: string; description: string | null; url: string | null },
 ): Promise<void> {
+  // Look up the agent's role-specific instructions for context injection
+  let agentInstructions = '';
+  if (agent.orgRole) {
+    try {
+      const instructionKey = instructionKeyForOrgRole(agent.orgRole);
+      agentInstructions = (await settingsDb.getSetting(instructionKey)) ?? '';
+    } catch {
+      // Instructions lookup failure is non-fatal
+    }
+  }
+
   await postToAgentWebhook(agent.hookUrl, agent.hookToken, {
     event: 'task.assigned',
     task: {
@@ -59,7 +72,14 @@ export async function notifyAssignedAgentOfTask(
       title: task.title,
       description: task.description ?? null,
       resolution: task.resolution ?? null,
-      projectName,
+      projectId: project.id,
+      projectName: project.name,
+    },
+    agentInstructions,
+    projectContext: {
+      name: project.name,
+      description: project.description ?? null,
+      url: project.url ?? null,
     },
   });
 }
@@ -86,7 +106,7 @@ export async function notifyAssignedAgentOfReviewAssigned(
 export async function notifyQaOfProjectAllTasksInReviewWebhook(
   agent: { hookUrl: string | null; hookToken: string | null },
   task: { id: string; title: string; description: string | null; resolution?: string | null },
-  project: { id: string; name: string },
+  project: { id: string; name: string; description?: string | null; url?: string | null },
   projectName: string,
 ): Promise<void> {
   await postToAgentWebhook(agent.hookUrl, agent.hookToken, {
@@ -101,7 +121,13 @@ export async function notifyQaOfProjectAllTasksInReviewWebhook(
       title: task.title,
       description: task.description ?? null,
       resolution: task.resolution ?? null,
+      projectId: project.id,
       projectName,
+    },
+    projectContext: {
+      name: project.name,
+      description: project.description ?? null,
+      url: project.url ?? null,
     },
   });
 }

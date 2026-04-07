@@ -70,7 +70,19 @@ async function notifyAssignedAgent(
     log.info(`notifyAssignedAgent: ${JSON.stringify(agent, null, 2)}`);
 
     if (agent.hookUrl?.trim() && agent.hookToken?.trim()) {
-      notifyAssignedAgentOfTask(agent, task, project.name).catch((err: unknown) =>
+      notifyAssignedAgentOfTask(
+        {
+          ...agent,
+          orgRole: agent.orgRole,
+        },
+        task,
+        {
+          id: project.id,
+          name: project.name,
+          description: project.description,
+          url: project.url,
+        },
+      ).catch((err: unknown) =>
         log.error({ err }, 'Failed to POST task assignment to agent webhook'),
       );
     }
@@ -106,7 +118,17 @@ async function notifyQaBatchWhenAllTasksInReview(
     if (!project) return;
 
     if (agent.hookUrl?.trim() && agent.hookToken?.trim()) {
-      notifyQaOfProjectAllTasksInReviewWebhook(agent, task, project, project.name).catch((err) =>
+      notifyQaOfProjectAllTasksInReviewWebhook(
+        agent,
+        task,
+        {
+          id: project.id,
+          name: project.name,
+          description: project.description,
+          url: project.url,
+        },
+        project.name,
+      ).catch((err) =>
         log.error({ err }, 'Failed to POST review.assigned (batch) to QA webhook'),
       );
     }
