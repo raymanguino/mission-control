@@ -27,7 +27,7 @@ export async function notifyCoSOfProject(
     `Name: ${project.name}`,
     `Description: ${project.description ?? '(none)'}`,
     ``,
-    `To approve: PATCH /api/projects/${project.id} with { "status": "approved" }`,
+    `To approve: PATCH /api/projects/${project.id} with { "status": "approved", "url": "https://..." } (URL is required)`,
     `To deny:    PATCH /api/projects/${project.id} with { "status": "denied" }`,
     ``,
     `---`,

@@ -116,6 +116,10 @@ function ProjectEditModal({
       window.alert('Project name is required.');
       return;
     }
+    if (status === 'approved' && project.status !== 'approved' && !url.trim()) {
+      window.alert('Project URL is required to approve a project.');
+      return;
+    }
     setSaving(true);
     try {
       const trimmedUrl = url.trim();
@@ -203,7 +207,14 @@ function ProjectEditModal({
           </div>
         ) : null}
         <div>
-          <label className="text-xs text-gray-400 block mb-1">Project URL (optional)</label>
+          <label className="text-xs text-gray-400 block mb-1">
+            Project URL
+            {status === 'approved' && project.status !== 'approved' ? (
+              <span className="text-amber-400/90"> (required to approve)</span>
+            ) : (
+              <span className="text-gray-500"> (optional)</span>
+            )}
+          </label>
           <input
             type="url"
             value={url}
@@ -366,12 +377,15 @@ function TaskSlideOver({
   task,
   agents,
   projectId,
+  projectUrl,
   onClose,
   onSaved,
 }: {
   task: Task | null;
   agents: Agent[];
   projectId: string;
+  /** Required when moving a task into Review (server rejects if missing). */
+  projectUrl: string | null;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -390,24 +404,34 @@ function TaskSlideOver({
   }, [task]);
 
   async function save() {
-    if (task) {
-      await api.patch(`/api/projects/${projectId}/tasks/${task.id}`, {
-        title,
-        description,
-        resolution,
-        status,
-        assignedAgentId: agentId || null,
-      });
-    } else {
-      await api.post(`/api/projects/${projectId}/tasks`, {
-        title,
-        description,
-        resolution: resolution || undefined,
-        status,
-      });
+    const movingToReview = status === 'review' && (!task || task.status !== 'review');
+    if (movingToReview && !projectUrl?.trim()) {
+      window.alert('Set a project URL in Edit project before moving tasks to Review.');
+      return;
     }
-    onSaved();
-    onClose();
+    try {
+      if (task) {
+        await api.patch(`/api/projects/${projectId}/tasks/${task.id}`, {
+          title,
+          description,
+          resolution,
+          status,
+          assignedAgentId: agentId || null,
+        });
+      } else {
+        await api.post(`/api/projects/${projectId}/tasks`, {
+          title,
+          description,
+          resolution: resolution || undefined,
+          status,
+        });
+      }
+      onSaved();
+      onClose();
+    } catch (e) {
+      const message = e instanceof ApiError ? e.message : 'Failed to save task';
+      window.alert(message);
+    }
   }
 
   async function remove() {
@@ -598,10 +622,25 @@ export default function Projects() {
 
     if (!targetStatus || task.status === targetStatus) return;
 
+    if (
+      targetStatus === 'review' &&
+      task.status !== 'review' &&
+      !project.url?.trim()
+    ) {
+      window.alert('Set a project URL in Edit project before moving tasks to Review.');
+      return;
+    }
+
     setTasks((prev) =>
       prev.map((t) => (t.id === task.id ? { ...t, status: targetStatus } : t)),
     );
-    await api.patch(`/api/projects/${project.id}/tasks/${task.id}`, { status: targetStatus });
+    try {
+      await api.patch(`/api/projects/${project.id}/tasks/${task.id}`, { status: targetStatus });
+    } catch (e) {
+      const message = e instanceof ApiError ? e.message : 'Failed to update task';
+      window.alert(message);
+      reload();
+    }
   }
 
   const reload = () => {
@@ -773,6 +812,7 @@ export default function Projects() {
           task={slideOver === 'new' ? null : slideOver}
           agents={agents}
           projectId={project.id}
+          projectUrl={project.url}
           onClose={() => setSlideOver(null)}
           onSaved={reload}
         />

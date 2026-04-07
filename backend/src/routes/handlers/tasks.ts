@@ -177,6 +177,14 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
         { reason: 'project_not_approved', status: project.status },
       );
     }
+    if (body.status === 'review' && !project.url?.trim()) {
+      throw new ApiError(
+        409,
+        'CONFLICT',
+        'Project must have a URL before tasks can move to review',
+        { reason: 'project_url_required_for_review' },
+      );
+    }
     const engineer = await pickAgentByOrgRoleLeastLoaded('engineer');
     const createPayload: Parameters<typeof projectsDb.createTask>[0] = {
       ...body,
@@ -216,6 +224,22 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
 
     const existing = await projectsDb.getTask(taskId);
     if (!existing || existing.projectId !== projectId) throw new ApiError(404, 'NOT_FOUND', 'Not found');
+
+    const project = await projectsDb.getProject(projectId);
+    if (!project) throw new ApiError(404, 'NOT_FOUND', 'Not found');
+
+    if (
+      body.status === 'review' &&
+      existing.status !== 'review' &&
+      !project.url?.trim()
+    ) {
+      throw new ApiError(
+        409,
+        'CONFLICT',
+        'Project must have a URL before tasks can move to review',
+        { reason: 'project_url_required_for_review' },
+      );
+    }
 
     const explicitAssignee = 'assignedAgentId' in body;
 
@@ -273,8 +297,7 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
     const task = await projectsDb.updateTask(taskId, updateData);
     if (!task) throw new ApiError(404, 'NOT_FOUND', 'Not found');
 
-    const project = await projectsDb.getProject(task.projectId);
-    const projectName = project?.name ?? 'Project';
+    const projectName = project.name;
     const meta = taskActivityMeta({ ...task, projectName });
 
     if (existing.assignedAgentId && existing.assignedAgentId !== task.assignedAgentId) {
@@ -298,16 +321,23 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
       });
     }
 
-    const enteringReview = body.status === 'review' && existing.status !== 'review';
-
-    if (enteringReview && task.assignedAgentId) {
-      await notifyAssignedAgent(taskId, task.assignedAgentId, request.log);
-    } else if (
+    if (
       task.assignedAgentId &&
       existing.assignedAgentId !== task.assignedAgentId
     ) {
       await notifyAssignedAgent(taskId, task.assignedAgentId, request.log);
     }
+
+    const enteringReview = body.status === 'review' && existing.status !== 'review';
+
+    // if (enteringReview && task.assignedAgentId) {
+    //   await notifyAssignedAgent(taskId, task.assignedAgentId, request.log);
+    // } else if (
+    //   task.assignedAgentId &&
+    //   existing.assignedAgentId !== task.assignedAgentId
+    // ) {
+    //   await notifyAssignedAgent(taskId, task.assignedAgentId, request.log);
+    // }
 
     if (
       (await projectsDb.projectTasksAllInReview(task.projectId)) &&
@@ -322,7 +352,6 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
     const transitionedToDone = existing.status !== 'done' && task.status === 'done';
     if (
       transitionedToDone &&
-      project &&
       (await projectsDb.projectTasksAllDone(task.projectId))
     ) {
       notifyChiefOfStaffOfProjectCompleted(project, request.log).catch((err) =>
@@ -338,7 +367,6 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
     const transitionedToNotDone = existing.status !== 'not_done' && task.status === 'not_done';
     if (
       transitionedToNotDone &&
-      project &&
       (await projectsDb.projectTasksAllNotDone(task.projectId))
     ) {
       const discord = getDiscordSyncService();

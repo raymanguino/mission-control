@@ -74,7 +74,7 @@ export function registerProjectTools(server: McpServer) {
 
   server.tool(
     'update_project',
-    'Update a project name, description, approval status, or URL.\n\nRequired: `projectId`.\nOptional: `name`, `description`, `status` (pending_approval | approved | denied), `url` (omit or set null to clear), `approvedByAgentId` (optional: chief_of_staff agent UUID when approving from the dashboard; omit when using a CoS agent API key — the server records the approver automatically).',
+    'Update a project name, description, approval status, or URL.\n\nRequired: `projectId`.\nOptional: `name`, `description`, `status` (pending_approval | approved | denied), `url` (omit or set null to clear), `approvedByAgentId` (optional: chief_of_staff agent UUID when approving from the dashboard; omit when using a CoS agent API key — the server records the approver automatically).\n\nWhen setting `status` to `approved`, the project must have a non-empty URL (already stored, or set `url` in the same request).',
     {
       projectId: z.string().uuid().describe('Project UUID (required).'),
       name: z.string().optional().describe('Updated name (omit to keep unchanged).'),

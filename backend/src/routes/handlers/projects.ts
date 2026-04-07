@@ -48,6 +48,21 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
     const { approvedByAgentId: bodyApproverId, ...rest } = body;
     const nextStatus = body.status ?? current.status;
 
+    const effectiveUrlAfterPatch =
+      body.url !== undefined
+        ? body.url === null
+          ? null
+          : body.url.trim() || null
+        : current.url?.trim()
+          ? current.url.trim()
+          : null;
+
+    if (current.status !== 'approved' && nextStatus === 'approved' && !effectiveUrlAfterPatch) {
+      throw new ApiError(400, 'BAD_REQUEST', 'Project URL is required to approve a project', {
+        reason: 'approval_requires_url',
+      });
+    }
+
     const patch: Parameters<typeof projectsDb.updateProject>[1] = { ...rest };
 
     if (nextStatus !== 'approved') {
