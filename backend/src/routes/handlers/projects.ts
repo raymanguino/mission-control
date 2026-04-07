@@ -5,6 +5,9 @@ import * as projectsDb from '../../db/api/projects.js';
 import { notifyChiefOfStaffOfProject } from '../../services/agentNotifier.js';
 import { backendRequestSchemas } from '../../contracts/mcp-contract.js';
 import { ApiError, parseBody } from '../../lib/errors.js';
+import { decomposeProjectIntoTasks } from '../../lib/apiyi.js';
+import { pickAgentByOrgRoleLeastLoaded } from '../../lib/pickAgentByLoad.js';
+import { createTask } from '../../db/api/projects.js';
 
 const updateProjectSchema = z.object({
   name: z.string().optional(),
@@ -14,6 +17,21 @@ const updateProjectSchema = z.object({
   /** Dashboard may set explicitly; CoS agents get this from API key auth. */
   approvedByAgentId: z.string().uuid().nullable().optional(),
 });
+
+/** Map task specialization to agent orgRole */
+function mapSpecializationToRole(specialization: string): string {
+  const roleMap: Record<string, string> = {
+    frontend: 'engineer',
+    backend: 'engineer',
+    devops: 'devops',
+    python: 'engineer',
+    qa: 'qa',
+    testing: 'qa',
+    docs: 'engineer',
+    database: 'engineer',
+  };
+  return roleMap[specialization.toLowerCase()] || 'engineer';
+}
 
 const projectRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/', { preHandler: fastify.authenticate }, async () => {
@@ -93,6 +111,38 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
 
     const project = await projectsDb.updateProject(id, patch);
     if (!project) throw new ApiError(404, 'NOT_FOUND', 'Not found');
+    
+    // Auto-decompose project into tasks when approval status changes to 'approved'
+    if (nextStatus === 'approved' && current.status !== 'approved') {
+      try {
+        const tasks = await decomposeProjectIntoTasks(project.name, project.description || '');
+        
+        if (tasks.length > 0) {
+          const created = [];
+          
+          for (const taskSpec of tasks) {
+            // Map specialization to agent orgRole
+            const targetRole = mapSpecializationToRole(taskSpec.specialization);
+            const agent = await pickAgentByOrgRoleLeastLoaded(targetRole);
+            
+            const task = await createTask({
+              projectId: id,
+              title: taskSpec.title,
+              description: taskSpec.description,
+              status: 'backlog',
+              assignedAgentId: agent?.id || null,
+            });
+            created.push(task);
+          }
+          
+          request.log.info({ projectId: id, taskCount: created.length }, 'Auto-decomposed project into tasks');
+        }
+      } catch (error) {
+        request.log.error({ error }, 'Failed to decompose project, proceeding without tasks');
+        // Continue with approval even if decomposition fails
+      }
+    }
+    
     return project;
   });
 
