@@ -5,6 +5,7 @@ import * as projectsDb from '../../db/api/projects.js';
 import { notifyChiefOfStaffOfProject } from '../../services/agentNotifier.js';
 import { backendRequestSchemas } from '../../contracts/mcp-contract.js';
 import { ApiError, parseBody } from '../../lib/errors.js';
+import type { AgentOrgRole } from '../../lib/agentOrgRoles.js';
 import { pickAgentByOrgRoleLeastLoaded } from '../../lib/pickAgentByLoad.js';
 
 const updateProjectSchema = z.object({
@@ -15,6 +16,21 @@ const updateProjectSchema = z.object({
   /** Dashboard may set explicitly; CoS agents get this from API key auth. */
   approvedByAgentId: z.string().uuid().nullable().optional(),
 });
+
+/** Map task specialization to agent orgRole */
+function mapSpecializationToRole(specialization: string): AgentOrgRole {
+  const roleMap: Record<string, AgentOrgRole> = {
+    frontend: 'engineer',
+    backend: 'engineer',
+    devops: 'engineer',
+    python: 'engineer',
+    qa: 'qa',
+    testing: 'qa',
+    docs: 'engineer',
+    database: 'engineer',
+  };
+  return roleMap[specialization.toLowerCase()] ?? 'engineer';
+}
 
 const projectRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/', { preHandler: fastify.authenticate }, async () => {
