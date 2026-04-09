@@ -15,17 +15,18 @@ http:
     type: json
     data: |-
       {
-        "title": "Updated title",
-        "status": "doing",
-        "description": null,
-        "assignedAgentId": "00000000-0000-4000-8000-000000000001"
+        "status": "doing"
       }
   auth: inherit
 
 runtime:
   variables:
     - name: projectId
-      value: b76ec9c8-bfeb-4166-95ff-3704fc338bd2
+      value: 1e1e303d-3ac3-4ace-ad4c-918acf370dab
+    - name: taskId
+      value: f5608867-cdad-4361-a62c-fc3fd39b6bf3
+    - name: token
+      value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkYXNoYm9hcmQiLCJpYXQiOjE3NzU3MDI3MTMsImV4cCI6MTc3ODI5NDcxM30.JrZTNkcE92nnh3HkJ-neRRE8EwpVK0JhLC7MM5hI0wY
 
 settings:
   encodeUrl: false

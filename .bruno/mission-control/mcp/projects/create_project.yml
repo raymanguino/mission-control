@@ -15,16 +15,15 @@ http:
     type: json
     data: |-
       {
-        "name": "Hello world",
-        "description": "Create a Hello World web app",
-        "url": "https://github.com/ray-manguino-dev/test-app"
+        "name": "Hello World 001",
+        "description": "Create a Hello World web app. The user should be able to enter their name into a form and receive a warm welcoming back."
       }
   auth: inherit
 
 runtime:
   variables:
     - name: token
-      value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkYXNoYm9hcmQiLCJpYXQiOjE3NzUzODcxMDEsImV4cCI6MTc3Nzk3OTEwMX0.S5Ma9lK3lRINKjoH-XJ8akCzOO4I7V-LDI2caOxmNjQ
+      value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkYXNoYm9hcmQiLCJpYXQiOjE3NzU2OTA5NjcsImV4cCI6MTc3ODI4Mjk2N30.iEKsUPwO6hVkkY92JfoPzI1-u2jf5Ye40JWwl8Nw_S8
 
 settings:
   encodeUrl: false

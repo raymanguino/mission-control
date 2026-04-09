@@ -11,6 +11,11 @@ http:
       value: Bearer {{token}}
   auth: inherit
 
+runtime:
+  variables:
+    - name: projectId
+      value: 1e1e303d-3ac3-4ace-ad4c-918acf370dab
+
 settings:
   encodeUrl: false
   timeout: 0

@@ -19,7 +19,17 @@ import { pickAgentByOrgRoleLeastLoaded } from '../../lib/pickAgentByLoad.js';
 import { backendRequestSchemas } from '../../contracts/mcp-contract.js';
 import { touchMcpActivity } from '../../lib/mcpActivity.js';
 import { ApiError, parseBody } from '../../lib/errors.js';
+import { isUuid } from '../../lib/mcpActivity.js';
 import { instructionKeyForOrgRole } from '../../lib/agentOrgRoles.js';
+
+function assertProjectTaskParams(projectId: string, taskId?: string): void {
+  if (!isUuid(projectId)) {
+    throw new ApiError(400, 'BAD_REQUEST', 'Invalid projectId');
+  }
+  if (taskId !== undefined && !isUuid(taskId)) {
+    throw new ApiError(400, 'BAD_REQUEST', 'Invalid taskId');
+  }
+}
 
 const createTaskBodySchema = backendRequestSchemas.createTask.omit({ projectId: true });
 const updateTaskSchema = backendRequestSchemas.updateTask;
@@ -151,11 +161,13 @@ async function notifyQaBatchWhenAllTasksInReview(
 const taskRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/', { preHandler: fastify.authenticate }, async (request) => {
     const { projectId } = request.params as { projectId: string };
+    assertProjectTaskParams(projectId);
     return projectsDb.listTasks(projectId);
   });
 
   fastify.get('/:taskId', { preHandler: fastify.authenticate }, async (request) => {
     const { projectId, taskId } = request.params as { projectId: string; taskId: string };
+    assertProjectTaskParams(projectId, taskId);
     const task = await projectsDb.getTask(taskId);
     if (!task || task.projectId !== projectId) throw new ApiError(404, 'NOT_FOUND', 'Not found');
     await touchMcpActivity([task.assignedAgentId]);
@@ -164,6 +176,7 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post('/', { preHandler: [fastify.authenticate, fastify.enforceIdempotency] }, async (request, reply) => {
     const { projectId } = request.params as { projectId: string };
+    assertProjectTaskParams(projectId);
     const body = parseBody(createTaskBodySchema, request.body);
     const project = await projectsDb.getProject(projectId);
     if (!project) {
@@ -220,6 +233,7 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.patch('/:taskId', { preHandler: fastify.authenticate }, async (request, reply) => {
     const { projectId, taskId } = request.params as { projectId: string; taskId: string };
+    assertProjectTaskParams(projectId, taskId);
     const body = parseBody(updateTaskSchema, request.body);
 
     const existing = await projectsDb.getTask(taskId);
@@ -381,6 +395,7 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.delete('/:taskId', { preHandler: fastify.authenticate }, async (request, reply) => {
     const { projectId, taskId } = request.params as { projectId: string; taskId: string };
+    assertProjectTaskParams(projectId, taskId);
     const existing = await projectsDb.getTask(taskId);
     if (!existing || existing.projectId !== projectId) throw new ApiError(404, 'NOT_FOUND', 'Not found');
     if (existing.assignedAgentId) {

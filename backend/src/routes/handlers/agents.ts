@@ -6,7 +6,7 @@ import { AGENT_AVATAR_IDS } from '../../lib/agentAvatarIds.js';
 import * as agentsDb from '../../db/api/agents.js';
 import * as settingsDb from '../../db/api/settings.js';
 import { backendRequestSchemas } from '../../contracts/mcp-contract.js';
-import { ApiError, parseBody } from '../../lib/errors.js';
+import { ApiError, parseBody, parseUuidParam } from '../../lib/errors.js';
 import { touchMcpActivity } from '../../lib/mcpActivity.js';
 import {
   defaultOrgRoleForRegistration,
@@ -107,7 +107,8 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   fastify.get('/:id', { preHandler: fastify.authenticate }, async (request) => {
-    const { id } = request.params as { id: string };
+    const { id: rawId } = request.params as { id: string };
+    const id = parseUuidParam(rawId);
     const agent = await agentsDb.getAgent(id);
     if (!agent) throw new ApiError(404, 'NOT_FOUND', 'Not found');
     await touchMcpActivity([id]);
@@ -115,7 +116,8 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   fastify.get('/:id/instructions', { preHandler: fastify.authenticate }, async (request) => {
-    const { id } = request.params as { id: string };
+    const { id: rawId } = request.params as { id: string };
+    const id = parseUuidParam(rawId);
     const agent = await agentsDb.getAgent(id);
     if (!agent) throw new ApiError(404, 'NOT_FOUND', 'Not found');
     await touchMcpActivity([id]);
@@ -130,7 +132,8 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   fastify.patch('/:id', { preHandler: fastify.authenticate }, async (request, reply) => {
-    const { id } = request.params as { id: string };
+    const { id: rawId } = request.params as { id: string };
+    const id = parseUuidParam(rawId);
     const existing = await agentsDb.getAgent(id);
     if (!existing) throw new ApiError(404, 'NOT_FOUND', 'Not found');
 
@@ -163,14 +166,16 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   fastify.delete('/:id', { preHandler: fastify.authenticate }, async (request, reply) => {
-    const { id } = request.params as { id: string };
+    const { id: rawId } = request.params as { id: string };
+    const id = parseUuidParam(rawId);
     await touchMcpActivity([id]);
     await agentsDb.deleteAgent(id);
     return reply.code(204).send();
   });
 
   fastify.get('/:id/activity', { preHandler: fastify.authenticate }, async (request, reply) => {
-    const { id } = request.params as { id: string };
+    const { id: rawId } = request.params as { id: string };
+    const id = parseUuidParam(rawId);
     const query = request.query as { limit?: string; offset?: string };
     const limit = Math.min(Number(query.limit ?? 50), 200);
     const offset = Number(query.offset ?? 0);

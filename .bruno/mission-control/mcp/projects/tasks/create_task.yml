@@ -15,16 +15,16 @@ http:
     type: json
     data: |-
       {
-        "title": "Create a GitHub repository",
-        "description": "Create a Github repository named hello-world-app",
-        "status": "backlog"
+        "title": "Write integration tests",
+        "description": "Create end-to-end tests that verify the complete flow: entering a name, submitting the form, and receiving the correct greeting.",
+        "assignedAgentId": "e2025f99-12aa-4728-9378-f1318749652b"
       }
   auth: inherit
 
 runtime:
   variables:
     - name: projectId
-      value: 8036e83e-a0dc-4b36-92b5-9471998630fb
+      value: e22efe71-4f56-4bd4-a49a-1d407c04b5e5
     - name: token
       value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkYXNoYm9hcmQiLCJpYXQiOjE3NzUzOTE5NjcsImV4cCI6MTc3Nzk4Mzk2N30._50wonQpSMoWrPVhYUK1h7YcYZJumSBibKEifPN2JRw
 

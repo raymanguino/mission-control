@@ -64,6 +64,22 @@ export function parseBody<Schema extends z.ZodTypeAny>(schema: Schema, body: unk
   return parsed.data;
 }
 
+const uuidParamSchema = z.string().uuid();
+
+/** Validates a path or query segment as a UUID before passing to Postgres (avoids 22P02 / 500). */
+export function parseUuidParam(value: string, paramName = 'id'): string {
+  const parsed = uuidParamSchema.safeParse(value);
+  if (!parsed.success) {
+    throw new ApiError(
+      400,
+      'VALIDATION_FAILED',
+      `Invalid ${paramName}: must be a valid UUID`,
+      buildValidationDetails(parsed.error),
+    );
+  }
+  return parsed.data;
+}
+
 export function registerErrorHandling(app: FastifyInstance): void {
   app.setErrorHandler((error, request, reply) => {
     if (reply.sent) return;
