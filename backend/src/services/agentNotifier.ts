@@ -54,6 +54,7 @@ export async function notifyAssignedAgentOfTask(
   task: { id: string; title: string; description: string | null; resolution?: string | null },
   project: { id: string; name: string; description: string | null; url: string | null },
 ): Promise<void> {
+  console.log('BLAH notifyAssignedAgentOfTask', agent, task, project);
   // Look up the agent's role-specific instructions for context injection
   let agentInstructions = '';
   if (agent.orgRole) {

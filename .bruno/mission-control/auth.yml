@@ -23,6 +23,7 @@ runtime:
       code: |-
         let data = res.getBody();
         bru.setEnvVar("dashboardJwt", data.token);
+        bru.setEnvVar("token", data.token);
 
 settings:
   encodeUrl: false

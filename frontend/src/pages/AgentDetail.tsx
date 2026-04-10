@@ -244,7 +244,7 @@ export default function AgentDetail() {
             value={agent.specialization ? <span className="whitespace-pre-wrap">{agent.specialization}</span> : null}
           />
           <DetailRow label="Device" value={agent.device} />
-          <DetailRow label="IP" value={agent.ip} />
+          <DetailRow label="Model" value={agent.model} />
           <DetailRow
             label="Reports to"
             value={

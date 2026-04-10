@@ -1,0 +1,32 @@
+info:
+  name: Hermz
+  type: http
+  seq: 2
+
+http:
+  method: post
+  url: http://{{host}}:{{port}}/api/agents
+  headers:
+    - name: Authorization
+      value: Bearer {{token}}
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "name": "Hermz",
+        "hookUrl": "http://six7swe-worker.tailc28236.ts.net:8644/webhook",
+        "hookToken":"mc-secret",
+        "specialization":"DevOps Specialist",
+        "description": "Pragmatic, automation-focused, and detail-oriented.\nSkills: \n- Infrastructure and deployment automation \n- CI/CD pipeline maintenance \n- System monitoring and troubleshooting \n- Docker, Kubernetes, and cloud infrastructure \n- Shell scripting and tooling",
+        "device": "Raspberry Pi 4, 1.5GHz 64-bit quad-core ARMv8 CPU, GB RAM",
+        "model": "NVIDIA: Nemotron 3 Nano 30B A3B (free)"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -44,7 +44,7 @@ export async function createAgent(data: {
   hookToken: string;
   email?: string;
   device?: string;
-  ip?: string;
+  model?: string;
   orgRole?: string;
   specialization?: string;
   description?: string;
@@ -62,7 +62,7 @@ export async function updateAgent(
     name: string;
     email: string;
     device: string;
-    ip: string;
+    model: string;
     orgRole: string;
     specialization: string;
     description: string;

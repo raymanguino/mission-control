@@ -23,7 +23,7 @@ const updateAgentSchema = z.object({
   name: z.string().optional(),
   email: z.string().email().optional(),
   device: z.string().optional(),
-  ip: z.string().optional(),
+  model: z.string().optional(),
   orgRole: z.enum(['chief_of_staff', 'engineer', 'qa']).optional(),
   specialization: z.string().optional(),
   description: z.string().optional(),

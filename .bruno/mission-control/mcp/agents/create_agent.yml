@@ -20,7 +20,7 @@ http:
         "specialization": "Frontend React",
         "description": "Detailed skills profile",
         "device": "Laptop",
-        "ip": "192.168.1.10"
+        "model": "claude-3-5-sonnet"
       }
   auth: inherit
 

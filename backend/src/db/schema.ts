@@ -19,7 +19,7 @@ export const agents = pgTable('agents', {
   name: text('name').notNull(),
   email: text('email'),
   device: text('device'),
-  ip: text('ip'),
+  model: text('model'),
   apiKeyHash: text('api_key_hash').notNull(),
   orgRole: text('org_role').notNull().default('engineer'),
   specialization: text('specialization'),

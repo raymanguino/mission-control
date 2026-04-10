@@ -61,7 +61,7 @@ describe('MCP tool unit tests', () => {
 
   it('registerAgentTools: create_agent posts payload and includes created agent JSON', async () => {
     const handlers = getHandlers(registerAgentTools as unknown as (server: unknown) => void);
-    const agent = { id: 'a1', name: 'Alpha', device: 'Pi', ip: '1.2.3.4', apiKey: 'secret-once' };
+    const agent = { id: 'a1', name: 'Alpha', device: 'Pi', model: 'claude-3-5-sonnet', apiKey: 'secret-once' };
     apiPostMock.mockResolvedValueOnce(agent as any);
 
     const res = await handlers.create_agent({
@@ -69,14 +69,14 @@ describe('MCP tool unit tests', () => {
       hookUrl: 'https://example.com/hooks/agent',
       hookToken: 'tok',
       device: 'Pi',
-      ip: '1.2.3.4',
+      model: 'claude-3-5-sonnet',
     });
     expect(apiPostMock).toHaveBeenCalledWith('/api/agents', {
       name: 'Alpha',
       hookUrl: 'https://example.com/hooks/agent',
       hookToken: 'tok',
       device: 'Pi',
-      ip: '1.2.3.4',
+      model: 'claude-3-5-sonnet',
     });
 
     const text = (res as any).content[0].text as string;

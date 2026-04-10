@@ -57,6 +57,13 @@
       "when": 1775091000006,
       "tag": "0008_task_resolution",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1775091000007,
+      "tag": "0009_rename_agent_ip_to_model",
+      "breakpoints": true
     }
   ]
 }

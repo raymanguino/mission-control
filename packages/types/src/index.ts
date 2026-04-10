@@ -52,7 +52,7 @@ export interface Agent {
   specialization: string | null;
   description: string | null;
   device: string | null;
-  ip: string | null;
+  model: string | null;
   orgRole: AgentOrgRole;
   reportsToAgentId: string | null;
   /** Selected preset id, or null to show the default sprite in the UI. */
