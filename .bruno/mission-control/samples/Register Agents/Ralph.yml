@@ -1,0 +1,32 @@
+info:
+  name: Ralph
+  type: http
+  seq: 1
+
+http:
+  method: post
+  url: http://{{host}}:{{port}}/api/agents
+  headers:
+    - name: Authorization
+      value: Bearer {{token}}
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "name": "Ralph",
+        "hookUrl": "https://six7swe-worker.tailc28236.ts.net/hooks/mc",
+        "hookToken":"f2c3cab4ac54bbbffd473baa6bbdfc3fd96aab9d1d3ec2aec184d5e162c97c9f",
+        "specialization":"Management",
+        "description": "Excellent at staff and project management",
+        "device": "Raspberry Pi 4, 1.5GHz 64-bit quad-core ARMv8 CPU, 8GB RAM",
+        "model": "MoonshotAI: Kimi K2.5"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

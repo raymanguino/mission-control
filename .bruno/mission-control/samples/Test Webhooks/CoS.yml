@@ -1,0 +1,27 @@
+info:
+  name: CoS
+  type: http
+  seq: 1
+
+http:
+  method: post
+  url: https://six7swe-worker.tailc28236.ts.net/hooks/mc/cos
+  headers:
+    - name: Authorization
+      value: Bearer cos-hook-token
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "event": "project.approval_requested",
+        "projectId": "test-123"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

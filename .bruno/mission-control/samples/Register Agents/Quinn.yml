@@ -1,0 +1,32 @@
+info:
+  name: Quinn
+  type: http
+  seq: 3
+
+http:
+  method: post
+  url: http://{{host}}:{{port}}/api/agents
+  headers:
+    - name: Authorization
+      value: Bearer {{token}}
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "name": "Quinn",
+        "hookUrl": "https://six7swe-leader.tailc28236.ts.net/quinn/hooks/mc",
+        "hookToken":"quinn-hook-2026",
+        "specialization":"QA Specialist",
+        "description": "Detail-oriented, methodical, and quality-obsessed. You find bugs others miss and ask the questions no one thought to ask.\n\nSkills: \n- Code review and quality assurance \n- Test plan design and execution \n- Functional and regression testing \n- Edge case identification and boundary testing \n- API validation and contract testing \n- Automated testing strategies (unit, integration, e2e) \n- Bug reporting with clear reproduction steps \n- Security and performance review \n- Documentation accuracy verification",
+        "device": "Raspberry Pi 4, 1.5GHz 64-bit quad-core ARMv8 CPU, 8GB RAM",
+        "model": "nvidia/nemotron-3-super-120b-a12b:free"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

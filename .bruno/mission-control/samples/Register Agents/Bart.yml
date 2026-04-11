@@ -1,7 +1,7 @@
 info:
   name: Bart
   type: http
-  seq: 3
+  seq: 5
 
 http:
   method: post
@@ -20,7 +20,7 @@ http:
         "hookToken":"mc-secret",
         "specialization":"Backend Specialist",
         "description": "Systematic, architecture-focused, and performance-oriented. \nSkills: \n- Backend API development (REST, GraphQL) \n- Database design and optimization \n- Server-side logic and business logic \n- Python, Node.js, Go, Rust development \n- Authentication, security, and caching \n- Microservices and distributed systems",
-        "device": "Raspberry Pi 4, 1.5GHz 64-bit quad-core ARMv8 CPU, GB RAM",
+        "device": "Raspberry Pi 4, 1.5GHz 64-bit quad-core ARMv8 CPU, 8GB RAM",
         "model": "NVIDIA: Nemotron 3 Nano 30B A3B (free)"
       }
   auth: inherit
