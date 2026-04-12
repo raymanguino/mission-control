@@ -11,7 +11,18 @@ import type { FastifyBaseLogger } from 'fastify';
 import * as agentsDb from '../db/api/agents.js';
 import * as settingsDb from '../db/api/settings.js';
 import { pickAgentByOrgRoleLeastLoaded } from '../lib/pickAgentByLoad.js';
-import { instructionKeyForOrgRole } from '../lib/agentOrgRoles.js';
+import { type AgentOrgRole, instructionKeyForOrgRole } from '../lib/agentOrgRoles.js';
+
+/** Role-specific playbook text for webhook payloads (same keys as GET /api/agents/instructions). */
+async function instructionsTextForOrgRole(orgRole: string | null | undefined): Promise<string> {
+  if (!orgRole) return '';
+  try {
+    const key = instructionKeyForOrgRole(orgRole);
+    return (await settingsDb.getSetting(key)) ?? '';
+  } catch {
+    return '';
+  }
+}
 
 /** Set `AGENT_WEBHOOKS_ENABLED=false` (or `0` / `no`) to disable all outbound agent webhook POSTs. Default: enabled. */
 function agentWebhooksEnabled(): boolean {
@@ -60,16 +71,7 @@ export async function notifyAssignedAgentOfTask(
   task: { id: string; title: string; description: string | null; resolution?: string | null },
   project: { id: string; name: string; description: string | null; url: string | null },
 ): Promise<void> {
-  // Look up the agent's role-specific instructions for context injection
-  let agentInstructions = '';
-  if (agent.orgRole) {
-    try {
-      const instructionKey = instructionKeyForOrgRole(agent.orgRole);
-      agentInstructions = (await settingsDb.getSetting(instructionKey)) ?? '';
-    } catch {
-      // Instructions lookup failure is non-fatal
-    }
-  }
+  const agentInstructions = await instructionsTextForOrgRole(agent.orgRole);
 
   await postToAgentWebhook(agent.hookUrl, agent.hookToken, {
     event: 'task.assigned',
@@ -93,10 +95,11 @@ export async function notifyAssignedAgentOfTask(
 
 /** When a task already in Review gets a new assignee (reviewer): notify that agent's webhook. */
 export async function notifyAssignedAgentOfReviewAssigned(
-  agent: { hookUrl: string | null; hookToken: string | null },
+  agent: { hookUrl: string | null; hookToken: string | null; orgRole?: string | null },
   task: { id: string; title: string; description: string | null; resolution?: string | null },
   projectName: string,
 ): Promise<void> {
+  const agentInstructions = await instructionsTextForOrgRole(agent.orgRole);
   await postToAgentWebhook(agent.hookUrl, agent.hookToken, {
     event: 'review.assigned',
     task: {
@@ -106,16 +109,18 @@ export async function notifyAssignedAgentOfReviewAssigned(
       resolution: task.resolution ?? null,
       projectName,
     },
+    agentInstructions,
   });
 }
 
 /** When every task in the project is in Review: notify QA that the batch is ready (`allTasksInReview`). */
 export async function notifyQaOfProjectAllTasksInReviewWebhook(
-  agent: { hookUrl: string | null; hookToken: string | null },
+  agent: { hookUrl: string | null; hookToken: string | null; orgRole?: string | null },
   task: { id: string; title: string; description: string | null; resolution?: string | null },
   project: { id: string; name: string; description?: string | null; url?: string | null },
   projectName: string,
 ): Promise<void> {
+  const agentInstructions = await instructionsTextForOrgRole(agent.orgRole);
   await postToAgentWebhook(agent.hookUrl, agent.hookToken, {
     event: 'review.assigned',
     allTasksInReview: true,
@@ -136,6 +141,7 @@ export async function notifyQaOfProjectAllTasksInReviewWebhook(
       description: project.description ?? null,
       url: project.url ?? null,
     },
+    agentInstructions,
   });
 }
 
@@ -147,6 +153,7 @@ export async function notifyChiefOfStaffOfProject(
     return;
   }
 
+  const agentInstructions = await instructionsTextForOrgRole(agent.orgRole);
   await postToAgentWebhook(agent.hookUrl, agent.hookToken, {
     event: 'project.approval_requested',
     project: {
@@ -154,6 +161,7 @@ export async function notifyChiefOfStaffOfProject(
       name: project.name,
       description: project.description ?? null,
     },
+    agentInstructions,
   });
 }
 
@@ -165,6 +173,7 @@ export async function notifyChiefOfStaffOfProjectCompleted(
   if (!agentWebhooksEnabled()) return;
 
   const cosRows = await agentsDb.getCoSAgents();
+  const agentInstructions = await instructionsTextForOrgRole('chief_of_staff');
   let posted = 0;
   for (const agent of cosRows) {
     if (!agent.hookUrl?.trim() || !agent.hookToken?.trim()) continue;
@@ -176,6 +185,7 @@ export async function notifyChiefOfStaffOfProjectCompleted(
         description: project.description ?? null,
         url: project.url ?? null,
       },
+      agentInstructions,
     });
     posted += 1;
   }
@@ -192,13 +202,15 @@ const INSTRUCTIONS_UPDATE_EVENT = 'instructions.updated' as const;
 const INSTRUCTIONS_WEBHOOK_MESSAGE =
   'Mission Control: instructions were updated. Refresh via GET /api/agents/instructions with Authorization: Bearer <your agent API key>.';
 
-function instructionsUpdatePayload(): Record<string, unknown> {
+async function instructionsUpdatePayload(orgRole: AgentOrgRole): Promise<Record<string, unknown>> {
+  const agentInstructions = await instructionsTextForOrgRole(orgRole);
   return {
     event: INSTRUCTIONS_UPDATE_EVENT,
     message: INSTRUCTIONS_WEBHOOK_MESSAGE,
     name: 'Mission Control',
     deliver: false,
     wakeMode: 'now',
+    agentInstructions,
   };
 }
 
@@ -210,9 +222,10 @@ export async function notifyChiefOfStaffInstructionsUpdated(
 
   const cosRows = await agentsDb.getCoSAgents();
   let posted = 0;
+  const payload = await instructionsUpdatePayload('chief_of_staff');
   for (const agent of cosRows) {
     if (!agent.hookUrl?.trim() || !agent.hookToken?.trim()) continue;
-    await postToAgentWebhook(agent.hookUrl, agent.hookToken, instructionsUpdatePayload());
+    await postToAgentWebhook(agent.hookUrl, agent.hookToken, payload);
     posted += 1;
   }
 
@@ -231,9 +244,10 @@ export async function notifyEngineerAgentsInstructionsUpdated(
 
   const rows = await agentsDb.listAgentsByOrgRole('engineer');
   let posted = 0;
+  const payload = await instructionsUpdatePayload('engineer');
   for (const agent of rows) {
     if (!agent.hookUrl?.trim() || !agent.hookToken?.trim()) continue;
-    await postToAgentWebhook(agent.hookUrl, agent.hookToken, instructionsUpdatePayload());
+    await postToAgentWebhook(agent.hookUrl, agent.hookToken, payload);
     posted += 1;
   }
 
@@ -250,9 +264,10 @@ export async function notifyQaAgentsInstructionsUpdated(log?: FastifyBaseLogger)
 
   const rows = await agentsDb.listAgentsByOrgRole('qa');
   let posted = 0;
+  const payload = await instructionsUpdatePayload('qa');
   for (const agent of rows) {
     if (!agent.hookUrl?.trim() || !agent.hookToken?.trim()) continue;
-    await postToAgentWebhook(agent.hookUrl, agent.hookToken, instructionsUpdatePayload());
+    await postToAgentWebhook(agent.hookUrl, agent.hookToken, payload);
     posted += 1;
   }
 
