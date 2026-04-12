@@ -59,6 +59,7 @@ export const backendRequestSchemas = {
     resolution: z.string().optional(),
     status: z.enum(['backlog', 'doing', 'review', 'not_done', 'done']).optional(),
     order: z.number().int().optional(),
+    assignedAgentId: z.string().uuid().nullable().optional(),
   }),
   updateTask: z.object({
     title: z.string().optional(),
@@ -191,6 +192,7 @@ export const mcpToolContracts: Record<string, McpToolContract> = {
       description: backendRequestSchemas.createTask.shape.description,
       resolution: backendRequestSchemas.createTask.shape.resolution,
       status: backendRequestSchemas.createTask.shape.status,
+      assignedAgentId: backendRequestSchemas.createTask.shape.assignedAgentId,
     },
   },
   update_task: {

@@ -198,11 +198,26 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
         { reason: 'project_url_required_for_review' },
       );
     }
-    const engineer = await pickAgentByOrgRoleLeastLoaded('engineer');
+    let assignedAgentId: string | null;
+    if (body.assignedAgentId !== undefined) {
+      if (body.assignedAgentId === null) {
+        assignedAgentId = null;
+      } else {
+        const agent = await agentsDb.getAgent(body.assignedAgentId);
+        if (!agent) {
+          throw new ApiError(400, 'BAD_REQUEST', 'Unknown assignedAgentId');
+        }
+        assignedAgentId = body.assignedAgentId;
+      }
+    } else {
+      const engineer = await pickAgentByOrgRoleLeastLoaded('engineer');
+      assignedAgentId = engineer?.id ?? null;
+    }
+
     const createPayload: Parameters<typeof projectsDb.createTask>[0] = {
       ...body,
       projectId,
-      assignedAgentId: engineer?.id ?? null,
+      assignedAgentId,
       implementerAgentId: null,
     };
 
