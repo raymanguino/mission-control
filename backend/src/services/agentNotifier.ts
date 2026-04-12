@@ -50,7 +50,13 @@ export async function postToAgentWebhook(
 }
 
 export async function notifyAssignedAgentOfTask(
-  agent: { hookUrl: string | null; hookToken: string | null; name?: string; orgRole?: string },
+  agent: {
+    id: string;
+    hookUrl: string | null;
+    hookToken: string | null;
+    name?: string;
+    orgRole?: string;
+  },
   task: { id: string; title: string; description: string | null; resolution?: string | null },
   project: { id: string; name: string; description: string | null; url: string | null },
 ): Promise<void> {
@@ -69,6 +75,7 @@ export async function notifyAssignedAgentOfTask(
     event: 'task.assigned',
     task: {
       id: task.id,
+      assignedAgentId: agent.id,
       title: task.title,
       description: task.description ?? null,
       resolution: task.resolution ?? null,
