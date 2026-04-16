@@ -17,6 +17,8 @@ Mission Control (laptop-f2vfct8b)
                                    └─ Agent executes workflow via MCP tools
 ```
 
+For the receiver-side implementation, see [`packages/agent-webhook-relay/`](../packages/agent-webhook-relay/), which accepts `/hooks/mc/<role>` and forwards the raw payload unchanged.
+
 **Current agents:**
 
 | Agent | Host | Tailscale URL | Role |

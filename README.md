@@ -10,6 +10,7 @@ Monorepo for the Mission Control dashboard: a **Fastify** backend, **React** (Vi
 | Web UI | [`frontend/`](frontend/) | Vite + React + Tailwind |
 | MCP server | [`mcp/`](mcp/) | Model Context Protocol server that talks to the backend |
 | Shared types | [`packages/types/`](packages/types/) | Workspace package `@mission-control/types` |
+| Agent webhook relay | [`packages/agent-webhook-relay/`](packages/agent-webhook-relay/) | Thin webhook relay that forwards Mission Control events to OpenClaw agents |
 
 Scripts for the whole repo live in the root [`package.json`](package.json).
 
@@ -84,12 +85,7 @@ Mission Control notifies registered AI agents via webhooks over Tailscale. Agent
 
 → **[Agent Integration Guide](docs/agent-integration.md)** — payload shapes, handler workflows, registration steps, MCP tools, and debugging.
 
-
-## Agent Integration
-
-Mission Control notifies registered AI agents via webhooks over Tailscale. Agents can receive project approvals, task assignments, and instruction updates.
-
-→ **[Agent Integration Guide](docs/agent-integration.md)** — payload shapes, handler workflows, registration steps, MCP tools, and debugging.
+→ **[Agent webhook relay package](packages/agent-webhook-relay/)** — receiver-side reference implementation for `/hooks/mc/<role>`.
 
 ## Contributing
 
