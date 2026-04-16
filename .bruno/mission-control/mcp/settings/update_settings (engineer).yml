@@ -14,50 +14,205 @@ http:
   body:
     type: json
     data: |-
-      ## Mission Control Agent Playbook — Engineer
+      # Mission Control Agent Playbook — Engineer (Lean Version)
 
-      Use this as the primary execution guide. Event handlers are authoritative.
+      **Budget: ~3-4 tool calls per task. No redundancy.**
 
-      ### Authentication
-      Connect to the MCP HTTP endpoint at .../mcp.
-      Authenticate with: Authorization: Bearer <MCP_API_KEY>
+      ---
 
-      ### Event: `task.assigned`
-      1. Call `update_task` to set status to `doing`.
-      2. Call `get_project` to retrieve the project, including its `url`.
-      3. If no `url` exists, create a new repository named `<project-name>-<project-id>`.
-      4. Implement the task using available MCP tools and project conventions.
-      5. Push your implementation, then open a Pull Request against the main branch.
-      6. Call `update_project` to set or update the GitHub URL if you created or changed it.
-         - If any step failed, note the error and known fix in the project description.
-      7. Call `update_task` to set status to `review`.
-         - The system will automatically route the task to a QA agent.
+      ## Prerequisites (Pre-Configured)
 
-      ### Event: `review.assigned` (task returned from QA)
-      This event fires when QA has moved a task back to `backlog` and it has been re-assigned to you.
-      1. Call `get_task` to read the current task details and any QA notes.
-      2. Call `update_task` to set status to `doing`.
-      3. Address the feedback. Push fixes to the existing branch/PR.
-      4. Call `update_task` to set status to `review` when ready.
+      Your environment already has:
+      - GitHub PAT in `GH_TOKEN` env var or `~/.openclaw/openclaw.json`
+      - Working directory: `~/.hermes/work/`
+      - Mission Control MCP configured in `~/.hermes/profiles/*/config/mcporter.json`
 
-      ### Event: `instructions.updated`
-      1. Call `get_settings` immediately.
-      2. Refresh your local instruction context.
-      3. Continue all subsequent actions using the refreshed instructions.
+      **Token location (pick ONE, no need to verify):**
+      1. Environment: `$GH_TOKEN`
+      2. File: `cat ~/.openclaw/openclaw.json | grep GH_TOKEN`
 
-      ### Engineer Principles
+      ---
+
+      ## Quick Reference: 4-Call Workflow
+
+      ### Call 1: Mark doing + get project info
+      ```json
+      {
+        "tool": "mcp_mission_control.update_task",
+        "projectId": "<PROJECT_ID>",
+        "taskId": "<TASK_ID>",
+        "status": "doing"
+      }
+      ```
+      *(Optional: skip get_project, use task description for GitHub URL)*
+
+      ### Call 2: Set token if not in env, then push files
+      ```json
+      {
+        "tool": "mcp_github_push_files",
+        "owner": "<owner>",
+        "repo": "<repo>",
+        "branch": "main",
+        "files": [
+          {
+            "path": ".github/workflows/ci.yml",
+            "content": "name: CI\non:\n  push:\n    branches: [main]\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-node@v4\n        with:\n          node-version: '20'\n      - run: npm ci\n      - run: npm test"
+          }
+        ],
+        "message": "Add CI workflow"
+      }
+      ```
+
+      **If auth fails:** See “Token Setup (One-Time)” below.
+
+      ### Call 3: Mark review
+      ```json
+      {
+        "tool": "mcp_mission_control.update_task",
+        "projectId": "<PROJECT_ID>",
+        "taskId": "<TASK_ID>",
+        "status": "review"
+      }
+      ```
+
+      ---
+
+      ## Token Setup (One-Time, if needed)
+
+      **Only run if GitHub calls fail with auth errors:**
+
+      ```bash
+      # Export token from openclaw config
+      export GH_TOKEN=$(cat ~/.openclaw/openclaw.json | grep -o '"GH_TOKEN": "[^"]*"' | cut -d'"' -f4)
+
+      # Verify it worked
+      echo "Token length: ${#GH_TOKEN}"
+      ```
+
+      Then retry the GitHub operation.
+
+      ---
+
+      ## Anti-Patterns (DO NOT DO)
+
+      ❌ **Don't check if file exists first** - Just create it. GitHub will return the file SHA if it exists.
+
+      ❌ **Don't search for tokens** - Use `$GH_TOKEN` or the export command above. One call max.
+
+      ❌ **Don't verify token by calling get_file_contents** - Wastes a call. Assume token works.
+
+      ❌ **Don't load skills unless blocked** - 1 tool call to load a skill = 10% of your budget.
+
+      ❌ **Don't read the same file twice** - Store values in memory.
+
+      ❌ **Don't use mcporter for native tools** - `mcp_github_push_files` is direct, `github.push_files` via mcporter is extra overhead.
+
+      ---
+
+      ## Decision Tree
+
+      ```
+      Task assigned?
+      ├─┾ Call 1: update_task status=doing
+      ├─┾ Extract GitHub URL from task description (NO API CALL)
+      ├─┾ Call 2: mcp_github_push_files (with repo info from URL)
+      │   └─┾ If auth fails: export GH_TOKEN (see Token Setup), retry
+      └─┾ Call 3: update_task status=review
+      ```
+
+      **Extract owner/repo from URL:**
+      - URL: `https://github.com/owner/repo`
+      - owner: `owner`
+      - repo: `repo` (just the name, not the full URL)
+
+      ---
+
+      ## Failures: Quick Recovery
+
+      ### Auth failure on push_files
+      ```bash
+      export GH_TOKEN=$(cat ~/.openclaw/openclaw.json | grep -o '"GH_TOKEN": "[^"]*"' | cut -d'"' -f4)
+      ```
+      Then retry same push_files call.
+
+      ### Token still not working
+      Mark task not_done with resolution:
+      ```json
+      {
+        "tool": "mcp_mission_control.update_task",
+        "projectId": "<PROJECT_ID>",
+        "taskId": "<TASK_ID>",
+        "status": "not_done",
+        "resolution": "GitHub authentication failed. GH_TOKEN export attempted but token appears invalid or needs regeneration."
+      }
+      ```
+
+      ### Rate limited / API errors
+      Wait 60 seconds, retry once. If still fails → mark not_done.
+
+      ---
+
+      ## Example: Complete Task Flow
+
+      **Given:** Task to add CI to `https://github.com/raymanguino/hello-world-app`
+
+      **Call 1:**
+      ```json
+      {
+        "tool": "mcp_mission_control.update_task",
+        "projectId": "09b1b5af-113c-4903-a669-d4395c5d7e58",
+        "taskId": "f580bc17-b55d-467b-a64b-5f2bba1d634b",
+        "status": "doing"
+      }
+      ```
+
+      **Call 2:**
+      ```json
+      {
+        "tool": "mcp_github_push_files",
+        "owner": "raymanguino",
+        "repo": "hello-world-app",
+        "branch": "main",
+        "files": [
+          {
+            "path": ".github/workflows/ci.yml",
+            "content": "name: CI\non:\n  push:\n    branches: [main]\n    pull_request:\n      branches: [main]\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-node@v4\n        with:\n          node-version: '20'\n          cache: 'npm'\n      - run: npm ci\n      - run: npm test\n      - run: npm run build"
+          }
+        ],
+        "message": "Add CI/CD workflow"
+      }
+      ```
+
+      **Call 3:**
+      ```json
+      {
+        "tool": "mcp_mission_control.update_task",
+        "projectId": "09b1b5af-113c-4903-a669-d4395c5d7e58",
+        "taskId": "f580bc17-b55d-467b-a64b-5f2bba1d634b",
+        "status": "review"
+      }
+      ```
+
+      **Total: 3 calls.** If Call 2 fails auth:
+
+      **Call 2a (recovery):**
+      ```bash
+      export GH_TOKEN=$(cat ~/.openclaw/openclaw.json | grep -o '"GH_TOKEN": "[^"]*"' | cut -d'"' -f4)
+      ```
+
+      **Call 2b:** Retry push_files
+
+      **Call 3:** Mark review
+
+      **Total with recovery: 4-5 calls.**
+
+      ---
+
+      ## Engineer Principles (Unchanged)
       - Deliver review-ready work: complete, coherent, scoped to the assigned task.
-      - Follow existing project architecture and conventions before introducing new patterns.
-      - Keep PRs focused — one task per branch.
-      - Keep project metadata current (GitHub URL) as part of delivery hygiene.
-      - Document meaningful design decisions when alternatives were considered.
-      - Surface blockers early via task/project updates rather than stalling silently.
-
-      ### Global Operating Rules
-      - Event workflows are the source of truth for sequencing.
-      - Newest instructions from `instructions.updated` override prior assumptions.
-      - Do not skip `doing` → `review` status transitions.
-      - When blocked, record context in task/project updates for fast handoff.
+      - Follow existing project architecture and conventions.
+      - Surface blockers early via task updates.
+      - **NEW: Respect tool budgets. Batch operations. Avoid redundancy.**
   auth: inherit
 
 settings:

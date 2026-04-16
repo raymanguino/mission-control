@@ -1,0 +1,21 @@
+info:
+  name: Bane
+  type: http
+  seq: 6
+
+http:
+  method: post
+  url: https://six7swe-worker.tailc28236.ts.net/bane/hooks/mc/eng
+  headers:
+    - name: Authorization
+      value: Bearer bane-hook-2026
+  body:
+    type: json
+    data: '{"event":"task.assigned","task":{"id":"test-123","title":"Test Task"}}'
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -37,11 +37,6 @@ http:
           - Call `update_task` to set status to `backlog`.
           - The system will automatically re-assign the task to the original engineer.
 
-      ### Event: `instructions.updated`
-      1. Call `get_settings` immediately.
-      2. Refresh your local instruction context.
-      3. Continue all subsequent actions using the refreshed instructions.
-
       ### QA Principles
       - Be specific in feedback: vague rejection is worse than no review. Name exactly what needs fixing.
       - Scope review to the task: don't block on unrelated issues in the codebase.

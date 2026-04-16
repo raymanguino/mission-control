@@ -155,6 +155,7 @@ export async function notifyChiefOfStaffOfProject(
 
   const agentInstructions = await instructionsTextForOrgRole(agent.orgRole);
   await postToAgentWebhook(agent.hookUrl, agent.hookToken, {
+    agentId: agent.id,
     event: 'project.approval_requested',
     project: {
       id: project.id,
