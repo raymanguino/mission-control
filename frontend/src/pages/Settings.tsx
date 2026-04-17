@@ -148,10 +148,9 @@ export default function Settings() {
       <div className="bg-gray-900 rounded-xl p-5 border border-gray-800 space-y-3">
         <h2 className="text-sm font-semibold text-white">Chief of Staff Instructions</h2>
         <p className="text-xs text-gray-500">
-          Sent to the CoS agent on registration and with every report response. On Save, Mission
-          Control POSTs <code className="text-gray-400">instructions.updated</code> to each{' '}
-          <span className="text-gray-400">chief_of_staff</span> agent that has a webhook URL and
-          bearer token configured (Agent detail).
+          Sent to the CoS agent on registration and with every report response. On Save, agents with
+          email receive a notice; playbook text is always available via{' '}
+          <code className="text-gray-400">GET /api/agents/instructions</code>.
         </p>
         {settingsLoading ? (
           <p className="text-xs text-gray-500">Loading…</p>
@@ -178,9 +177,9 @@ export default function Settings() {
         <h2 className="text-sm font-semibold text-white">Agent Instructions</h2>
         <p className="text-xs text-gray-500">
           Sent to <span className="text-gray-400">engineer</span> agents on registration, task
-          assignment, and with every report response. On Save, Mission Control POSTs{' '}
-          <code className="text-gray-400">instructions.updated</code> to each engineer agent with a
-          webhook configured—not to QA or the Chief of Staff.
+          assignment, and with every report response. On Save, engineers with email receive a
+          notice; playbook text is always available via{' '}
+          <code className="text-gray-400">GET /api/agents/instructions</code>.
         </p>
         {settingsLoading ? (
           <p className="text-xs text-gray-500">Loading…</p>
@@ -207,9 +206,8 @@ export default function Settings() {
         <h2 className="text-sm font-semibold text-white">QA Instruction</h2>
         <p className="text-xs text-gray-500">
           Sent to <span className="text-gray-400">qa</span> agents on registration, task assignment,
-          and with every report response. On Save, Mission Control POSTs{' '}
-          <code className="text-gray-400">instructions.updated</code> to each QA agent with a webhook
-          configured—not to engineers or the Chief of Staff.
+          and with every report response. On Save, QA agents with email receive a notice; playbook
+          text is always available via <code className="text-gray-400">GET /api/agents/instructions</code>.
         </p>
         {settingsLoading ? (
           <p className="text-xs text-gray-500">Loading…</p>

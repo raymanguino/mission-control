@@ -112,7 +112,7 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
     if (!project) throw new ApiError(404, 'NOT_FOUND', 'Not found');
     
     // Note: Task decomposition is handled by Ralph (Chief of Staff) via the
-    // project.approval_requested webhook. MC no longer auto-decomposes.
+    // project.pending_approval webhook. MC no longer auto-decomposes.
     // Ralph receives the event, decomposes the project, creates tasks,
     // assigns them to agents, then updates status to approved.
     

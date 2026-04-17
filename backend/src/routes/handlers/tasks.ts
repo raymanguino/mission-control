@@ -139,7 +139,7 @@ async function notifyQaBatchWhenAllTasksInReview(
         },
         project.name,
       ).catch((err) =>
-        log.error({ err }, 'Failed to POST review.assigned (batch) to QA webhook'),
+        log.error({ err }, 'Failed to POST task.completed (batch) to QA webhook'),
       );
     }
 

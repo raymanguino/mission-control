@@ -3,12 +3,6 @@ import { z } from 'zod';
 import * as agentsDb from '../../db/api/agents.js';
 import * as settingsDb from '../../db/api/settings.js';
 import * as emailService from '../../services/email.js';
-import {
-  notifyChiefOfStaffInstructionsUpdated,
-  notifyEngineerAgentsInstructionsUpdated,
-  notifyQaAgentsInstructionsUpdated,
-} from '../../services/agentNotifier.js';
-import type { AgentOrgRole } from '../../lib/agentOrgRoles.js';
 import { ApiError, parseBody } from '../../lib/errors.js';
 import { AGENT_PRESENCE_SETTING_KEYS } from '../../lib/agentPresenceConfig.js';
 
@@ -68,7 +62,7 @@ const settingsRoutes: FastifyPluginAsync = async (fastify) => {
     await settingsDb.upsertSettings(body);
 
     try {
-      await notifyAgentsOfInstructionChanges(request, previousByKey, body);
+      await notifyAgentsOfInstructionEmailOnly(request, previousByKey, body);
     } catch (err) {
       request.log.error({ err }, 'Failed to notify agents of instruction updates');
     }
@@ -77,7 +71,7 @@ const settingsRoutes: FastifyPluginAsync = async (fastify) => {
   });
 };
 
-async function notifyAgentsOfInstructionChanges(
+async function notifyAgentsOfInstructionEmailOnly(
   request: FastifyRequest,
   previousByKey: Partial<Record<(typeof INSTRUCTION_SETTING_KEYS)[number], string | null>>,
   body: Record<string, string>,
@@ -89,27 +83,6 @@ async function notifyAgentsOfInstructionChanges(
     const unchanged = prev === next;
 
     if (unchanged) continue;
-
-
-    if (key === 'cos_instructions') {
-      try {
-        await notifyChiefOfStaffInstructionsUpdated(request.log);
-      } catch (err) {
-        request.log.error({ err }, 'Failed to notify chief of staff webhook of instructions update');
-      }
-    } else if (key === 'agent_instructions') {
-      try {
-        await notifyEngineerAgentsInstructionsUpdated(request.log);
-      } catch (err) {
-        request.log.error({ err }, 'Failed to notify engineer agent webhooks of instructions update');
-      }
-    } else if (key === 'qa_instructions') {
-      try {
-        await notifyQaAgentsInstructionsUpdated(request.log);
-      } catch (err) {
-        request.log.error({ err }, 'Failed to notify QA agent webhooks of instructions update');
-      }
-    }
 
     if (key === 'cos_instructions') {
       const cosAgents = await agentsDb.listAgentsWithEmailByOrgRole('chief_of_staff');

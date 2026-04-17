@@ -274,13 +274,13 @@ export default function AgentDetail() {
         <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wide mb-3">Webhook</h2>
         <p className="text-xs text-gray-500 mb-3">
           Required. Mission Control POSTs JSON events to this URL with{' '}
-          <code className="text-gray-400">Authorization: Bearer &lt;token&gt;</code>.           Task assignments
-          go to the assigned agent (<code className="text-gray-400">task.assigned</code> or{' '}
-          <code className="text-gray-400">review.assigned</code> when the task is already in Review); new
-          projects (<code className="text-gray-400">project.approval_requested</code>) and Chief of Staff
-          instruction saves go to the CoS agent. Saving Agent Instructions in Settings notifies engineers;
-          saving QA Instruction notifies QA agents (
-          <code className="text-gray-400">instructions.updated</code>).
+          <code className="text-gray-400">Authorization: Bearer &lt;token&gt;</code>, using role paths{' '}
+          <code className="text-gray-400">/hooks/mc/eng</code>, <code className="text-gray-400">/hooks/mc/qa</code>, or{' '}
+          <code className="text-gray-400">/hooks/mc/cos</code> (see agent webhook relay). Engineers receive{' '}
+          <code className="text-gray-400">task.created</code>; QA receives <code className="text-gray-400">task.completed</code>{' '}
+          when all tasks are in review; Chief of Staff receives <code className="text-gray-400">project.pending_approval</code>{' '}
+          and <code className="text-gray-400">project.completed</code>. Playbook text is fetched via{' '}
+          <code className="text-gray-400">GET /api/agents/instructions</code>, not webhook pushes.
         </p>
         <div className="space-y-3 max-w-xl">
           <div>
