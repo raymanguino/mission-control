@@ -6,6 +6,7 @@ import * as emailService from '../../services/email.js';
 import {
   notifyAssignedAgentOfTask,
   notifyChiefOfStaffOfProjectCompleted,
+  notifyChiefOfStaffOfReviewCompleted,
   notifyQaOfProjectAllTasksInReviewWebhook,
 } from '../../services/agentNotifier.js';
 import { getDiscordSyncService } from '../../services/discord/index.js';
@@ -210,8 +211,7 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
         assignedAgentId = body.assignedAgentId;
       }
     } else {
-      const engineer = await pickAgentByOrgRoleLeastLoaded('engineer');
-      assignedAgentId = engineer?.id ?? null;
+      assignedAgentId = null;
     }
 
     const createPayload: Parameters<typeof projectsDb.createTask>[0] = {
@@ -376,6 +376,13 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
       if (qa?.id) {
         await notifyQaBatchWhenAllTasksInReview(taskId, qa.id, request.log);
       }
+    }
+
+    const transitionedReviewToDone = existing.status === 'review' && task.status === 'done';
+    if (transitionedReviewToDone) {
+      notifyChiefOfStaffOfReviewCompleted(task, project, request.log).catch((err) =>
+        request.log.error({ err }, 'Failed to POST review.completed to Chief of Staff webhook'),
+      );
     }
 
     const transitionedToDone = existing.status !== 'done' && task.status === 'done';

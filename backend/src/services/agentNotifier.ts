@@ -145,6 +145,52 @@ export async function notifyChiefOfStaffOfProject(
 }
 
 /** When every task in a project is Done: notify each chief_of_staff agent that has a webhook. */
+/** When QA marks a task done from Review: notify each chief_of_staff agent that has a webhook (`review.completed`). */
+export async function notifyChiefOfStaffOfReviewCompleted(
+  task: {
+    id: string;
+    title: string;
+    description: string | null;
+    resolution?: string | null;
+  },
+  project: { id: string; name: string; description: string | null; url: string | null },
+  log?: FastifyBaseLogger,
+): Promise<void> {
+  if (!agentWebhooksEnabled()) return;
+
+  const cosRows = await agentsDb.getCoSAgents();
+  const agentInstructions = await instructionsTextForOrgRole('chief_of_staff');
+  let posted = 0;
+  for (const agent of cosRows) {
+    if (!agent.hookUrl?.trim() || !agent.hookToken?.trim()) continue;
+    await postToAgentWebhook(agent.hookUrl, agent.hookToken, {
+      event: 'review.completed',
+      task: {
+        id: task.id,
+        title: task.title,
+        description: task.description ?? null,
+        resolution: task.resolution ?? null,
+        projectId: project.id,
+        projectName: project.name,
+      },
+      project: {
+        id: project.id,
+        name: project.name,
+        description: project.description ?? null,
+        url: project.url ?? null,
+      },
+      agentInstructions,
+    }, { mcRole: 'cos' });
+    posted += 1;
+  }
+
+  if (posted === 0) {
+    log?.warn(
+      'Skipping review.completed webhook: no chief_of_staff agent has both hook URL and hook token set.',
+    );
+  }
+}
+
 export async function notifyChiefOfStaffOfProjectCompleted(
   project: { id: string; name: string; description: string | null; url: string | null },
   log?: FastifyBaseLogger,

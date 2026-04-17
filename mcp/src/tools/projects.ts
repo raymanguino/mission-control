@@ -143,7 +143,7 @@ export function registerProjectTools(server: McpServer) {
 
   server.tool(
     'create_task',
-    'Create a new task in a project. The project must have status `approved` (use update_project first).\n\nRequired: `projectId`, `title`.\nOptional: `description`, `resolution`, `status` (default: backlog), `assignedAgentId`.\n\nIf `assignedAgentId` is omitted, an engineer is chosen automatically (fewest open non-done tasks, random tie-break). Set to `null` to leave the task unassigned.',
+    'Create a new task in a project. The project must have status `approved` (use update_project first).\n\nRequired: `projectId`, `title`.\nOptional: `description`, `resolution`, `status` (default: backlog), `assignedAgentId`.\n\nIf `assignedAgentId` is omitted, the task is created unassigned. Set an agent UUID to assign on create.',
     {
       projectId: z.string().describe('Project UUID (required).'),
       title: z.string().describe('Task title (required).'),
@@ -165,7 +165,7 @@ export function registerProjectTools(server: McpServer) {
         .nullable()
         .optional()
         .describe(
-          'Agent UUID to assign, or `null` for unassigned. Omit to auto-pick an engineer.',
+          'Agent UUID to assign on create, or `null` for unassigned. Omit to leave unassigned.',
         ),
     },
     async ({ projectId, title, description, resolution, status, assignedAgentId }) => {

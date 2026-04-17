@@ -517,8 +517,8 @@ function TaskSlideOver({
             </div>
           ) : (
             <p className="text-xs text-gray-500">
-              Assignee is set automatically: an engineer with the fewest open tasks (or a QA agent if
-              status is Review).
+              New tasks start unassigned. Assignees are chosen when a task moves into Doing or Review
+              (unless you set one explicitly when editing).
             </p>
           )}
         </div>

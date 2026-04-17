@@ -278,8 +278,9 @@ export default function AgentDetail() {
           <code className="text-gray-400">/hooks/mc/eng</code>, <code className="text-gray-400">/hooks/mc/qa</code>, or{' '}
           <code className="text-gray-400">/hooks/mc/cos</code> (see agent webhook relay). Engineers receive{' '}
           <code className="text-gray-400">task.created</code>; QA receives <code className="text-gray-400">task.completed</code>{' '}
-          when all tasks are in review; Chief of Staff receives <code className="text-gray-400">project.pending_approval</code>{' '}
-          and <code className="text-gray-400">project.completed</code>. Playbook text is fetched via{' '}
+          when all tasks are in review; Chief of Staff receives <code className="text-gray-400">project.pending_approval</code>,{' '}
+          <code className="text-gray-400">review.completed</code> when a task leaves review as done, and{' '}
+          <code className="text-gray-400">project.completed</code>. Playbook text is fetched via{' '}
           <code className="text-gray-400">GET /api/agents/instructions</code>, not webhook pushes.
         </p>
         <div className="space-y-3 max-w-xl">
