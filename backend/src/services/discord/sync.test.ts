@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ChannelType, MessageType } from 'discord.js';
+import { ChannelType, MessageType } from 'discord-api-types/v10';
 import {
   DiscordSyncService,
   getDiscordAuthorName,

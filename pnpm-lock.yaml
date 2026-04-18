@@ -32,6 +32,9 @@ importers:
       bcryptjs:
         specifier: ^2.4.3
         version: 2.4.3
+      discord-api-types:
+        specifier: ^0.38.33
+        version: 0.38.42
       discord.js:
         specifier: ^14.25.1
         version: 14.25.1

@@ -3,6 +3,7 @@
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
+    "baseUrl": ".",
     "paths": {
       "@mission-control/types": ["../packages/types/src/index.ts"]
     }

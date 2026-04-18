@@ -1,11 +1,9 @@
+import { ChannelType, GatewayIntentBits, MessageType } from 'discord-api-types/v10';
 import {
-  ChannelType,
   Client,
   Constants,
   DiscordAPIError,
   Events,
-  GatewayIntentBits,
-  MessageType,
   type Message,
 } from 'discord.js';
 
