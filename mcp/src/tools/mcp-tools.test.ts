@@ -66,15 +66,11 @@ describe('MCP tool unit tests', () => {
 
     const res = await handlers.create_agent({
       name: 'Alpha',
-      hookUrl: 'https://example.com/hooks/agent',
-      hookToken: 'tok',
       device: 'Pi',
       model: 'claude-3-5-sonnet',
     });
     expect(apiPostMock).toHaveBeenCalledWith('/api/agents', {
       name: 'Alpha',
-      hookUrl: 'https://example.com/hooks/agent',
-      hookToken: 'tok',
       device: 'Pi',
       model: 'claude-3-5-sonnet',
     });

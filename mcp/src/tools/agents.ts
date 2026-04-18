@@ -53,11 +53,9 @@ export function registerAgentTools(server: McpServer) {
 
   server.tool(
     'create_agent',
-    'Register a new agent.\n\nRequired: `name`, `hookUrl` (HTTPS URL for inbound JSON webhooks), `hookToken` (Bearer secret for Authorization header).\nOptional: `email`, `specialization`, `description`, `device`, `model`, `reportsToAgentId`.\nOrg roles are assigned automatically in order: 1st registration → Chief of Staff, 2nd → Engineer, 3rd → QA, further registrations → Engineer.\nReturns the agent record, a one-time plaintext API key, and role-based instructions.',
+    'Register a new agent.\n\nRequired: `name`.\nOptional: `email`, `specialization`, `description`, `device`, `model`, `reportsToAgentId`.\nOutbound webhooks to OpenClaw use `MC_WEBHOOK_BASE_URL` and `MC_WEBHOOK_TOKEN` on the Mission Control server (not per-agent).\nOrg roles are assigned automatically in order: 1st registration → Chief of Staff, 2nd → Engineer, 3rd → QA, further registrations → Engineer.\nReturns the agent record, a one-time plaintext API key, and role-based instructions.',
     {
       name: z.string().describe('Display name for the agent (required).'),
-      hookUrl: z.string().url().describe('Inbound webhook URL (required), e.g. OpenClaw gateway /hooks/agent.'),
-      hookToken: z.string().min(1).describe('Bearer token Mission Control sends with webhook POSTs (required).'),
       email: z.string().optional().describe('Email address for task notifications (optional).'),
       specialization: z.string().optional().describe('Short summary of strongest area, e.g. "Frontend React Developer" (optional).'),
       description: z.string().optional().describe('Detailed skills profile (optional).'),
@@ -65,13 +63,11 @@ export function registerAgentTools(server: McpServer) {
       model: z.string().optional().describe('LLM or runtime model identifier (optional), e.g. "claude-3-5-sonnet".'),
       reportsToAgentId: z.string().optional().describe('Manager agent UUID (optional).'),
     },
-    async ({ name, hookUrl, hookToken, email, specialization, description, device, model, reportsToAgentId }) => {
+    async ({ name, email, specialization, description, device, model, reportsToAgentId }) => {
       const agent = await apiPost<Agent & { apiKey: string; instructions: string | null }>(
         '/api/agents',
         omitNullValues({
           name,
-          hookUrl,
-          hookToken,
           email,
           specialization,
           description,
@@ -93,7 +89,7 @@ export function registerAgentTools(server: McpServer) {
 
   server.tool(
     'update_agent',
-    'Update an existing agent\'s profile.\n\nRequired: `agentId`.\nOptional: `name`, `email`, `specialization`, `description`, `device`, `model`, `orgRole`, `reportsToAgentId`, `avatarId` (preset block-style sprite), `hookUrl`, `hookToken` (bearer for inbound webhooks; omit either to keep stored value). Webhooks cannot be cleared — every agent must retain a URL and token.',
+    'Update an existing agent\'s profile.\n\nRequired: `agentId`.\nOptional: `name`, `email`, `specialization`, `description`, `device`, `model`, `orgRole`, `reportsToAgentId`, `avatarId` (preset block-style sprite).',
     {
       agentId: z.string().describe('Agent UUID (required).'),
       name: z.string().optional().describe('Updated display name (omit to keep unchanged).'),
@@ -114,16 +110,6 @@ export function registerAgentTools(server: McpServer) {
       avatarId: agentAvatarIdSchema.describe(
         'Preset avatar id (grass_block, creeper_face, etc.), or null to clear to default (omit to keep unchanged).',
       ),
-      hookUrl: z
-        .string()
-        .url()
-        .optional()
-        .describe('HTTPS URL for inbound JSON webhooks from Mission Control (omit to keep unchanged).'),
-      hookToken: z
-        .string()
-        .min(1)
-        .optional()
-        .describe('Bearer token for webhook Authorization header (omit to keep unchanged).'),
     },
     async ({ agentId, ...updates }) => {
       const body: Record<string, unknown> = { ...omitNullValues(updates) };

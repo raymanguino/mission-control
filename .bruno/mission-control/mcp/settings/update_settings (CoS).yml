@@ -22,7 +22,7 @@ http:
       Connect to the MCP HTTP endpoint at .../mcp.
       Authenticate with: Authorization: Bearer <MCP_API_KEY>
 
-      ### Event: `project.approval_requested`
+      ### Event: `project.pending_approval`
       1. Call `get_project` to load full project details.
       2. If the project cannot be built as a web app, call `update_project` to set status to `denied` and stop.
       3. Otherwise, expand the description into a clear, implementation-ready plan:
@@ -32,14 +32,11 @@ http:
       4. Break the plan into discrete tasks. Call `create_task` for each:
          - Split by concern (frontend / backend / database / integration / testing / docs)
          - Keep tasks independently assignable and reviewable
-         - Leave `status` as `backlog` — the system assigns agents automatically
-         - Do NOT assign tasks yourself
+         - Leave tasks unassigned (`assignedAgentId` null) unless you explicitly set them — agents claim work via `update_task`
       5. Call `update_project` to set status to `approved`.
 
-      ### Event: `project.completed`
-      1. Call `get_project` to retrieve the current project details, including its `url`.
-      2. Post the project URL to the #general Discord channel. Format: "✅ Project [name] is complete: <url>"
-      3. If no URL is set, note that in the message instead.
+      ### Event: `project.review_completed`
+      1. Payload includes `projectId`, `taskId`, and `project.name`. Use `get_project` / task APIs as needed to continue orchestration after QA marks a task done.
 
       ### Event: `instructions.updated`
       1. Call `get_settings` immediately.

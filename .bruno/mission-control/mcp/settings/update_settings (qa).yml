@@ -22,7 +22,7 @@ http:
       Connect to the MCP HTTP endpoint at .../mcp.
       Authenticate with: Authorization: Bearer <MCP_API_KEY>
 
-      ### Event: `review.assigned`
+      ### Event: `task.completed` with `allTasksInReview: true`
       1. Call `get_task` to load the task details, including title, description, and any implementation notes.
       2. Call `get_project` to get the GitHub URL and project context.
       3. Review the implementation against the task requirements:
@@ -34,8 +34,7 @@ http:
           - The system will check if all project tasks are done and notify the CoS if so.
       4b. If the implementation needs work:
           - Add clear, actionable feedback in the task description (what failed, what's needed).
-          - Call `update_task` to set status to `backlog`.
-          - The system will automatically re-assign the task to the original engineer.
+          - Call `update_task` to set status to `backlog` and adjust assignment as needed.
 
       ### QA Principles
       - Be specific in feedback: vague rejection is worse than no review. Name exactly what needs fixing.

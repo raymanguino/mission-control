@@ -41,10 +41,6 @@ export default function AgentDetail() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [avatarSaving, setAvatarSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [hookUrlEdit, setHookUrlEdit] = useState('');
-  const [hookTokenEdit, setHookTokenEdit] = useState('');
-  const [hookSaving, setHookSaving] = useState(false);
-
   const handleAvatarChange = useCallback(async (next: AgentAvatarId | null) => {
     if (!agentId) return;
     setAvatarSaving(true);
@@ -72,8 +68,6 @@ export default function AgentDetail() {
         const data = await api.get<Agent>(`/api/agents/${agentId}`);
         if (cancelled) return;
         setAgent(data);
-        setHookUrlEdit(data.hookUrl ?? '');
-        setHookTokenEdit('');
         if (data.reportsToAgentId) {
           try {
             const manager = await api.get<Agent>(`/api/agents/${data.reportsToAgentId}`);
@@ -92,33 +86,6 @@ export default function AgentDetail() {
       cancelled = true;
     };
   }, [agentId]);
-
-  async function handleSaveWebhook() {
-    if (!agentId || !agent) return;
-    const url = hookUrlEdit.trim();
-    const token = hookTokenEdit.trim();
-    if (!url) {
-      console.error('Hook URL is required');
-      return;
-    }
-    if (!token && !agent.hookTokenSet) {
-      console.error('Bearer token is required (or leave blank only when a token is already stored)');
-      return;
-    }
-    setHookSaving(true);
-    try {
-      const body: { hookUrl: string; hookToken?: string } = { hookUrl: url };
-      if (token) body.hookToken = token;
-      const updated = await api.patch<Agent>(`/api/agents/${agentId}`, body);
-      setAgent(updated);
-      setHookUrlEdit(updated.hookUrl ?? '');
-      setHookTokenEdit('');
-    } catch (err) {
-      console.error('Failed to save webhook settings', { agentId, err });
-    } finally {
-      setHookSaving(false);
-    }
-  }
 
   async function handleDeleteAgent() {
     if (!agent) return;
@@ -271,55 +238,18 @@ export default function AgentDetail() {
       </div>
 
       <div className="bg-gray-900 rounded-xl border border-gray-800 p-5 mb-4 mt-4">
-        <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wide mb-3">Webhook</h2>
-        <p className="text-xs text-gray-500 mb-3">
-          Required. Mission Control POSTs JSON events to this URL with{' '}
-          <code className="text-gray-400">Authorization: Bearer &lt;token&gt;</code>, using role paths{' '}
-          <code className="text-gray-400">/hooks/mc/eng</code>, <code className="text-gray-400">/hooks/mc/qa</code>, or{' '}
-          <code className="text-gray-400">/hooks/mc/cos</code> (see agent webhook relay). Engineers receive{' '}
-          <code className="text-gray-400">task.created</code>; QA receives <code className="text-gray-400">task.completed</code>{' '}
-          when all tasks are in review; Chief of Staff receives <code className="text-gray-400">project.pending_approval</code>,{' '}
-          <code className="text-gray-400">review.completed</code> when a task leaves review as done, and{' '}
-          <code className="text-gray-400">project.completed</code>. Playbook text is fetched via{' '}
-          <code className="text-gray-400">GET /api/agents/instructions</code>, not webhook pushes.
+        <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wide mb-3">Webhooks</h2>
+        <p className="text-xs text-gray-500">
+          Outbound events are configured on the Mission Control server with{' '}
+          <code className="text-gray-400">MC_WEBHOOK_BASE_URL</code> and{' '}
+          <code className="text-gray-400">MC_WEBHOOK_TOKEN</code>. POSTs go to{' '}
+          <code className="text-gray-400">/hooks/mc/cos</code>, <code className="text-gray-400">/hooks/mc/eng</code>, or{' '}
+          <code className="text-gray-400">/hooks/mc/qa</code> with payloads that include{' '}
+          <code className="text-gray-400">projectId</code>, <code className="text-gray-400">project</code>,{' '}
+          <code className="text-gray-400">event</code> (e.g. <code className="text-gray-400">project.pending_approval</code>,{' '}
+          <code className="text-gray-400">project.backlog_updated</code>, <code className="text-gray-400">project.all_tasks_completed</code>,{' '}
+          <code className="text-gray-400">project.review_completed</code>), and <code className="text-gray-400">agentInstructions</code>.
         </p>
-        <div className="space-y-3 max-w-xl">
-          <div>
-            <label htmlFor="hook-url" className="block text-xs text-gray-500 mb-1">
-              Hook URL
-            </label>
-            <input
-              id="hook-url"
-              type="url"
-              value={hookUrlEdit}
-              onChange={(e) => setHookUrlEdit(e.target.value)}
-              placeholder="https://…"
-              className="w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-sm text-gray-100 placeholder:text-gray-600"
-            />
-          </div>
-          <div>
-            <label htmlFor="hook-token" className="block text-xs text-gray-500 mb-1">
-              Bearer token
-            </label>
-            <input
-              id="hook-token"
-              type="password"
-              autoComplete="new-password"
-              value={hookTokenEdit}
-              onChange={(e) => setHookTokenEdit(e.target.value)}
-              placeholder={agent.hookTokenSet ? 'Leave blank to keep current token' : 'Set token'}
-              className="w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-sm text-gray-100 placeholder:text-gray-600"
-            />
-          </div>
-          <button
-            type="button"
-            disabled={hookSaving}
-            onClick={() => void handleSaveWebhook()}
-            className="text-sm px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50"
-          >
-            {hookSaving ? 'Saving…' : 'Save webhook'}
-          </button>
-        </div>
       </div>
 
       <div className="mt-6 rounded-xl border border-red-900/50 bg-red-950/20 p-5">

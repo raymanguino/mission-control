@@ -3,26 +3,25 @@
 export type McWebhookRole = 'cos' | 'eng' | 'qa';
 
 /**
- * Resolves the webhook URL Mission Control POSTs to for role-based routing.
- * - `https://host/hooks/mc/cos` → same host with `/hooks/mc/{role}`
- * - `https://host` or `https://host/` → `https://host/hooks/mc/{role}`
- * - Other paths (e.g. `/hooks/agent`) → `https://host/hooks/mc/{role}` (single OpenClaw receiver)
+ * Builds `{base}/hooks/mc/{role}` for a configured origin (no per-agent URL).
  */
-export function applyMcRoleToHookUrl(hookUrl: string, role: McWebhookRole): string {
-  const trimmed = hookUrl.trim();
+export function buildMcRoleWebhookUrl(baseUrl: string, role: McWebhookRole): string {
+  const trimmed = baseUrl.trim().replace(/\/$/, '');
+  const u = new URL(trimmed.includes('://') ? trimmed : `https://${trimmed}`);
+  u.pathname = `/hooks/mc/${role}`;
+  return u.toString();
+}
+
+/**
+ * Resolves Mission Control outbound webhook URL from `MC_WEBHOOK_BASE_URL`.
+ * Returns null if unset or invalid.
+ */
+export function getMcRoleWebhookUrl(role: McWebhookRole): string | null {
+  const raw = process.env['MC_WEBHOOK_BASE_URL']?.trim();
+  if (!raw) return null;
   try {
-    const u = new URL(trimmed);
-    const pathname = u.pathname.replace(/\/$/, '') || '/';
-    const segments = pathname.split('/').filter(Boolean);
-    if (segments.length >= 3 && segments[0] === 'hooks' && segments[1] === 'mc') {
-      u.pathname = `/hooks/mc/${role}`;
-    } else if (pathname === '/' || pathname === '') {
-      u.pathname = `/hooks/mc/${role}`;
-    } else {
-      u.pathname = `/hooks/mc/${role}`;
-    }
-    return u.toString();
+    return buildMcRoleWebhookUrl(raw, role);
   } catch {
-    return trimmed;
+    return null;
   }
 }

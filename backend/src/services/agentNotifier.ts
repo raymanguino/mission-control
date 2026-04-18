@@ -1,15 +1,14 @@
 /**
- * POSTs JSON event payloads to each agent's configured `hookUrl` with `Authorization: Bearer <hookToken>`.
- * Role-based paths: engineer → `/hooks/mc/eng`, QA → `/hooks/mc/qa`, Chief of Staff → `/hooks/mc/cos`
- * (see `applyMcRoleToHookUrl`, `packages/agent-webhook-relay`).
+ * POSTs JSON event payloads to `MC_WEBHOOK_BASE_URL/hooks/mc/{cos|eng|qa}` with
+ * `Authorization: Bearer MC_WEBHOOK_TOKEN`.
  */
 
 import type { FastifyBaseLogger } from 'fastify';
-import * as agentsDb from '../db/api/agents.js';
 import * as settingsDb from '../db/api/settings.js';
-import { pickAgentByOrgRoleLeastLoaded } from '../lib/pickAgentByLoad.js';
 import { instructionKeyForOrgRole } from '../lib/agentOrgRoles.js';
-import { applyMcRoleToHookUrl, type McWebhookRole } from '../lib/mcHookUrl.js';
+import { getMcRoleWebhookUrl, type McWebhookRole } from '../lib/mcHookUrl.js';
+
+export type ProjectWebhookSnapshot = { id: string; name: string };
 
 /** Role-specific playbook text for webhook payloads (same keys as GET /api/agents/instructions). */
 async function instructionsTextForOrgRole(orgRole: string | null | undefined): Promise<string> {
@@ -22,7 +21,7 @@ async function instructionsTextForOrgRole(orgRole: string | null | undefined): P
   }
 }
 
-/** Set `AGENT_WEBHOOKS_ENABLED=false` (or `0` / `no`) to disable all outbound agent webhook POSTs. Default: enabled. */
+/** Set `AGENT_WEBHOOKS_ENABLED=false` (or `0` / `no`) to disable all outbound webhook POSTs. Default: enabled. */
 function agentWebhooksEnabled(): boolean {
   const v = process.env['AGENT_WEBHOOKS_ENABLED'];
   if (v == null || v.trim() === '') return true;
@@ -30,194 +29,128 @@ function agentWebhooksEnabled(): boolean {
   return lower !== 'false' && lower !== '0' && lower !== 'no';
 }
 
-export async function postToAgentWebhook(
-  hookUrl: string | null,
-  hookToken: string | null,
+function mcWebhookAuth(): string | null {
+  const t = process.env['MC_WEBHOOK_TOKEN']?.trim();
+  return t && t.length > 0 ? t : null;
+}
+
+function basePayload(project: ProjectWebhookSnapshot, event: string, agentInstructions: string) {
+  return {
+    event,
+    projectId: project.id,
+    project: { id: project.id, name: project.name },
+    agentInstructions,
+  };
+}
+
+async function postRoleWebhook(
+  role: McWebhookRole,
   payload: Record<string, unknown>,
-  options: { mcRole: McWebhookRole },
+  log?: FastifyBaseLogger,
 ): Promise<void> {
   if (!agentWebhooksEnabled()) {
     return;
   }
-  if (!hookUrl?.trim() || !hookToken?.trim()) {
+  const token = mcWebhookAuth();
+  const url = getMcRoleWebhookUrl(role);
+  if (!url || !token) {
+    log?.warn(
+      'Skipping role webhook: set MC_WEBHOOK_BASE_URL and MC_WEBHOOK_TOKEN for outbound POSTs.',
+    );
     return;
   }
-
-  const url = applyMcRoleToHookUrl(hookUrl, options.mcRole);
 
   const res = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${hookToken.trim()}`,
+      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(payload),
     signal: AbortSignal.timeout(5000),
   });
 
   if (!res.ok) {
-    throw new Error(`Agent webhook responded ${res.status}: ${await res.text()}`);
+    throw new Error(`Role webhook responded ${res.status}: ${await res.text()}`);
   }
 }
 
-export async function notifyAssignedAgentOfTask(
-  agent: {
-    id: string;
-    hookUrl: string | null;
-    hookToken: string | null;
-    name?: string;
-    orgRole?: string;
-  },
-  task: { id: string; title: string; description: string | null; resolution?: string | null },
-  project: { id: string; name: string; description: string | null; url: string | null },
-): Promise<void> {
-  const agentInstructions = await instructionsTextForOrgRole(agent.orgRole);
-
-  await postToAgentWebhook(agent.hookUrl, agent.hookToken, {
-    event: 'task.created',
-    task: {
-      id: task.id,
-      title: task.title,
-      description: task.description ?? null,
-      projectId: project.id,
-      projectName: project.name,
-    },
-    agentInstructions,
-    projectContext: {
-      name: project.name,
-      description: project.description ?? null,
-      url: project.url ?? null,
-    },
-  }, { mcRole: 'eng' });
-}
-
-/** When every task in the project is in Review: notify QA (`task.completed`, `allTasksInReview: true`). */
-export async function notifyQaOfProjectAllTasksInReviewWebhook(
-  agent: { hookUrl: string | null; hookToken: string | null; orgRole?: string | null },
-  task: { id: string; title: string; description: string | null; resolution?: string | null },
-  project: { id: string; name: string; description?: string | null; url?: string | null },
-  projectName: string,
-): Promise<void> {
-  const agentInstructions = await instructionsTextForOrgRole(agent.orgRole);
-  await postToAgentWebhook(agent.hookUrl, agent.hookToken, {
-    event: 'task.completed',
-    allTasksInReview: true,
-    project: {
-      id: project.id,
-      name: project.name,
-    },
-    task: {
-      id: task.id,
-      title: task.title,
-      description: task.description ?? null,
-      resolution: task.resolution ?? null,
-      projectId: project.id,
-      projectName,
-    },
-    projectContext: {
-      name: project.name,
-      description: project.description ?? null,
-      url: project.url ?? null,
-    },
-    agentInstructions,
-  }, { mcRole: 'qa' });
-}
-
+/** Single POST `project.pending_approval` to `/hooks/mc/cos`. */
 export async function notifyChiefOfStaffOfProject(
-  project: { id: string; name: string; description: string | null },
+  project: ProjectWebhookSnapshot,
+  log?: FastifyBaseLogger,
 ): Promise<void> {
-  const agent = await pickAgentByOrgRoleLeastLoaded('chief_of_staff', { requireWebhook: true });
-  if (!agent) {
-    return;
+  const agentInstructions = await instructionsTextForOrgRole('chief_of_staff');
+  try {
+    await postRoleWebhook(
+      'cos',
+      {
+        ...basePayload(project, 'project.pending_approval', agentInstructions),
+      },
+      log,
+    );
+  } catch (err) {
+    log?.error({ err }, 'Failed to POST project.pending_approval webhook');
   }
-
-  const agentInstructions = await instructionsTextForOrgRole(agent.orgRole);
-  await postToAgentWebhook(agent.hookUrl, agent.hookToken, {
-    agentId: agent.id,
-    event: 'project.pending_approval',
-    project: {
-      id: project.id,
-      name: project.name,
-      description: project.description ?? null,
-    },
-    agentInstructions,
-  }, { mcRole: 'cos' });
 }
 
-/** When every task in a project is Done: notify each chief_of_staff agent that has a webhook. */
-/** When QA marks a task done from Review: notify each chief_of_staff agent that has a webhook (`review.completed`). */
+/** Emits `project.backlog_updated` on every task create/update (single POST to `/hooks/mc/eng`). */
+export async function postProjectBacklogUpdatedWebhook(
+  project: ProjectWebhookSnapshot,
+  log?: FastifyBaseLogger,
+): Promise<void> {
+  try {
+    const agentInstructions = await instructionsTextForOrgRole('engineer');
+    await postRoleWebhook(
+      'eng',
+      {
+        ...basePayload(project, 'project.backlog_updated', agentInstructions),
+      },
+      log,
+    );
+  } catch (err) {
+    log?.error({ err }, 'Failed to POST project.backlog_updated webhook');
+  }
+}
+
+/** When every task in the project is in Review: notify QA (`project.all_tasks_completed`). */
+export async function notifyQaProjectAllTasksInReview(
+  project: ProjectWebhookSnapshot,
+  log?: FastifyBaseLogger,
+): Promise<void> {
+  try {
+    const agentInstructions = await instructionsTextForOrgRole('qa');
+    await postRoleWebhook(
+      'qa',
+      {
+        ...basePayload(project, 'project.all_tasks_completed', agentInstructions),
+      },
+      log,
+    );
+  } catch (err) {
+    log?.error({ err }, 'Failed to POST project.all_tasks_completed webhook');
+  }
+}
+
+/** When QA marks a task done from Review: notify CoS (`project.review_completed`). */
 export async function notifyChiefOfStaffOfReviewCompleted(
-  task: {
-    id: string;
-    title: string;
-    description: string | null;
-    resolution?: string | null;
-  },
-  project: { id: string; name: string; description: string | null; url: string | null },
+  project: ProjectWebhookSnapshot,
+  taskId: string,
   log?: FastifyBaseLogger,
 ): Promise<void> {
   if (!agentWebhooksEnabled()) return;
 
-  const cosRows = await agentsDb.getCoSAgents();
   const agentInstructions = await instructionsTextForOrgRole('chief_of_staff');
-  let posted = 0;
-  for (const agent of cosRows) {
-    if (!agent.hookUrl?.trim() || !agent.hookToken?.trim()) continue;
-    await postToAgentWebhook(agent.hookUrl, agent.hookToken, {
-      event: 'review.completed',
-      task: {
-        id: task.id,
-        title: task.title,
-        description: task.description ?? null,
-        resolution: task.resolution ?? null,
-        projectId: project.id,
-        projectName: project.name,
+  try {
+    await postRoleWebhook(
+      'cos',
+      {
+        ...basePayload(project, 'project.review_completed', agentInstructions),
+        taskId,
       },
-      project: {
-        id: project.id,
-        name: project.name,
-        description: project.description ?? null,
-        url: project.url ?? null,
-      },
-      agentInstructions,
-    }, { mcRole: 'cos' });
-    posted += 1;
-  }
-
-  if (posted === 0) {
-    log?.warn(
-      'Skipping review.completed webhook: no chief_of_staff agent has both hook URL and hook token set.',
+      log,
     );
-  }
-}
-
-export async function notifyChiefOfStaffOfProjectCompleted(
-  project: { id: string; name: string; description: string | null; url: string | null },
-  log?: FastifyBaseLogger,
-): Promise<void> {
-  if (!agentWebhooksEnabled()) return;
-
-  const cosRows = await agentsDb.getCoSAgents();
-  const agentInstructions = await instructionsTextForOrgRole('chief_of_staff');
-  let posted = 0;
-  for (const agent of cosRows) {
-    if (!agent.hookUrl?.trim() || !agent.hookToken?.trim()) continue;
-    await postToAgentWebhook(agent.hookUrl, agent.hookToken, {
-      event: 'project.completed',
-      project: {
-        id: project.id,
-        name: project.name,
-        description: project.description ?? null,
-        url: project.url ?? null,
-      },
-      agentInstructions,
-    }, { mcRole: 'cos' });
-    posted += 1;
-  }
-
-  if (posted === 0) {
-    log?.warn(
-      'Skipping project.completed webhook: no chief_of_staff agent has both hook URL and hook token set.',
-    );
+  } catch (err) {
+    log?.error({ err }, 'Failed to POST project.review_completed webhook');
   }
 }

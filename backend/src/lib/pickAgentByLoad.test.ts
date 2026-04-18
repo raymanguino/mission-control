@@ -23,51 +23,31 @@ describe('pickAgentByOrgRoleLeastLoaded', () => {
     await expect(pickAgentByOrgRoleLeastLoaded('engineer')).resolves.toBeNull();
   });
 
-  it('returns null when requireWebhook filters out all chief_of_staff agents', async () => {
-    vi.mocked(agentsDb.listAgentsByOrgRole).mockResolvedValue([
-      {
-        id: 'a',
-        orgRole: 'chief_of_staff',
-        hookUrl: null,
-        hookToken: null,
-      } as Awaited<ReturnType<typeof agentsDb.listAgentsByOrgRole>>[number],
-    ]);
-    await expect(
-      pickAgentByOrgRoleLeastLoaded('chief_of_staff', { requireWebhook: true }),
-    ).resolves.toBeNull();
-  });
-
-  it('picks the sole least-loaded chief_of_staff with webhook', async () => {
+  it('picks the sole least-loaded chief_of_staff', async () => {
     vi.mocked(agentsDb.listAgentsByOrgRole).mockResolvedValue([
       {
         id: 'cos1',
         orgRole: 'chief_of_staff',
-        hookUrl: 'https://example.com/hook',
-        hookToken: 'secret',
       } as Awaited<ReturnType<typeof agentsDb.listAgentsByOrgRole>>[number],
     ]);
     vi.mocked(projectsDb.countNonDoneTasksByAssignedAgentIds).mockResolvedValue({ cos1: 2 });
-    const r = await pickAgentByOrgRoleLeastLoaded('chief_of_staff', { requireWebhook: true });
+    const r = await pickAgentByOrgRoleLeastLoaded('chief_of_staff');
     expect(r?.id).toBe('cos1');
   });
 
-  it('considers only agents with webhooks when requireWebhook is true', async () => {
+  it('picks among multiple agents with minimum load', async () => {
     vi.mocked(agentsDb.listAgentsByOrgRole).mockResolvedValue([
       {
         id: 'a',
-        orgRole: 'chief_of_staff',
-        hookUrl: 'https://a/hook',
-        hookToken: 't',
+        orgRole: 'engineer',
       } as Awaited<ReturnType<typeof agentsDb.listAgentsByOrgRole>>[number],
       {
         id: 'b',
-        orgRole: 'chief_of_staff',
-        hookUrl: null,
-        hookToken: null,
+        orgRole: 'engineer',
       } as Awaited<ReturnType<typeof agentsDb.listAgentsByOrgRole>>[number],
     ]);
-    vi.mocked(projectsDb.countNonDoneTasksByAssignedAgentIds).mockResolvedValue({ a: 0 });
-    const r = await pickAgentByOrgRoleLeastLoaded('chief_of_staff', { requireWebhook: true });
+    vi.mocked(projectsDb.countNonDoneTasksByAssignedAgentIds).mockResolvedValue({ a: 1, b: 3 });
+    const r = await pickAgentByOrgRoleLeastLoaded('engineer');
     expect(r?.id).toBe('a');
   });
 });

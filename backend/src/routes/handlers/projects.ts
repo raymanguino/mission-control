@@ -6,7 +6,6 @@ import { notifyChiefOfStaffOfProject } from '../../services/agentNotifier.js';
 import { backendRequestSchemas } from '../../contracts/mcp-contract.js';
 import { ApiError, parseBody } from '../../lib/errors.js';
 import type { AgentOrgRole } from '../../lib/agentOrgRoles.js';
-import { pickAgentByOrgRoleLeastLoaded } from '../../lib/pickAgentByLoad.js';
 
 const updateProjectSchema = z.object({
   name: z.string().optional(),
@@ -49,7 +48,7 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
     const project = await projectsDb.createProject(body);
     await fastify.finalizeIdempotency(request, 201, project);
 
-    notifyChiefOfStaffOfProject(project).catch((err) => {
+    notifyChiefOfStaffOfProject({ id: project.id, name: project.name }, request.log).catch((err) => {
       request.log.error({ err }, 'Failed to notify chief of staff webhook of new project');
       console.error('[PROJECTS] Webhook notification failed:', err);
       console.error('[PROJECTS] Project:', project);
@@ -111,10 +110,8 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
     const project = await projectsDb.updateProject(id, patch);
     if (!project) throw new ApiError(404, 'NOT_FOUND', 'Not found');
     
-    // Note: Task decomposition is handled by Ralph (Chief of Staff) via the
-    // project.pending_approval webhook. MC no longer auto-decomposes.
-    // Ralph receives the event, decomposes the project, creates tasks,
-    // assigns them to agents, then updates status to approved.
+    // Chief of Staff agents receive `project.pending_approval` (see agentNotifier) and drive
+    // decomposition / task creation; agents self-assign via PATCH when they claim work.
     
     return project;
   });

@@ -15,14 +15,12 @@ http:
     type: json
     data: |-
       {
-        "name": "Ralph",
-        "email": "ralph.six7swe@agentmail.to",
+        "name": "ChiefOfStaff",
+        "email": "cos.example@agentmail.to",
         "specialization": "project management",
-        "description": "Chief of Staff. Receives project.approval_requested events, decomposes projects into tasks, assigns to best-fit agents. Also handles instructions.updated. Personal assistant to Mr. with WhatsApp access.",
+        "description": "Chief of Staff. Receives project.pending_approval events, decomposes projects into tasks. Engineers and QA self-assign via the API. Also handles instructions.updated.",
         "device": "Raspberry Pi 4, 1.5GHz 64-bit quad-core ARMv8 CPU, 2GB RAM",
-        "model": "claude-3-5-sonnet",
-        "hookUrl": "https://six7swe-leader.tailc28236.ts.net/hooks/mc",
-        "hookToken": "f2c3cab4ac54bbbffd473baa6bbdfc3fd96aab9d1d3ec2aec184d5e162c97c9f"
+        "model": "claude-3-5-sonnet"
       }
   auth: inherit
 

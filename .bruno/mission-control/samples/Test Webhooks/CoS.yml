@@ -15,8 +15,10 @@ http:
     type: json
     data: |-
       {
-        "event": "project.approval_requested",
-        "projectId": "test-123"
+        "event": "project.pending_approval",
+        "projectId": "test-123",
+        "project": { "id": "test-123", "name": "Test" },
+        "agentInstructions": ""
       }
   auth: inherit
 

@@ -8,10 +8,6 @@ export async function countAgents(): Promise<number> {
   return Number(row?.c ?? 0);
 }
 
-export async function getCoSAgents() {
-  return db.select().from(agents).where(eq(agents.orgRole, 'chief_of_staff'));
-}
-
 export async function listAgentsWithEmailByOrgRole(orgRole: AgentOrgRole) {
   return db
     .select()
@@ -19,7 +15,7 @@ export async function listAgentsWithEmailByOrgRole(orgRole: AgentOrgRole) {
     .where(and(eq(agents.orgRole, orgRole), isNotNull(agents.email)));
 }
 
-/** All agents with the given org role (same pattern as {@link getCoSAgents}). */
+/** All agents with the given org role. */
 export async function listAgentsByOrgRole(orgRole: AgentOrgRole) {
   return db.select().from(agents).where(eq(agents.orgRole, orgRole));
 }
@@ -40,8 +36,6 @@ export async function getAgentByKeyHash(_hash: string) {
 
 export async function createAgent(data: {
   name: string;
-  hookUrl: string;
-  hookToken: string;
   email?: string;
   device?: string;
   model?: string;
@@ -68,8 +62,6 @@ export async function updateAgent(
     description: string;
     reportsToAgentId: string | null;
     avatarId: string | null;
-    hookUrl: string | null;
-    hookToken: string | null;
     lastSeen: Date;
     lastActivityAt: Date | null;
     status: string;

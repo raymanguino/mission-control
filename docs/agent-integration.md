@@ -1,30 +1,16 @@
 # Agent Integration Guide
 
-This document is the authoritative reference for any AI agent integrating with Mission Control — webhook events, payload shapes, handler workflows, agent registration, and self-setup instructions.
-
-If you are an agent reading this cold: follow this guide to get yourself operational without needing a human in the loop.
+This document is the authoritative reference for AI agents integrating with Mission Control — webhook events, payload shapes, agent registration, and self-setup.
 
 ---
 
 ## Architecture Overview
 
-Mission Control fires webhook events to registered agents over Tailscale. Agents receive events, execute workflows, and report back via the MCP API or REST API.
+Mission Control POSTs JSON events to your OpenClaw relay at **`{MC_WEBHOOK_BASE_URL}/hooks/mc/{role}`** with **`Authorization: Bearer {MC_WEBHOOK_TOKEN}`**. Roles map to paths: **`cos`**, **`eng`**, **`qa`**.
 
-```
-Mission Control (laptop-f2vfct8b)
-  └─ POST /hooks/<path>  →  Agent OpenClaw instance (Tailscale)
-                              └─ transform.js routes to agent session
-                                   └─ Agent executes workflow via MCP tools
-```
+For the receiver implementation, see [`packages/agent-webhook-relay/`](../packages/agent-webhook-relay/), which listens on `/hooks/mc/<role>` and forwards the raw body.
 
-For the receiver-side implementation, see [`packages/agent-webhook-relay/`](../packages/agent-webhook-relay/), which accepts `/hooks/mc/<role>` and forwards the raw payload unchanged.
-
-**Current agents:**
-
-| Agent | Host | Tailscale URL | Role |
-|-------|------|---------------|------|
-| Ralph | six7swe-leader | `https://six7swe-leader.tailc28236.ts.net` | Chief of Staff — project approval, decomposition, task assignment |
-| Hermes | six7swe-worker | `https://six7swe-worker.tailc28236.ts.net` | Dev task executor |
+Agent **`orgRole`** (`chief_of_staff`, `engineer`, `qa`) is still assigned at registration time for instructions and dashboards; **webhook routing is no longer per-agent**—it uses the server-wide base URL and token.
 
 ---
 
@@ -33,222 +19,142 @@ For the receiver-side implementation, see [`packages/agent-webhook-relay/`](../p
 ### 1. Register via REST API
 
 ```bash
-curl -X POST http://laptop-f2vfct8b.tailc28236.ts.net:3001/api/agents \
-  -H "Authorization: Bearer <admin-api-key>" \
+curl -X POST http://localhost:3001/api/agents \
+  -H "Authorization: Bearer <dashboard-jwt>" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Agent Name",
     "email": "agent@example.com",
     "specialization": "dev",
-    "description": "What this agent does and what tasks it should receive.",
+    "description": "What this agent does.",
     "device": "hostname",
-    "ip": "100.x.x.x",
-    "hookUrl": "https://your-tailscale-host.tailc28236.ts.net/hooks/mc",
-    "hookToken": "your-secret-token"
+    "model": "claude-3-5-sonnet"
   }'
 ```
 
-The response includes your `agentId` and `apiKey` — store both. The `agentId` is used in task assignments; the `apiKey` authenticates MCP and REST calls on your behalf.
+The response includes `apiKey` — store it. It authenticates MCP and REST calls. Webhook delivery uses **`MC_WEBHOOK_BASE_URL`** and **`MC_WEBHOOK_TOKEN`** in Mission Control’s environment, not fields on the agent row.
 
-### 2. Configure your OpenClaw hook mapping
+### 2. Configure OpenClaw hook mapping
 
-In `~/.openclaw/openclaw.json`, add a mapping under `hooks.mappings`:
+In `~/.openclaw/openclaw.json`, map `hooks.mappings` so paths under `/hooks/mc` wake your agent (see relay package README).
 
-```json
-{
-  "id": "mission-control-notify",
-  "match": { "path": "mc" },
-  "action": "wake",
-  "name": "Mission Control → <AgentName>",
-  "transform": { "module": "mc-notify-transform.js" }
-}
-```
+### 3. Mission Control environment
 
-> **Note:** `match.path` is the sub-path *after* `/hooks/` — use `"mc"` not `"/hooks/mc"`.
+Set on the Mission Control server (e.g. `backend/.env`):
 
-### 3. Write your transform
-
-Create `~/.openclaw/hooks/transforms/mc-notify-transform.js`. The transform receives the raw POST body and returns a `wake` action that injects a system event into your agent session.
-
-See Ralph's transform at `~/.openclaw/hooks/transforms/mc-notify-transform.js` on six7swe-leader as a reference implementation.
-
-### 4. Set MC environment variables
-
-In the Mission Control backend `.env`:
-
-```
-RALPH_HOOK_URL=https://your-tailscale-host.tailc28236.ts.net/hooks/mc
-RALPH_HOOK_TOKEN=your-secret-token
-```
-
-*(Variable names are Ralph-specific for now; a multi-agent routing layer is a future improvement.)*
+- **`MC_WEBHOOK_BASE_URL`** — origin only, e.g. `https://your-tailscale-host` or `http://127.0.0.1:48123`
+- **`MC_WEBHOOK_TOKEN`** — shared bearer sent on every role webhook POST
+- **`AGENT_WEBHOOKS_ENABLED`** — set to `false` to disable all outbound webhooks
 
 ---
 
-## Webhook Events
-
-All events are delivered as:
+## Webhook delivery
 
 ```
-POST <hookUrl>
-Authorization: Bearer <hookToken>
+POST {MC_WEBHOOK_BASE_URL}/hooks/mc/{cos|eng|qa}
+Authorization: Bearer {MC_WEBHOOK_TOKEN}
 Content-Type: application/json
 ```
 
+**Baseline JSON fields (all events):**
+
+- `event` — string (see below)
+- `projectId` — UUID
+- `project` — `{ "id": string, "name": string }`
+- `agentInstructions` — playbook text for the target role
+
 ---
 
-### `project.approval_requested`
+### `project.pending_approval` → `/hooks/mc/cos`
 
-Fired when a new project is submitted and needs Chief of Staff review. Mission Control picks **one** `chief_of_staff` agent that has both `hookUrl` and `hookToken` set, using the same least-loaded heuristic as other roles (fewest assigned tasks whose status is not `done`).
+Fired when a new project is created (pending approval).
 
 **Payload:**
+
 ```json
 {
-  "event": "project.approval_requested",
-  "project": {
-    "id": "<uuid>",
-    "name": "Project name",
-    "description": "What the requester wants built or done."
-  }
+  "event": "project.pending_approval",
+  "projectId": "<uuid>",
+  "project": { "id": "<uuid>", "name": "…" },
+  "agentInstructions": "…"
 }
 ```
 
-**Expected handler workflow (Chief of Staff):**
-1. Call `get_project(id)` to load full details.
-2. If the project cannot be built as a web app → `update_project(id, { status: "denied" })` and stop.
-3. Expand the description into a clear, implementation-ready plan.
-4. Call `create_task(...)` for each discrete task (split by concern: frontend / backend / database / integration / testing / docs).
-5. Call `list_agents()` to review available agents and specializations.
-6. Assign each task to the best-fit agent via `assignedAgentId`.
-7. Call `update_project(id, { status: "approved" })`.
-8. Send a summary notification (WhatsApp or channel of choice).
-
-**MCP tools:** `get_project`, `update_project`, `create_task`, `list_agents`
-
 ---
 
-### `task.assigned`
+### `project.backlog_updated` → `/hooks/mc/eng`
 
-Fired when a task is assigned to your agent.
+Fired on every task create and task update. Does **not** include `taskId`.
 
 **Payload:**
-```json
-{
-  "event": "task.assigned",
-  "task": {
-    "id": "<uuid>",
-    "title": "Task title",
-    "description": "What needs to be done.",
-    "resolution": null,
-    "projectName": "Parent project name"
-  }
-}
-```
-
-**Agent filtering:** Webhooks are sent to the assigned agent’s `hookUrl` when configured. Custom transforms may still validate assignment if you share one endpoint across agents.
-
-**Expected handler workflow (Task Agent):**
-1. Call `update_task(id, { status: "doing" })`.
-2. Call `get_project(...)` to get the optional GitHub URL and full context.
-3. If no GitHub repo exists, create one named `<project-name>-<project-id>`.
-4. Implement the task using available MCP tools.
-5. Push implementation to the repo.
-6. Call `update_project(...)` to set or update the GitHub URL.
-7. Call `update_task(id, { status: "review" })` when complete.
-
-**MCP tools:** `update_task`, `get_project`, `update_project`
-
----
-
-### `review.assigned` (QA batch)
-
-When **every** task in a project is in `review` status, Mission Control notifies a **QA** agent (least-loaded among `qa` role) that the batch is ready. The event name is still `review.assigned`, with extra fields:
 
 ```json
 {
-  "event": "review.assigned",
-  "allTasksInReview": true,
-  "project": {
-    "id": "<uuid>",
-    "name": "Project name"
-  },
-  "task": {
-    "id": "<uuid>",
-    "title": "Task title",
-    "description": null,
-    "resolution": null,
-    "projectName": "Project name"
-  }
+  "event": "project.backlog_updated",
+  "projectId": "<uuid>",
+  "project": { "id": "<uuid>", "name": "…" },
+  "agentInstructions": "…"
 }
 ```
 
-The `task` object refers to the task that completed the “all in review” condition (e.g. the last one moved into review). Engineers remain the assignee on task rows during review; QA uses this webhook to start batch review.
-
 ---
 
-### `instructions.updated`
+### `project.all_tasks_completed` → `/hooks/mc/qa`
 
-Fired when the Chief of Staff instructions in MC settings are updated.
+Fired when **every** task in the project has `status === "review"`.
 
 **Payload:**
+
 ```json
 {
-  "event": "instructions.updated"
+  "event": "project.all_tasks_completed",
+  "projectId": "<uuid>",
+  "project": { "id": "<uuid>", "name": "…" },
+  "agentInstructions": "…"
 }
 ```
 
-**Expected handler workflow:**
-1. Call `get_settings()` to fetch the latest instructions.
-2. Update local memory/context with any meaningful changes.
-3. Re-check in-flight work for conflicts with the new instructions.
-4. Send a brief confirmation that instructions were refreshed.
+---
 
-**MCP tools:** `get_settings`
+### `project.review_completed` → `/hooks/mc/cos`
+
+Fired when a task moves from `review` to `done`.
+
+**Payload:**
+
+```json
+{
+  "event": "project.review_completed",
+  "projectId": "<uuid>",
+  "project": { "id": "<uuid>", "name": "…" },
+  "taskId": "<uuid>",
+  "agentInstructions": "…"
+}
+```
 
 ---
 
 ## MCP API
 
-**URL:** `http://laptop-f2vfct8b.tailc28236.ts.net:3002/mcp`  
-**Auth:** `Authorization: Bearer <mcp-api-key>`
+**Auth:** dashboard JWT or agent API key as `Authorization: Bearer …` depending on route.
 
-Key tools available to agents:
-
-| Tool | Description |
-|------|-------------|
-| `get_project(id)` | Load full project details |
-| `update_project(id, patch)` | Update project fields (status, description, githubUrl, etc.) |
-| `create_task(fields)` | Create a task with title, description, projectId, assignedAgentId |
-| `update_task(id, patch)` | Update task fields (status, notes, etc.) |
-| `list_agents()` | List all registered agents with specializations |
-| `assign_task(taskId, agentId)` | Assign a task to an agent |
-| `get_settings()` | Fetch current CoS instructions and system settings |
-| `get_intent(id)` | Load an intent (pre-project request) |
-| `quick_log_food(text)` | Free-text food log (for personal agents) |
-| `log_cannabis_session(form, ...)` | Cannabis session log (for personal agents) |
-| `log_sleep(bedTime)` | Sleep log (for personal agents) |
-| `update_sleep_log(id, ...)` | Update sleep log with wake time (for personal agents) |
+Key tools: `list_projects`, `get_project`, `update_project`, `create_task`, `update_task`, `list_agents`, `get_settings`, etc.
 
 ---
 
 ## Debugging
 
 ```bash
-# Tail OpenClaw gateway logs on the agent Pi
-journalctl --user -u openclaw-gateway.service -f
-
-# Manually fire a test event (from any Tailscale node)
-curl -X POST https://six7swe-leader.tailc28236.ts.net/hooks/mc \
-  -H "Authorization: Bearer <hookToken>" \
+curl -X POST "http://127.0.0.1:48123/hooks/mc/cos" \
+  -H "Authorization: Bearer <MC_WEBHOOK_TOKEN>" \
   -H "Content-Type: application/json" \
-  -d '{"event":"project.approval_requested","project":{"id":"test-123","name":"Test","description":"A test project."}}'
+  -d '{"event":"project.pending_approval","projectId":"…","project":{"id":"…","name":"Test"},"agentInstructions":""}'
 ```
 
 ---
 
-## Adding a New Event
+## Adding a new event
 
-1. Add the event to `backend/src/services/ralph.ts` — fire a POST to each subscribed agent's `hookUrl`.
-2. Document the payload shape and handler expectations in this file.
-3. Update each agent's transform (`mc-notify-transform.js`) to handle the new event.
-4. Test with a manual curl POST.
+1. Implement the outbound POST in `backend/src/services/agentNotifier.ts` (or route handler), reusing the same env-backed POST pattern and `McWebhookRole` path.
+2. Document the payload here.
+3. Extend the relay / OpenClaw transform if needed.

@@ -4,19 +4,10 @@ import * as agentsDb from '../../db/api/agents.js';
 import * as settingsDb from '../../db/api/settings.js';
 import * as emailService from '../../services/email.js';
 import {
-  notifyAssignedAgentOfTask,
-  notifyChiefOfStaffOfProjectCompleted,
   notifyChiefOfStaffOfReviewCompleted,
-  notifyQaOfProjectAllTasksInReviewWebhook,
+  notifyQaProjectAllTasksInReview,
+  postProjectBacklogUpdatedWebhook,
 } from '../../services/agentNotifier.js';
-import { getDiscordSyncService } from '../../services/discord/index.js';
-import {
-  formatDiscordProjectFailure,
-  formatDiscordProjectSuccess,
-  resolveGeneralDiscordChannelId,
-  sendDiscordToGeneral,
-} from '../../services/discord/projectAnnouncements.js';
-import { pickAgentByOrgRoleLeastLoaded } from '../../lib/pickAgentByLoad.js';
 import { backendRequestSchemas } from '../../contracts/mcp-contract.js';
 import { touchMcpActivity } from '../../lib/mcpActivity.js';
 import { ApiError, parseBody } from '../../lib/errors.js';
@@ -64,7 +55,8 @@ async function logFleetTaskActivity(
   await touchMcpActivity([agentId]);
 }
 
-async function notifyAssignedAgent(
+/** Email only — `project.backlog_updated` webhooks are sent via {@link postProjectBacklogUpdatedWebhook} on every create/update. */
+async function emailNotifyAssignedAgent(
   taskId: string,
   assignedAgentId: string,
   log: FastifyBaseLogger,
@@ -78,26 +70,6 @@ async function notifyAssignedAgent(
     const project = await projectsDb.getProject(task.projectId);
     if (!project) return;
 
-    log.info(`notifyAssignedAgent: ${JSON.stringify(agent, null, 2)}`);
-
-    if (agent.hookUrl?.trim() && agent.hookToken?.trim()) {
-      notifyAssignedAgentOfTask(
-        {
-          ...agent,
-          orgRole: agent.orgRole,
-        },
-        task,
-        {
-          id: project.id,
-          name: project.name,
-          description: project.description,
-          url: project.url,
-        },
-      ).catch((err: unknown) =>
-        log.error({ err }, 'Failed to POST task assignment to agent webhook'),
-      );
-    }
-
     if (agent.email) {
       const key = instructionKeyForOrgRole(agent.orgRole);
       const instructions = (await settingsDb.getSetting(key)) ?? '';
@@ -109,42 +81,25 @@ async function notifyAssignedAgent(
       );
     }
   } catch (err) {
-    log.error({ err }, 'Failed to notify agent of task assignment');
+    log.error({ err }, 'Failed to email agent about task assignment');
   }
 }
 
-/** QA batch gate: every task in the project is `review` (webhook includes `allTasksInReview`). */
-async function notifyQaBatchWhenAllTasksInReview(
-  taskId: string,
-  qaAgentId: string,
-  log: FastifyBaseLogger,
-): Promise<void> {
+/** QA batch gate: every task in the project is `review` (`project.all_tasks_completed` to `/hooks/mc/qa`). */
+async function notifyQaBatchWhenAllTasksInReview(taskId: string, log: FastifyBaseLogger): Promise<void> {
   try {
-    const [agent, task] = await Promise.all([
-      agentsDb.getAgent(qaAgentId),
-      projectsDb.getTask(taskId),
-    ]);
-    if (!agent || !task) return;
+    const task = await projectsDb.getTask(taskId);
+    if (!task) return;
     const project = await projectsDb.getProject(task.projectId);
     if (!project) return;
 
-    if (agent.hookUrl?.trim() && agent.hookToken?.trim()) {
-      notifyQaOfProjectAllTasksInReviewWebhook(
-        agent,
-        task,
-        {
-          id: project.id,
-          name: project.name,
-          description: project.description,
-          url: project.url,
-        },
-        project.name,
-      ).catch((err) =>
-        log.error({ err }, 'Failed to POST task.completed (batch) to QA webhook'),
-      );
-    }
+    notifyQaProjectAllTasksInReview({ id: project.id, name: project.name }, log).catch((err) =>
+      log.error({ err }, 'Failed to POST project.all_tasks_completed webhook'),
+    );
 
-    if (agent.email) {
+    const qaAgents = await agentsDb.listAgentsByOrgRole('qa');
+    for (const agent of qaAgents) {
+      if (!agent.email) continue;
       const key = instructionKeyForOrgRole(agent.orgRole);
       const instructions = (await settingsDb.getSetting(key)) ?? '';
       await emailService.notifyAgentOfReviewTask(
@@ -224,23 +179,22 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
     const task = await projectsDb.createTask(createPayload);
     await fastify.finalizeIdempotency(request, 201, task);
 
+    void postProjectBacklogUpdatedWebhook({ id: project.id, name: project.name }, request.log);
+
     if (task.assignedAgentId) {
       await logFleetTaskActivity(task.assignedAgentId, {
         type: 'task_created',
         description: `Task "${task.title}" created in ${project.name}`,
         metadata: taskActivityMeta({ ...task, projectName: project.name }),
       });
-      await notifyAssignedAgent(task.id, task.assignedAgentId, request.log);
+      await emailNotifyAssignedAgent(task.id, task.assignedAgentId, request.log);
     }
 
     if (
       (await projectsDb.projectTasksAllInReview(task.projectId)) &&
       task.status === 'review'
     ) {
-      const qa = await pickAgentByOrgRoleLeastLoaded('qa');
-      if (qa?.id) {
-        await notifyQaBatchWhenAllTasksInReview(task.id, qa.id, request.log);
-      }
+      await notifyQaBatchWhenAllTasksInReview(task.id, request.log);
     }
 
     return reply.code(201).send(task);
@@ -270,24 +224,9 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
       );
     }
 
-    const explicitAssignee = 'assignedAgentId' in body;
-
     let updateData = { ...body } as Parameters<typeof projectsDb.updateTask>[1];
 
-    if (body.status === 'review' && existing.status !== 'review' && !explicitAssignee) {
-      const implementer =
-        existing.status === 'doing' && existing.assignedAgentId
-          ? existing.assignedAgentId
-          : null;
-      const engineer = await pickAgentByOrgRoleLeastLoaded('engineer');
-      updateData = {
-        ...updateData,
-        assignedAgentId: engineer?.id ?? null,
-        implementerAgentId: implementer,
-      };
-    }
-
-    if (body.status === 'review' && existing.status !== 'review' && explicitAssignee) {
+    if (body.status === 'review' && existing.status !== 'review') {
       const implementer =
         existing.status === 'doing' && existing.assignedAgentId
           ? existing.assignedAgentId
@@ -295,16 +234,6 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
       updateData = {
         ...updateData,
         implementerAgentId: implementer,
-      };
-    }
-
-    if (
-      existing.status === 'review' &&
-      (body.status === 'backlog' || body.status === 'not_done')
-    ) {
-      updateData = {
-        ...updateData,
-        assignedAgentId: existing.implementerAgentId ?? null,
       };
     }
 
@@ -325,6 +254,8 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
 
     const task = await projectsDb.updateTask(taskId, updateData);
     if (!task) throw new ApiError(404, 'NOT_FOUND', 'Not found');
+
+    void postProjectBacklogUpdatedWebhook({ id: project.id, name: project.name }, request.log);
 
     const projectName = project.name;
     const meta = taskActivityMeta({ ...task, projectName });
@@ -354,62 +285,24 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
       task.assignedAgentId &&
       existing.assignedAgentId !== task.assignedAgentId
     ) {
-      await notifyAssignedAgent(taskId, task.assignedAgentId, request.log);
+      await emailNotifyAssignedAgent(taskId, task.assignedAgentId, request.log);
     }
 
     const enteringReview = body.status === 'review' && existing.status !== 'review';
-
-    // if (enteringReview && task.assignedAgentId) {
-    //   await notifyAssignedAgent(taskId, task.assignedAgentId, request.log);
-    // } else if (
-    //   task.assignedAgentId &&
-    //   existing.assignedAgentId !== task.assignedAgentId
-    // ) {
-    //   await notifyAssignedAgent(taskId, task.assignedAgentId, request.log);
-    // }
 
     if (
       (await projectsDb.projectTasksAllInReview(task.projectId)) &&
       enteringReview
     ) {
-      const qa = await pickAgentByOrgRoleLeastLoaded('qa');
-      if (qa?.id) {
-        await notifyQaBatchWhenAllTasksInReview(taskId, qa.id, request.log);
-      }
+      await notifyQaBatchWhenAllTasksInReview(taskId, request.log);
     }
 
     const transitionedReviewToDone = existing.status === 'review' && task.status === 'done';
     if (transitionedReviewToDone) {
-      notifyChiefOfStaffOfReviewCompleted(task, project, request.log).catch((err) =>
-        request.log.error({ err }, 'Failed to POST review.completed to Chief of Staff webhook'),
+      notifyChiefOfStaffOfReviewCompleted({ id: project.id, name: project.name }, task.id, request.log).catch(
+        (err) =>
+          request.log.error({ err }, 'Failed to POST project.review_completed webhook'),
       );
-    }
-
-    const transitionedToDone = existing.status !== 'done' && task.status === 'done';
-    if (
-      transitionedToDone &&
-      (await projectsDb.projectTasksAllDone(task.projectId))
-    ) {
-      notifyChiefOfStaffOfProjectCompleted(project, request.log).catch((err) =>
-        request.log.error({ err }, 'Failed to POST project.completed to agent webhook'),
-      );
-      const discord = getDiscordSyncService();
-      const channelId = await resolveGeneralDiscordChannelId(discord, request.log);
-      const taskList = await projectsDb.listTasks(task.projectId);
-      const discordBody = formatDiscordProjectSuccess(project, taskList);
-      await sendDiscordToGeneral(discord, channelId, discordBody, request.log);
-    }
-
-    const transitionedToNotDone = existing.status !== 'not_done' && task.status === 'not_done';
-    if (
-      transitionedToNotDone &&
-      (await projectsDb.projectTasksAllNotDone(task.projectId))
-    ) {
-      const discord = getDiscordSyncService();
-      const channelId = await resolveGeneralDiscordChannelId(discord, request.log);
-      const taskList = await projectsDb.listTasks(task.projectId);
-      const discordBody = formatDiscordProjectFailure(project, taskList);
-      await sendDiscordToGeneral(discord, channelId, discordBody, request.log);
     }
 
     return task;

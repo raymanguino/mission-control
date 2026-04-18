@@ -29,14 +29,6 @@ const updateAgentSchema = z.object({
   description: z.string().optional(),
   reportsToAgentId: z.string().uuid().nullable().optional(),
   avatarId: agentAvatarIdSchema,
-  hookUrl: z.preprocess(
-    (v) => (v === '' ? undefined : v),
-    z.string().url().optional(),
-  ),
-  hookToken: z.preprocess(
-    (v) => (v === '' ? undefined : v),
-    z.string().min(1).optional(),
-  ),
 });
 
 const reportSchema = z.object({
@@ -147,16 +139,6 @@ const agentRoutes: FastifyPluginAsync = async (fastify) => {
           'reportsToAgentId must reference an existing agent',
         );
       }
-    }
-
-    const mergedUrl = body.hookUrl !== undefined ? body.hookUrl : existing.hookUrl;
-    const mergedToken = body.hookToken !== undefined ? body.hookToken : existing.hookToken;
-    if (!mergedUrl?.trim() || !mergedToken?.trim()) {
-      throw new ApiError(
-        400,
-        'VALIDATION_FAILED',
-        'Agent must have a webhook URL and hook token. Include hookUrl and hookToken (or omit one field to keep the stored value).',
-      );
     }
 
     const agent = await agentsDb.updateAgent(id, body);

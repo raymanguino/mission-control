@@ -1,46 +1,33 @@
 # Review assignment flow
 
-Mission Control routes **engineers** to own tasks through `review` status. **QA** is notified via webhook when **every** task in a project is in `review` (batch-ready gate).
+Mission Control does **not** auto-assign tasks to engineers or QA. Agents claim work by updating tasks (for example `PATCH` with `assignedAgentId` set to themselves).
 
-## Engineer on create and update
+## `project.backlog_updated` (engineers)
 
-- New tasks are assigned to a **least-loaded** `engineer` (`pickAgentByOrgRoleLeastLoaded('engineer')`).
-- `task.assigned` is delivered to that engineer’s webhook (when configured).
+On every task create and update, Mission Control emits a single **`project.backlog_updated`** webhook to `/hooks/mc/eng` (see server env `MC_WEBHOOK_BASE_URL` and `MC_WEBHOOK_TOKEN`). The payload includes `projectId` and `project: { id, name }` but **not** `taskId`—OpenClaw lists open tasks via MCP/API and self-assigns.
 
 ## Transition into `review`
 
-When `PATCH` sets `status` to `review` and the task was not already in review:
-
-- Unless the client sends an explicit `assignedAgentId`, the server assigns a **least-loaded engineer** and stores the previous `doing` assignee in `implementerAgentId` (when applicable).
-- `task.assigned` is sent to the engineer (not `review.assigned`).
-
-If the request body includes `assignedAgentId`, that assignee is kept and `implementerAgentId` is still set from the prior `doing` assignee when relevant.
+When `PATCH` sets `status` to `review` and the task was not already in review, the server sets **`implementerAgentId`** from the prior `doing` assignee when applicable. It does **not** set **`assignedAgentId`** automatically.
 
 ## QA batch: all tasks in `review`
 
 When, after a create or update, **every** task in the project has `status === 'review'`:
 
-- Mission Control picks a **least-loaded** `qa` agent and sends `review.assigned` with `allTasksInReview: true`, plus `project` `{ id, name }` and the triggering `task` object (see [Agent Integration](./agent-integration.md)).
+- Mission Control sends **`project.all_tasks_completed`** once to `/hooks/mc/qa` (same env as above).
+- Email notifications go to each QA agent that has email configured.
 
 QA batch is emitted when:
 
-- `POST /api/tasks` creates a task with `status: review` and the project is entirely in review, or
-- `PATCH` moves a task into `review` (`enteringReview`) and the project becomes entirely in review.
+- `POST` creates a task with `status: review` and the project is entirely in review, or
+- `PATCH` moves a task into `review` and the project becomes entirely in review.
 
 It does **not** re-fire on unrelated edits while the project stays all-review.
 
 ## Leaving review
 
-When moving back to `backlog` or `not_done`, `assignedAgentId` is restored from `implementerAgentId` when present (see `backend/src/routes/handlers/tasks.ts`).
+When a task moves from `review` to `done`, Mission Control sends **`project.review_completed`** to `/hooks/mc/cos` with `taskId` plus project snapshot. Assignee fields may be cleared by the handler; Mission Control does not restore **`assignedAgentId`** from **`implementerAgentId`** automatically on other transitions.
 
-## Agent requirements
+## Server requirements
 
-1. **Engineer** agents for implementation and review ownership on the task row.
-2. **QA** agents with `hookUrl` / `hookToken` for the batch `review.assigned` webhook.
-3. Optional: email notifications mirror the webhook paths where email is configured.
-
-## Example
-
-1. Engineer completes work → `update_task(id, { status: 'review' })`.
-2. MC assigns a least-loaded engineer, fires `task.assigned`.
-3. When the last task in the project enters `review`, MC fires `review.assigned` with `allTasksInReview: true` to a least-loaded QA agent.
+Configure **`MC_WEBHOOK_BASE_URL`** and **`MC_WEBHOOK_TOKEN`** on the Mission Control host so the relay at `/hooks/mc/{role}` accepts the same bearer for each role. Optional: email notifications mirror workflow where email is configured.

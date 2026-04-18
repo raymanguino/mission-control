@@ -20,9 +20,7 @@ http:
         "specialization": "dev",
         "description": "Dev task executor. Receives task.assigned events, implements code tasks, updates task status to review on completion. Runs on worker Pi with Hermes Agent CLI.",
         "device": "Raspberry Pi 4, 1.5GHz 64-bit quad-core ARMv8 CPU, 8GB RAM",
-        "model": "claude-3-5-sonnet",
-        "hookUrl": "https://six7swe-leader.tailc28236.ts.net/hooks/mc",
-        "hookToken": "hermes-hook-2026"
+        "model": "claude-3-5-sonnet"
       }
   auth: inherit
 

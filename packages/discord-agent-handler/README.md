@@ -19,10 +19,10 @@ If your OpenClaw agent reads from Mission Control HTTP/MCP instead of Discord ga
 filters are not the primary control. In that case, rely on Mission Control message fields like
 `agentId` and `discordUserId`.
 
-For OpenClaw agents that receive notifications via HTTP hook (e.g. over Tailscale), set up an
-incoming hook endpoint in your gateway config and register the URL and bearer token on the agent
-record in Mission Control (`PATCH /api/agents/:id` with `hookUrl` and `hookToken`). See the backend
-`services/agentNotifier.ts` for the events fired and expected payload shape.
+For OpenClaw agents that receive notifications via HTTP hook (e.g. over Tailscale), configure
+`MC_WEBHOOK_BASE_URL` and `MC_WEBHOOK_TOKEN` on the Mission Control server so it POSTs to
+`/hooks/mc/{cos|eng|qa}` on your relay. See `backend/src/services/agentNotifier.ts` for event names
+and payload shapes.
 
 ## Install
 

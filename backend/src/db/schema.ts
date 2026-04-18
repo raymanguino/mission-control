@@ -33,10 +33,6 @@ export const agents = pgTable('agents', {
   status: text('status').notNull().default('offline'),
   /** Preset sprite id (see AGENT_AVATAR_IDS in @mission-control/types). */
   avatarId: text('avatar_id'),
-  /** Optional inbound webhook for task/org notifications (HTTPS URL on the agent's tailnet, etc.). */
-  hookUrl: text('hook_url'),
-  /** Bearer token for `hookUrl` POSTs. Stored server-side; never returned from the API. */
-  hookToken: text('hook_token'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
