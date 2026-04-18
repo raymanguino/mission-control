@@ -1,7 +1,7 @@
 info:
-  name: notifications_initialized
+  name: 4. tools_list
   type: http
-  seq: 3
+  seq: 5
 
 http:
   method: post
@@ -22,7 +22,8 @@ http:
     data: |-
       {
         "jsonrpc": "2.0",
-        "method": "notifications/initialized"
+        "id": 2,
+        "method": "tools/list"
       }
   auth: inherit
 

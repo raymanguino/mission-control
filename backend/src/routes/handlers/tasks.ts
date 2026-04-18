@@ -297,11 +297,14 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
       await notifyQaBatchWhenAllTasksInReview(taskId, request.log);
     }
 
-    const transitionedReviewToDone = existing.status === 'review' && task.status === 'done';
-    if (transitionedReviewToDone) {
-      notifyChiefOfStaffOfReviewCompleted({ id: project.id, name: project.name }, task.id, request.log).catch(
-        (err) =>
-          request.log.error({ err }, 'Failed to POST project.review_completed webhook'),
+    const transitionedReviewToTerminal =
+      existing.status === 'review' && (task.status === 'done' || task.status === 'not_done');
+    if (
+      transitionedReviewToTerminal &&
+      (await projectsDb.projectTasksAllDoneOrNotDone(project.id))
+    ) {
+      notifyChiefOfStaffOfReviewCompleted({ id: project.id, name: project.name }, request.log).catch((err) =>
+        request.log.error({ err }, 'Failed to POST project.review_completed webhook'),
       );
     }
 

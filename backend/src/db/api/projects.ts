@@ -132,3 +132,10 @@ export async function projectTasksAllNotDone(projectId: string): Promise<boolean
   if (list.length === 0) return false;
   return list.every((t) => t.status === 'not_done');
 }
+
+/** True when the project has at least one task and every task is `done` or `not_done` (review phase finished). */
+export async function projectTasksAllDoneOrNotDone(projectId: string): Promise<boolean> {
+  const list = await listTasks(projectId);
+  if (list.length === 0) return false;
+  return list.every((t) => t.status === 'done' || t.status === 'not_done');
+}

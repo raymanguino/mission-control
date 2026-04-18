@@ -132,10 +132,9 @@ export async function notifyQaProjectAllTasksInReview(
   }
 }
 
-/** When QA marks a task done from Review: notify CoS (`project.review_completed`). */
+/** When every project task is `done` or `not_done`: notify CoS (`project.review_completed`). */
 export async function notifyChiefOfStaffOfReviewCompleted(
   project: ProjectWebhookSnapshot,
-  taskId: string,
   log?: FastifyBaseLogger,
 ): Promise<void> {
   if (!agentWebhooksEnabled()) return;
@@ -146,7 +145,6 @@ export async function notifyChiefOfStaffOfReviewCompleted(
       'cos',
       {
         ...basePayload(project, 'project.review_completed', agentInstructions),
-        taskId,
       },
       log,
     );
