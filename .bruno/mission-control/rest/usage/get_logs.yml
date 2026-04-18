@@ -1,0 +1,24 @@
+info:
+  name: get_logs
+  type: http
+  seq: 7
+
+http:
+  method: get
+  url: http://{{host}}:{{port}}/api/logs?from={{from}}&to={{to}}&level={{level}}&limit={{limit}}
+  headers:
+    - name: Authorization
+      value: Bearer {{token}}
+  auth: inherit
+
+vars:
+  from: "2026-04-17T00:00:00.000Z"
+  to: "2026-04-18T23:59:59.999Z"
+  level: "info"
+  limit: "1000"
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

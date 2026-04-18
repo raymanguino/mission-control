@@ -9,8 +9,9 @@ import { registerRoutes } from './routes/index.js';
 import { startCronJobs } from './services/cron.js';
 import { registerErrorHandling } from './lib/errors.js';
 import { getDiscordSyncService, startDiscordSync, stopDiscordSync } from './services/discord/index.js';
+import { loggerConfig } from './lib/logger.js';
 
-const app = Fastify({ logger: true });
+const app = Fastify({ logger: loggerConfig() });
 
 const secret = process.env['DASHBOARD_SECRET'];
 if (!secret) throw new Error('DASHBOARD_SECRET is required');

@@ -16,6 +16,7 @@ import Chat from './pages/Chat.js';
 import ChatIndex from './pages/ChatIndex.js';
 import ProjectsIndex from './pages/ProjectsIndex.js';
 import Usage from './pages/Usage.js';
+import Logs from './pages/Logs.js';
 import Settings from './pages/Settings.js';
 
 export default function App() {
@@ -52,6 +53,7 @@ export default function App() {
               <Route path="chat" element={<ChatIndex />} />
               <Route path="chat/:channelId" element={<Chat />} />
               <Route path="usage" element={<Usage />} />
+              <Route path="logs" element={<Logs />} />
               <Route path="settings" element={<Settings />} />
             </Route>
           </Routes>

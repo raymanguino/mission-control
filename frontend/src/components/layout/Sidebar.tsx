@@ -35,6 +35,16 @@ const OVERVIEW_NAV_ITEMS: readonly {
       },
     ],
   },
+  {
+    to: '/logs',
+    label: 'Logs',
+    end: true,
+    paths: [
+      {
+        d: 'M4.878 4.917a.75.75 0 0 1-.282-.94v-1.227a1.75 1.75 0 0 0-1.743-1.697H2.095a1.75 1.75 0 0 0-1.743 1.697v7.223c0 .965.783 1.747 1.748 1.747h.09a.25.25 0 0 0 .248-.215l.678 4.573a.25.25 0 0 0 .173-.097l.814-.814a.75.75 0 0 1 1.06 0l.814.814a.25.25 0 0 0 .173.097l.678-4.573.248.215h.09a1.748 1.748 0 0 0 1.748-1.747v-7.223a1.75 1.75 0 0 0-1.743-1.697h-.758a.75.75 0 0 1-.282-.94 48.84 48.84 0 0 1-2.367-3.057.75.75 0 0 1 .902-.507A50.348 50.348 0 0 1 11.25 2.75a.75.75 0 0 1 .902.507 48.84 48.84 0 0 1 2.367 3.057.75.75 0 0 1-.903.507 50.386 50.386 0 0 1-2.893-.54.75.75 0 0 0-.282.94 50.352 50.352 0 0 0 2.175 2.89.75.75 0 0 1-.282.94.25.25 0 0 0 .073.199l.678 4.573h-.092a.25.25 0 0 0-.082.132v.001a.25.25 0 0 0 .082.132h.092v.002l-.678 4.572a.25.25 0 0 0-.082.132.083.083 0 0 0 .041.041.25.25 0 0 0 .082-.082v-.001h.002l.002-.001.678-4.572a.25.25 0 0 0-.073-.132h-.001a.25.25 0 0 0-.082.082v.001h-.002l-.678 4.572a.25.25 0 0 0-.082.132h-.001a.25.25 0 0 0-.082.082v.001a.25.25 0 0 0 .082.082h.001l.678-4.572a.25.25 0 0 0 .073-.132V6.84a.75.75 0 0 1 .282-.94 50.348 50.348 0 0 0-2.175-2.89ZM6.75 7.5a.75.75 0 0 1 .75.75v2.25H8.5a.75.75 0 0 1 0 1.5h-1.75v1.75a.75.75 0 0 1-1.5 0v-1.75H4.5a.75.75 0 0 1 0-1.5h1.75V8.25a.75.75 0 0 1 .75-.75h.75Z',
+      },
+    ],
+  },
 ];
 
 const PROJECT_FOLDER_PATHS: readonly { d: string; fillRule?: 'evenodd' }[] = [
@@ -148,7 +158,7 @@ const WELLNESS_NAV_ITEMS: readonly {
 type NavSectionId = 'overview' | 'chat' | 'projects' | 'wellness';
 
 function sectionFromPath(pathname: string): NavSectionId | null {
-  if (pathname.startsWith('/agents') || pathname.startsWith('/usage')) return 'overview';
+  if (pathname.startsWith('/agents') || pathname.startsWith('/usage') || pathname.startsWith('/logs')) return 'overview';
   if (pathname.startsWith('/chat')) return 'chat';
   if (pathname.startsWith('/projects')) return 'projects';
   if (pathname.startsWith('/wellness')) return 'wellness';
@@ -293,7 +303,7 @@ export default function Sidebar() {
   };
 
   const overviewSectionActive =
-    location.pathname.startsWith('/agents') || location.pathname.startsWith('/usage');
+    location.pathname.startsWith('/agents') || location.pathname.startsWith('/usage') || location.pathname.startsWith('/logs');
 
   const chatSectionActive = location.pathname.startsWith('/chat');
   const projectsSectionActive = location.pathname.startsWith('/projects');

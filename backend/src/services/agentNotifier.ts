@@ -48,6 +48,9 @@ async function postRoleWebhook(
   log?: FastifyBaseLogger,
 ): Promise<void> {
   if (!agentWebhooksEnabled()) {
+    log?.warn(
+      'Skipping role webhook: set AGENT_WEBHOOKS_ENABLED for outbound POSTs.',
+    );
     return;
   }
   const token = mcWebhookAuth();
@@ -136,8 +139,6 @@ export async function notifyChiefOfStaffOfReviewCompleted(
   project: ProjectWebhookSnapshot,
   log?: FastifyBaseLogger,
 ): Promise<void> {
-  if (!agentWebhooksEnabled()) return;
-
   const agentInstructions = await instructionsTextForOrgRole('chief_of_staff');
   try {
     await postRoleWebhook(

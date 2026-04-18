@@ -17,3 +17,6 @@ supabase/.temp/
 
 # Scratch / draft docs
 docs/temp/
+
+# Backend log files (rotated daily, 14-day retention)
+backend/logs/
