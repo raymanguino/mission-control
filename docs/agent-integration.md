@@ -58,10 +58,9 @@ Content-Type: application/json
 
 **Baseline JSON fields (all events):**
 
-- `event` — string (see below)
-- `projectId` — UUID
+- `event` — event name string (see below)
 - `project` — `{ "id": string, "name": string }`
-- `agentInstructions` — playbook text for the target role
+- `agentInstructions` — playbook text for the target role (`chief_of_staff`, `engineer`, or `qa`)
 
 ---
 
@@ -74,7 +73,6 @@ Fired when a new project is created (pending approval).
 ```json
 {
   "event": "project.pending_approval",
-  "projectId": "<uuid>",
   "project": { "id": "<uuid>", "name": "…" },
   "agentInstructions": "…"
 }
@@ -84,14 +82,13 @@ Fired when a new project is created (pending approval).
 
 ### `project.backlog_updated` → `/hooks/mc/eng`
 
-Fired on every task create and task update. Does **not** include `taskId`.
+Fired on every task create and task update.
 
 **Payload:**
 
 ```json
 {
   "event": "project.backlog_updated",
-  "projectId": "<uuid>",
   "project": { "id": "<uuid>", "name": "…" },
   "agentInstructions": "…"
 }
@@ -101,14 +98,13 @@ Fired on every task create and task update. Does **not** include `taskId`.
 
 ### `project.all_tasks_completed` → `/hooks/mc/qa`
 
-Fired when **every** task in the project has `status === "review"`.
+Fired when every task in the project has `status === "review"`.
 
 **Payload:**
 
 ```json
 {
   "event": "project.all_tasks_completed",
-  "projectId": "<uuid>",
   "project": { "id": "<uuid>", "name": "…" },
   "agentInstructions": "…"
 }
@@ -118,16 +114,14 @@ Fired when **every** task in the project has `status === "review"`.
 
 ### `project.review_completed` → `/hooks/mc/cos`
 
-Fired when a task moves from `review` to `done`.
+Fired when every task in the project is `done` or `not_done`.
 
 **Payload:**
 
 ```json
 {
   "event": "project.review_completed",
-  "projectId": "<uuid>",
   "project": { "id": "<uuid>", "name": "…" },
-  "taskId": "<uuid>",
   "agentInstructions": "…"
 }
 ```
@@ -148,7 +142,7 @@ Key tools: `list_projects`, `get_project`, `update_project`, `create_task`, `upd
 curl -X POST "http://127.0.0.1:48123/hooks/mc/cos" \
   -H "Authorization: Bearer <MC_WEBHOOK_TOKEN>" \
   -H "Content-Type: application/json" \
-  -d '{"event":"project.pending_approval","projectId":"…","project":{"id":"…","name":"Test"},"agentInstructions":""}'
+  -d '{"event":"project.pending_approval","project":{"id":"…","name":"Test"},"agentInstructions":""}'
 ```
 
 ---
