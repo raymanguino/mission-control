@@ -61,6 +61,7 @@ Content-Type: application/json
 - `event` — event name string (see below)
 - `project` — `{ "id": string, "name": string }`
 - `agentInstructions` — playbook text for the target role (`chief_of_staff`, `engineer`, or `qa`)
+- `agents` — array of agent names belonging to the target role
 
 ---
 
@@ -74,7 +75,8 @@ Fired when a new project is created (pending approval).
 {
   "event": "project.pending_approval",
   "project": { "id": "<uuid>", "name": "…" },
-  "agentInstructions": "…"
+  "agentInstructions": "…",
+  "agents": ["Ralph"]
 }
 ```
 
@@ -90,7 +92,8 @@ Fired on every task create and task update.
 {
   "event": "project.backlog_updated",
   "project": { "id": "<uuid>", "name": "…" },
-  "agentInstructions": "…"
+  "agentInstructions": "…",
+  "agents": ["…"]
 }
 ```
 
@@ -106,7 +109,8 @@ Fired when every task in the project has `status === "review"`.
 {
   "event": "project.all_tasks_completed",
   "project": { "id": "<uuid>", "name": "…" },
-  "agentInstructions": "…"
+  "agentInstructions": "…",
+  "agents": ["…"]
 }
 ```
 
@@ -122,7 +126,8 @@ Fired when every task in the project is `done` or `not_done`.
 {
   "event": "project.review_completed",
   "project": { "id": "<uuid>", "name": "…" },
-  "agentInstructions": "…"
+  "agentInstructions": "…",
+  "agents": ["Ralph"]
 }
 ```
 
