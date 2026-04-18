@@ -1,0 +1,38 @@
+info:
+  name: tools_call_list_agents
+  type: http
+  seq: 5
+
+http:
+  method: post
+  url: http://{{mcpHost}}:{{mcpPort}}/mcp
+  headers:
+    - name: Accept
+      value: application/json, text/event-stream
+    - name: Content-Type
+      value: application/json
+    - name: Authorization
+      value: Bearer {{mcpApiKey}}
+    - name: Mcp-Session-Id
+      value: "{{mcpSessionId}}"
+    - name: Mcp-Protocol-Version
+      value: "{{mcpProtocolVersion}}"
+  body:
+    type: json
+    data: |-
+      {
+        "jsonrpc": "2.0",
+        "id": 3,
+        "method": "tools/call",
+        "params": {
+          "name": "list_agents",
+          "arguments": {}
+        }
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

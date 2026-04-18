@@ -1,14 +1,11 @@
 info:
-  name: list_channels
+  name: healthz
   type: http
   seq: 1
 
 http:
   method: get
-  url: http://{{host}}:{{port}}/api/channels
-  headers:
-    - name: Authorization
-      value: Bearer {{token}}
+  url: http://{{mcpHost}}:{{mcpPort}}/healthz
   auth: inherit
 
 settings:

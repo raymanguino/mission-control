@@ -1,0 +1,34 @@
+info:
+  name: tools_list
+  type: http
+  seq: 4
+
+http:
+  method: post
+  url: http://{{mcpHost}}:{{mcpPort}}/mcp
+  headers:
+    - name: Accept
+      value: application/json, text/event-stream
+    - name: Content-Type
+      value: application/json
+    - name: Authorization
+      value: Bearer {{mcpApiKey}}
+    - name: Mcp-Session-Id
+      value: "{{mcpSessionId}}"
+    - name: Mcp-Protocol-Version
+      value: "{{mcpProtocolVersion}}"
+  body:
+    type: json
+    data: |-
+      {
+        "jsonrpc": "2.0",
+        "id": 2,
+        "method": "tools/list"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

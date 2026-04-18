@@ -15,12 +15,16 @@ http:
     type: json
     data: |-
       {
-        "name": "Updated project name",
-        "description": "Updated optional description",
-        "status": "approved",
-        "url": "https://example.com"
+        "status": "approved"
       }
   auth: inherit
+
+runtime:
+  variables:
+    - name: projectId
+      value: 77471446-dc91-47f8-a989-b5635a0b08f0
+    - name: token
+      value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkYXNoYm9hcmQiLCJpYXQiOjE3NzU1OTg1MjYsImV4cCI6MTc3ODE5MDUyNn0.lxOys-anQF7k-ljmKjWD7NleAEYaITBEbFPq1EaSvig
 
 settings:
   encodeUrl: false

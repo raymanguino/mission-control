@@ -1,0 +1,48 @@
+info:
+  name: initialize
+  type: http
+  seq: 2
+
+http:
+  method: post
+  url: http://{{mcpHost}}:{{mcpPort}}/mcp
+  headers:
+    - name: Accept
+      value: application/json, text/event-stream
+    - name: Content-Type
+      value: application/json
+    - name: Authorization
+      value: Bearer {{mcpApiKey}}
+  body:
+    type: json
+    data: |-
+      {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "initialize",
+        "params": {
+          "protocolVersion": "{{mcpProtocolVersion}}",
+          "capabilities": {},
+          "clientInfo": { "name": "bruno", "version": "1.0.0" }
+        }
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        const body = typeof res.getBody === 'function' ? res.getBody() : res.body;
+        const data = typeof body === 'string' ? JSON.parse(body) : body;
+        if (data && data.result && data.result.protocolVersion) {
+          bru.setEnvVar('mcpProtocolVersion', data.result.protocolVersion);
+        }
+        const h = res.headers || {};
+        const sid = h['mcp-session-id'] || h['Mcp-Session-Id'];
+        if (sid) bru.setEnvVar('mcpSessionId', sid);
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

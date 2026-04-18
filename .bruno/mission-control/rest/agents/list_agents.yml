@@ -11,6 +11,11 @@ http:
       value: Bearer {{token}}
   auth: inherit
 
+runtime:
+  variables:
+    - name: token
+      value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkYXNoYm9hcmQiLCJpYXQiOjE3NzU0Mzg0MjYsImV4cCI6MTc3ODAzMDQyNn0.p0HAEfcMjYoIw5mMSYVTKlaW6yGxnR4vVUufJIyDVlY
+
 settings:
   encodeUrl: false
   timeout: 0

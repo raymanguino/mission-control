@@ -15,11 +15,15 @@ http:
     type: json
     data: |-
       {
-        "name": "New project",
-        "description": "Optional description",
-        "url": "https://example.com"
+        "name": "Hello World 001",
+        "description": "Create a Hello World web app. The user should be able to enter their name into a form and receive a warm welcoming back."
       }
   auth: inherit
+
+runtime:
+  variables:
+    - name: token
+      value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkYXNoYm9hcmQiLCJpYXQiOjE3NzU2OTA5NjcsImV4cCI6MTc3ODI4Mjk2N30.iEKsUPwO6hVkkY92JfoPzI1-u2jf5Ye40JWwl8Nw_S8
 
 settings:
   encodeUrl: false
