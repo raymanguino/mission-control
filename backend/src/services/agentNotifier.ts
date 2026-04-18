@@ -9,6 +9,7 @@ import * as settingsDb from '../db/api/settings.js';
 import { instructionKeyForOrgRole } from '../lib/agentOrgRoles.js';
 import { getMcRoleWebhookUrl, type McWebhookRole } from '../lib/mcHookUrl.js';
 
+export type AgentWebhookSnapshot = { id: string; name: string };
 export type ProjectWebhookSnapshot = { id: string; name: string };
 
 /** Role-specific playbook text for webhook payloads (same keys as GET /api/agents/instructions). */
@@ -22,12 +23,16 @@ async function instructionsTextForOrgRole(orgRole: string | null | undefined): P
   }
 }
 
-/** Agent names for a given org role. */
-async function agentNamesForOrgRole(orgRole: string | null | undefined): Promise<string[]> {
+/** Agents (id + name) for a given org role. */
+async function agentsForOrgRole(
+  orgRole: string | null | undefined,
+): Promise<AgentWebhookSnapshot[]> {
   if (!orgRole) return [];
   try {
-    const rows = await agentsDb.listAgentsByOrgRole(orgRole as import('../lib/agentOrgRoles.js').AgentOrgRole);
-    return rows.map((a: { name: string }) => a.name);
+    const rows = await agentsDb.listAgentsByOrgRole(
+      orgRole as import('../lib/agentOrgRoles.js').AgentOrgRole,
+    );
+    return rows.map((a: { id: string; name: string }) => ({ id: a.id, name: a.name }));
   } catch {
     return [];
   }
@@ -50,7 +55,7 @@ function basePayload(
   project: ProjectWebhookSnapshot,
   event: string,
   agentInstructions: string,
-  agents: string[],
+  agents: AgentWebhookSnapshot[],
 ) {
   return {
     event,
@@ -100,15 +105,15 @@ export async function notifyChiefOfStaffOfProject(
   project: ProjectWebhookSnapshot,
   log?: FastifyBaseLogger,
 ): Promise<void> {
-  const [agentInstructions, agentNames] = await Promise.all([
+  const [agentInstructions, agents] = await Promise.all([
     instructionsTextForOrgRole('chief_of_staff'),
-    agentNamesForOrgRole('chief_of_staff'),
+    agentsForOrgRole('chief_of_staff'),
   ]);
   try {
     await postRoleWebhook(
       'cos',
       {
-        ...basePayload(project, 'project.pending_approval', agentInstructions, agentNames),
+        ...basePayload(project, 'project.pending_approval', agentInstructions, agents),
       },
       log,
     );
@@ -122,15 +127,15 @@ export async function postProjectBacklogUpdatedWebhook(
   project: ProjectWebhookSnapshot,
   log?: FastifyBaseLogger,
 ): Promise<void> {
-  const [agentInstructions, agentNames] = await Promise.all([
+  const [agentInstructions, agents] = await Promise.all([
     instructionsTextForOrgRole('engineer'),
-    agentNamesForOrgRole('engineer'),
+    agentsForOrgRole('engineer'),
   ]);
   try {
     await postRoleWebhook(
       'eng',
       {
-        ...basePayload(project, 'project.backlog_updated', agentInstructions, agentNames),
+        ...basePayload(project, 'project.backlog_updated', agentInstructions, agents),
       },
       log,
     );
@@ -144,15 +149,15 @@ export async function notifyQaProjectAllTasksInReview(
   project: ProjectWebhookSnapshot,
   log?: FastifyBaseLogger,
 ): Promise<void> {
-  const [agentInstructions, agentNames] = await Promise.all([
+  const [agentInstructions, agents] = await Promise.all([
     instructionsTextForOrgRole('qa'),
-    agentNamesForOrgRole('qa'),
+    agentsForOrgRole('qa'),
   ]);
   try {
     await postRoleWebhook(
       'qa',
       {
-        ...basePayload(project, 'project.all_tasks_completed', agentInstructions, agentNames),
+        ...basePayload(project, 'project.all_tasks_completed', agentInstructions, agents),
       },
       log,
     );
@@ -166,15 +171,15 @@ export async function notifyChiefOfStaffOfReviewCompleted(
   project: ProjectWebhookSnapshot,
   log?: FastifyBaseLogger,
 ): Promise<void> {
-  const [agentInstructions, agentNames] = await Promise.all([
+  const [agentInstructions, agents] = await Promise.all([
     instructionsTextForOrgRole('chief_of_staff'),
-    agentNamesForOrgRole('chief_of_staff'),
+    agentsForOrgRole('chief_of_staff'),
   ]);
   try {
     await postRoleWebhook(
       'cos',
       {
-        ...basePayload(project, 'project.review_completed', agentInstructions, agentNames),
+        ...basePayload(project, 'project.review_completed', agentInstructions, agents),
       },
       log,
     );
