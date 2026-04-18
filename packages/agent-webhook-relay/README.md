@@ -2,12 +2,13 @@
 
 Thin webhook relay for Mission Control agent notifications.
 
-It accepts `POST /hooks/mc/<role>`, stores the raw payload durably, retries delivery, and hands the payload to OpenClaw as a system event.
+It accepts `POST /hooks/mc`, reads the `event` field to determine the role (`cos`, `eng`, or `qa`), stores the raw payload durably, retries delivery, and hands the payload to OpenClaw as a system event.
 
 ## Current shape
 
 - `cos` is enabled by default
-- unknown roles return `404`
+- role is inferred from the `event` field in the payload
+- unknown events return `400`
 - payloads are passed through unchanged
 - delivery is logged and retried with backoff
 
@@ -22,7 +23,7 @@ pnpm --filter @mission-control/agent-webhook-relay dev
 - `MC_WEBHOOK_HOST` (default `127.0.0.1`)
 - `MC_WEBHOOK_PORT` (default `48123`)
 - `MC_WEBHOOK_ENABLED_ROLES` (default `cos`)
-- `MC_WEBHOOK_TOKEN_COS` (optional, if set, `Authorization: Bearer <token>` is required for `/hooks/mc/cos`)
+- `MC_WEBHOOK_TOKEN_COS` (optional, if set, `Authorization: Bearer <token>` is required)
 - `MC_WEBHOOK_TOKEN_ENG` (optional)
 - `MC_WEBHOOK_TOKEN_QA` (optional)
 - `OPENCLAW_CMD` (default `openclaw`)
@@ -35,4 +36,4 @@ pnpm --filter @mission-control/agent-webhook-relay dev
 ## Routes
 
 - `GET /healthz`
-- `POST /hooks/mc/cos`
+- `POST /hooks/mc` — role inferred from `event` field

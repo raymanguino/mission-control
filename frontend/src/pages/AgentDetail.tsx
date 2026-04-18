@@ -243,8 +243,7 @@ export default function AgentDetail() {
           Outbound events are configured on the Mission Control server with{' '}
           <code className="text-gray-400">MC_WEBHOOK_BASE_URL</code> and{' '}
           <code className="text-gray-400">MC_WEBHOOK_TOKEN</code>. POSTs go to{' '}
-          <code className="text-gray-400">/hooks/mc/cos</code>, <code className="text-gray-400">/hooks/mc/eng</code>, or{' '}
-          <code className="text-gray-400">/hooks/mc/qa</code> with payloads that include{' '}
+          <code className="text-gray-400">/hooks/mc</code> with payloads that include{' '}
           <code className="text-gray-400">projectId</code>, <code className="text-gray-400">project</code>,{' '}
           <code className="text-gray-400">event</code> (e.g. <code className="text-gray-400">project.pending_approval</code>,{' '}
           <code className="text-gray-400">project.backlog_updated</code>, <code className="text-gray-400">project.all_tasks_completed</code>,{' '}

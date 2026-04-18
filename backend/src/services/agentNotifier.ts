@@ -95,7 +95,7 @@ async function postRoleWebhook(
   }
 }
 
-/** Single POST `project.pending_approval` to `/hooks/mc/cos`. */
+/** Single POST `project.pending_approval` to `/hooks/mc` (role inferred by event). */
 export async function notifyChiefOfStaffOfProject(
   project: ProjectWebhookSnapshot,
   log?: FastifyBaseLogger,
@@ -117,7 +117,7 @@ export async function notifyChiefOfStaffOfProject(
   }
 }
 
-/** Emits `project.backlog_updated` on every task create/update (single POST to `/hooks/mc/eng`). */
+/** Emits `project.backlog_updated` on every task create/update (single POST to `/hooks/mc`). */
 export async function postProjectBacklogUpdatedWebhook(
   project: ProjectWebhookSnapshot,
   log?: FastifyBaseLogger,

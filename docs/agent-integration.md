@@ -6,11 +6,9 @@ This document is the authoritative reference for AI agents integrating with Miss
 
 ## Architecture Overview
 
-Mission Control POSTs JSON events to your OpenClaw relay at **`{MC_WEBHOOK_BASE_URL}/hooks/mc/{role}`** with **`Authorization: Bearer {MC_WEBHOOK_TOKEN}`**. Roles map to paths: **`cos`**, **`eng`**, **`qa`**.
+Mission Control POSTs JSON events to your OpenClaw relay at **`{MC_WEBHOOK_BASE_URL}/hooks/mc`** with **`Authorization: Bearer {MC_WEBHOOK_TOKEN}`**. The role is inferred from the `event` field in the payload: `project.pending_approval` / `project.review_completed` → **`cos`**, `project.backlog_updated` → **`eng`**, `project.all_tasks_completed` → **`qa`**.
 
-For the receiver implementation, see [`packages/agent-webhook-relay/`](../packages/agent-webhook-relay/), which listens on `/hooks/mc/<role>` and forwards the raw body.
-
-Agent **`orgRole`** (`chief_of_staff`, `engineer`, `qa`) is still assigned at registration time for instructions and dashboards; **webhook routing is no longer per-agent**—it uses the server-wide base URL and token.
+For the receiver implementation, see [`packages/agent-webhook-relay/`](../packages/agent-webhook-relay/), which listens on `/hooks/mc` and routes based on the `event` field.
 
 ---
 
@@ -51,7 +49,7 @@ Set on the Mission Control server (e.g. `backend/.env`):
 ## Webhook delivery
 
 ```
-POST {MC_WEBHOOK_BASE_URL}/hooks/mc/{cos|eng|qa}
+POST {MC_WEBHOOK_BASE_URL}/hooks/mc
 Authorization: Bearer {MC_WEBHOOK_TOKEN}
 Content-Type: application/json
 ```
@@ -65,7 +63,7 @@ Content-Type: application/json
 
 ---
 
-### `project.pending_approval` → `/hooks/mc/cos`
+### `project.pending_approval`
 
 Fired when a new project is created (pending approval).
 
@@ -82,7 +80,7 @@ Fired when a new project is created (pending approval).
 
 ---
 
-### `project.backlog_updated` → `/hooks/mc/eng`
+### `project.backlog_updated`
 
 Fired on every task create and task update.
 
@@ -99,7 +97,7 @@ Fired on every task create and task update.
 
 ---
 
-### `project.all_tasks_completed` → `/hooks/mc/qa`
+### `project.all_tasks_completed`
 
 Fired when every task in the project has `status === "review"`.
 
@@ -116,7 +114,7 @@ Fired when every task in the project has `status === "review"`.
 
 ---
 
-### `project.review_completed` → `/hooks/mc/cos`
+### `project.review_completed`
 
 Fired when every task in the project is `done` or `not_done`.
 
@@ -144,7 +142,7 @@ Key tools: `list_projects`, `get_project`, `update_project`, `create_task`, `upd
 ## Debugging
 
 ```bash
-curl -X POST "http://127.0.0.1:48123/hooks/mc/cos" \
+curl -X POST "http://127.0.0.1:48123/hooks/mc" \
   -H "Authorization: Bearer <MC_WEBHOOK_TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{"event":"project.pending_approval","project":{"id":"…","name":"Test"},"agentInstructions":""}'
@@ -154,6 +152,6 @@ curl -X POST "http://127.0.0.1:48123/hooks/mc/cos" \
 
 ## Adding a new event
 
-1. Implement the outbound POST in `backend/src/services/agentNotifier.ts` (or route handler), reusing the same env-backed POST pattern and `McWebhookRole` path.
+1. Implement the outbound POST in `backend/src/services/agentNotifier.ts` (or route handler), reusing the same env-backed POST pattern. Role is still inferred from the `event` field via `inferRoleFromEvent`.
 2. Document the payload here.
-3. Extend the relay / OpenClaw transform if needed.
+3. Extend `inferRoleFromEvent` in the relay if the new event needs a different role.

@@ -47,6 +47,16 @@ const DEFAULT_RETRY_MAX_MS = Number.parseInt(process.env.MC_WEBHOOK_RETRY_MAX_MS
 const DEFAULT_DELIVERY_TIMEOUT_MS = Number.parseInt(process.env.MC_WEBHOOK_DELIVERY_TIMEOUT_MS ?? '30000', 10);
 
 const ROLE_PREFIX = '/hooks/mc';
+
+/** Map event prefixes to roles. CoS handles `project.pending_approval` and `project.review_completed`. */
+function inferRoleFromEvent(event: string): RelayRole | null {
+  if (event.startsWith('project.pending_approval') || event.startsWith('project.review_completed')) {
+    return 'cos';
+  }
+  if (event.startsWith('project.backlog_updated')) return 'eng';
+  if (event.startsWith('project.all_tasks_completed')) return 'qa';
+  return null;
+}
 const WORKER_INTERVAL_MS = 500;
 
 const config: RelayConfig = {
@@ -128,10 +138,8 @@ export function isRoleEnabled(role: string): role is RelayRole {
 }
 
 export function extractRoleFromPath(requestPath: string): RelayRole | null {
-  if (!requestPath.startsWith(`${ROLE_PREFIX}/`)) return null;
-  const role = requestPath.slice(`${ROLE_PREFIX}/`.length).replaceAll(/^\/+|\/+$/g, '');
-  if (!role || role.includes('/')) return null;
-  return role === 'cos' || role === 'eng' || role === 'qa' ? role : null;
+  // All role events now arrive at /hooks/mc; role is inferred from the event field in the body.
+  return requestPath === ROLE_PREFIX || requestPath === `${ROLE_PREFIX}/` ? null : null;
 }
 
 export function getTokenForRole(role: RelayRole): string | undefined {
@@ -383,9 +391,26 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
     return;
   }
 
-  const role = extractRoleFromPath(requestPath);
+  const rawBody = await readBody(req);
+  if (!rawBody.trim()) {
+    sendJson(res, 400, { ok: false, error: 'empty body' });
+    return;
+  }
+
+  let parsedBody: Record<string, unknown>;
+  try {
+    parsedBody = JSON.parse(rawBody);
+  } catch {
+    sendJson(res, 400, { ok: false, error: 'invalid json' });
+    return;
+  }
+
+  const event = typeof parsedBody['event'] === 'string' ? parsedBody['event'] : '';
+  const role = inferRoleFromEvent(event);
+
   if (!role) {
-    sendJson(res, 404, { ok: false, error: 'unknown route' });
+    await logJson('warn', 'unknown_event', { event, path: requestPath });
+    sendJson(res, 400, { ok: false, error: 'unknown event' });
     return;
   }
 
@@ -398,12 +423,6 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise
   if (!requireAuthorized(req, role)) {
     await logJson('warn', 'auth_failed', { role, path: requestPath, remote: req.socket.remoteAddress });
     sendJson(res, 401, { ok: false, error: 'unauthorized' });
-    return;
-  }
-
-  const rawBody = await readBody(req);
-  if (!rawBody.trim()) {
-    sendJson(res, 400, { ok: false, error: 'empty body' });
     return;
   }
 

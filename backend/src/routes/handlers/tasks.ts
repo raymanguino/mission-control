@@ -85,7 +85,7 @@ async function emailNotifyAssignedAgent(
   }
 }
 
-/** QA batch gate: every task in the project is `review` (`project.all_tasks_completed` to `/hooks/mc/qa`). */
+/** QA batch gate: every task in the project is `review` (`project.all_tasks_completed` to `/hooks/mc`). */
 async function notifyQaBatchWhenAllTasksInReview(taskId: string, log: FastifyBaseLogger): Promise<void> {
   try {
     const task = await projectsDb.getTask(taskId);

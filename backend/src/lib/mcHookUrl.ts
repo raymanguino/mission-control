@@ -3,12 +3,13 @@
 export type McWebhookRole = 'cos' | 'eng' | 'qa';
 
 /**
- * Builds `{base}/hooks/mc/{role}` for a configured origin (no per-agent URL).
+ * Builds `{base}/hooks/mc` for a configured origin (no per-agent URL, no per-role path).
+ * Role is encoded in the `event` field of the payload, not the URL path.
  */
-export function buildMcRoleWebhookUrl(baseUrl: string, role: McWebhookRole): string {
+export function buildMcRoleWebhookUrl(baseUrl: string, _role: McWebhookRole): string {
   const trimmed = baseUrl.trim().replace(/\/$/, '');
   const u = new URL(trimmed.includes('://') ? trimmed : `https://${trimmed}`);
-  u.pathname = `/hooks/mc/${role}`;
+  u.pathname = `/hooks/mc`;
   return u.toString();
 }
 

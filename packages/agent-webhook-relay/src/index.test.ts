@@ -8,16 +8,13 @@ describe('parseRoleList', () => {
 });
 
 describe('extractRoleFromPath', () => {
-  it('parses role routes', () => {
-    expect(extractRoleFromPath('/hooks/mc/cos')).toBe('cos');
-    expect(extractRoleFromPath('/hooks/mc/eng')).toBe('eng');
-    expect(extractRoleFromPath('/hooks/mc/qa')).toBe('qa');
-  });
-
-  it('rejects unknown or malformed paths', () => {
+  it('returns null for all paths — role is inferred from the event body, not the URL', () => {
     expect(extractRoleFromPath('/hooks/mc')).toBeNull();
+    expect(extractRoleFromPath('/hooks/mc/')).toBeNull();
+    expect(extractRoleFromPath('/hooks/mc/cos')).toBeNull();
+    expect(extractRoleFromPath('/hooks/mc/eng')).toBeNull();
+    expect(extractRoleFromPath('/hooks/mc/qa')).toBeNull();
     expect(extractRoleFromPath('/hooks/mc/other')).toBeNull();
-    expect(extractRoleFromPath('/hooks/mc/cos/extra')).toBeNull();
   });
 });
 

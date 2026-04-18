@@ -5,7 +5,7 @@ info:
 
 http:
   method: post
-  url: https://six7swe-worker.tailc28236.ts.net/hooks/mc/cos
+  url: https://six7swe-worker.tailc28236.ts.net/hooks/mc
   headers:
     - name: Authorization
       value: Bearer cos-hook-token
