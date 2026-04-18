@@ -203,6 +203,7 @@ export function registerProjectTools(server: McpServer) {
         .describe('Updated resolution / outcome (omit to keep unchanged).'),
       assignedAgentId: z
         .string()
+        .uuid()
         .nullable()
         .optional()
         .describe('Set to agent UUID to assign, or `null` to unassign (omit to keep unchanged).'),

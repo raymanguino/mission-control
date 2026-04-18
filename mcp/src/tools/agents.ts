@@ -56,12 +56,17 @@ export function registerAgentTools(server: McpServer) {
     'Register a new agent.\n\nRequired: `name`.\nOptional: `email`, `specialization`, `description`, `device`, `model`, `reportsToAgentId`.\nOutbound webhooks to OpenClaw use `MC_WEBHOOK_BASE_URL` and `MC_WEBHOOK_TOKEN` on the Mission Control server (not per-agent).\nOrg roles are assigned automatically in order: 1st registration → Chief of Staff, 2nd → Engineer, 3rd → QA, further registrations → Engineer.\nReturns the agent record, a one-time plaintext API key, and role-based instructions.',
     {
       name: z.string().describe('Display name for the agent (required).'),
-      email: z.string().optional().describe('Email address for task notifications (optional).'),
+      email: z.string().email().optional().describe('Email address for task notifications (optional).'),
       specialization: z.string().optional().describe('Short summary of strongest area, e.g. "Frontend React Developer" (optional).'),
       description: z.string().optional().describe('Detailed skills profile (optional).'),
       device: z.string().optional().describe('Hardware description (optional), e.g. "Raspberry Pi 4".'),
       model: z.string().optional().describe('LLM or runtime model identifier (optional), e.g. "claude-3-5-sonnet".'),
-      reportsToAgentId: z.string().optional().describe('Manager agent UUID (optional).'),
+      reportsToAgentId: z
+        .string()
+        .uuid()
+        .nullable()
+        .optional()
+        .describe('Manager agent UUID (optional).'),
     },
     async ({ name, email, specialization, description, device, model, reportsToAgentId }) => {
       const agent = await apiPost<Agent & { apiKey: string; instructions: string | null }>(
@@ -93,7 +98,7 @@ export function registerAgentTools(server: McpServer) {
     {
       agentId: z.string().describe('Agent UUID (required).'),
       name: z.string().optional().describe('Updated display name (omit to keep unchanged).'),
-      email: z.string().optional().describe('Updated email address (omit to keep unchanged).'),
+      email: z.string().email().optional().describe('Updated email address (omit to keep unchanged).'),
       specialization: z.string().optional().describe('Updated specialization summary (omit to keep unchanged).'),
       description: z.string().optional().describe('Updated skills description (omit to keep unchanged).'),
       device: z.string().optional().describe('Updated hardware description (omit to keep unchanged).'),
@@ -104,6 +109,7 @@ export function registerAgentTools(server: McpServer) {
         .describe('Override org role (omit to keep unchanged).'),
       reportsToAgentId: z
         .string()
+        .uuid()
         .nullable()
         .optional()
         .describe('Set to agent UUID to set manager, or null to clear (omit to keep unchanged).'),

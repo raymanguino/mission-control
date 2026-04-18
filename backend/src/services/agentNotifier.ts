@@ -37,7 +37,6 @@ function mcWebhookAuth(): string | null {
 function basePayload(project: ProjectWebhookSnapshot, event: string, agentInstructions: string) {
   return {
     event,
-    projectId: project.id,
     project: { id: project.id, name: project.name },
     agentInstructions,
   };
