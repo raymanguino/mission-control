@@ -10,7 +10,7 @@ import { instructionKeyForOrgRole } from '../lib/agentOrgRoles.js';
 import { getMcRoleWebhookUrl, type McWebhookRole } from '../lib/mcHookUrl.js';
 
 export type AgentWebhookSnapshot = { id: string; name: string };
-export type ProjectWebhookSnapshot = { id: string; name: string };
+export type ProjectWebhookSnapshot = { id: string; name: string; url: string };
 
 /** Role-specific playbook text for webhook payloads (same keys as GET /api/agents/instructions). */
 async function instructionsTextForOrgRole(orgRole: string | null | undefined): Promise<string> {
@@ -59,7 +59,7 @@ function basePayload(
 ) {
   return {
     event,
-    project: { id: project.id, name: project.name },
+    project: { id: project.id, name: project.name, githubUrl: project.url },
     agentInstructions,
     agents,
   };

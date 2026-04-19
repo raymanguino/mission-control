@@ -93,7 +93,7 @@ async function notifyQaBatchWhenAllTasksInReview(taskId: string, log: FastifyBas
     const project = await projectsDb.getProject(task.projectId);
     if (!project) return;
 
-    notifyQaProjectAllTasksInReview({ id: project.id, name: project.name }, log).catch((err) =>
+    notifyQaProjectAllTasksInReview({ id: project.id, name: project.name, url: project.url ?? '' }, log).catch((err) =>
       log.error({ err }, 'Failed to POST project.all_tasks_completed webhook'),
     );
 
@@ -179,7 +179,7 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
     const task = await projectsDb.createTask(createPayload);
     await fastify.finalizeIdempotency(request, 201, task);
 
-    void postProjectBacklogUpdatedWebhook({ id: project.id, name: project.name }, request.log);
+    void postProjectBacklogUpdatedWebhook({ id: project.id, name: project.name, url: project.url ?? '' }, request.log);
 
     if (task.assignedAgentId) {
       await logFleetTaskActivity(task.assignedAgentId, {
@@ -255,7 +255,7 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
     const task = await projectsDb.updateTask(taskId, updateData);
     if (!task) throw new ApiError(404, 'NOT_FOUND', 'Not found');
 
-    void postProjectBacklogUpdatedWebhook({ id: project.id, name: project.name }, request.log);
+    void postProjectBacklogUpdatedWebhook({ id: project.id, name: project.name, url: project.url ?? '' }, request.log);
 
     const projectName = project.name;
     const meta = taskActivityMeta({ ...task, projectName });
@@ -303,7 +303,7 @@ const taskRoutes: FastifyPluginAsync = async (fastify) => {
       transitionedReviewToTerminal &&
       (await projectsDb.projectTasksAllDoneOrNotDone(project.id))
     ) {
-      notifyChiefOfStaffOfReviewCompleted({ id: project.id, name: project.name }, request.log).catch((err) =>
+      notifyChiefOfStaffOfReviewCompleted({ id: project.id, name: project.name, url: project.url ?? '' }, request.log).catch((err) =>
         request.log.error({ err }, 'Failed to POST project.review_completed webhook'),
       );
     }
