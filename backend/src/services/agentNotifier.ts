@@ -7,7 +7,21 @@ import type { FastifyBaseLogger } from 'fastify';
 import * as agentsDb from '../db/api/agents.js';
 import * as settingsDb from '../db/api/settings.js';
 import { instructionKeyForOrgRole } from '../lib/agentOrgRoles.js';
-import { getMcRoleWebhookUrl, type McWebhookRole } from '../lib/mcHookUrl.js';
+
+type McWebhookRole = 'cos' | 'eng' | 'qa';
+
+function getMcWebhookUrl(): string | null {
+  const raw = process.env['MC_WEBHOOK_BASE_URL']?.trim();
+  if (!raw) return null;
+  try {
+    const base = raw.replace(/\/$/, '');
+    const url = new URL(base.includes('://') ? base : `https://${base}`);
+    url.pathname = '/hooks/mc';
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
 
 export type AgentWebhookSnapshot = { id: string; name: string };
 export type ProjectWebhookSnapshot = { id: string; name: string; url: string };
@@ -77,13 +91,15 @@ async function postRoleWebhook(
     return;
   }
   const token = mcWebhookAuth();
-  const url = getMcRoleWebhookUrl(role);
+  const url = getMcWebhookUrl();
   if (!url || !token) {
     log?.warn(
       'Skipping role webhook: set MC_WEBHOOK_BASE_URL and MC_WEBHOOK_TOKEN for outbound POSTs.',
     );
     return;
   }
+
+  log?.info({ url, token, payload }, 'POSTing role webhook');
 
   const res = await fetch(url, {
     method: 'POST',
