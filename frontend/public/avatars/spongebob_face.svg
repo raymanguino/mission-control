@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
+  <!-- Face: bright yellow -->
+  <rect width="16" height="16" fill="#FFDD00"/>
+
+  <!-- Eyebrows: dark brown -->
+  <rect x="1" y="1" width="4" height="1" fill="#5C3300"/>
+  <rect x="11" y="1" width="4" height="1" fill="#5C3300"/>
+
+  <!-- Eye whites (sclera) - large ovals -->
+  <rect x="1" y="2" width="5" height="5" fill="#FFFFFF"/>
+  <rect x="10" y="2" width="5" height="5" fill="#FFFFFF"/>
+
+  <!-- Irises: blue, centered in eye -->
+  <rect x="2" y="3" width="3" height="3" fill="#0055AA"/>
+  <rect x="11" y="3" width="3" height="3" fill="#0055AA"/>
+
+  <!-- Pupils: black, offset for cuteness -->
+  <rect x="3" y="3" width="2" height="2" fill="#000000"/>
+  <rect x="11" y="3" width="2" height="2" fill="#000000"/>
+
+  <!-- Eye shine: white dot -->
+  <rect x="2" y="2" width="1" height="1" fill="#FFFFFF"/>
+  <rect x="11" y="2" width="1" height="1" fill="#FFFFFF"/>
+
+  <!-- Nose: darker yellow, pill shape -->
+  <rect x="6" y="5" width="4" height="3" fill="#E6B800"/>
+  <rect x="7" y="6" width="2" height="1" fill="#CC9900"/>
+
+  <!-- Cheek freckles: light orange, multiple dots -->
+  <rect x="0" y="6" width="1" height="1" fill="#D49500"/>
+  <rect x="0" y="7" width="1" height="1" fill="#D49500"/>
+  <rect x="15" y="6" width="1" height="1" fill="#D49500"/>
+  <rect x="15" y="7" width="1" height="1" fill="#D49500"/>
+
+  <!-- Mouth: curved smile -->
+  <rect x="2" y="9" width="12" height="1" fill="#000000"/>
+  <rect x="1" y="9" width="1" height="2" fill="#000000"/>
+  <rect x="14" y="9" width="1" height="2" fill="#000000"/>
+  <rect x="2" y="10" width="1" height="1" fill="#000000"/>
+  <rect x="13" y="10" width="1" height="1" fill="#000000"/>
+
+  <!-- Teeth: white buck teeth -->
+  <rect x="4" y="10" width="3" height="4" fill="#FFFFFF"/>
+  <rect x="9" y="10" width="3" height="4" fill="#FFFFFF"/>
+
+  <!-- Chin/dimple line -->
+  <rect x="6" y="14" width="4" height="1" fill="#E6B800"/>
+  <rect x="7" y="15" width="2" height="1" fill="#CC9900"/>
+</svg>

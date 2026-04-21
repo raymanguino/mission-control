@@ -32,6 +32,7 @@ export const AGENT_AVATAR_IDS = [
   'villager_face',
   'zombie_face',
   'optimus_face',
+  'spongebob_face',
 ] as const;
 
 export type AgentAvatarId = (typeof AGENT_AVATAR_IDS)[number];
