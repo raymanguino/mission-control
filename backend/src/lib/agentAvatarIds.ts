@@ -24,4 +24,5 @@ export const AGENT_AVATAR_IDS = [
   'spider_face',
   'villager_face',
   'zombie_face',
+  'optimus_face',
 ] as const;

@@ -40,7 +40,37 @@ export default function AgentDetail() {
   const [reportsToName, setReportsToName] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [avatarSaving, setAvatarSaving] = useState(false);
+  const [nameEditing, setNameEditing] = useState(false);
+  const [nameInput, setNameInput] = useState('');
+  const [nameSaving, setNameSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  const handleNameSave = useCallback(async () => {
+    if (!agentId || !nameInput.trim()) return;
+    setNameSaving(true);
+    try {
+      const updated = await api.patch<Agent>(`/api/agents/${agentId}`, {
+        name: nameInput.trim(),
+      });
+      setAgent(updated);
+      setNameEditing(false);
+    } catch (err) {
+      console.error('Failed to update name', { agentId, err });
+    } finally {
+      setNameSaving(false);
+    }
+  }, [agentId, nameInput]);
+
+  const handleNameCancel = useCallback(() => {
+    setNameInput(agent?.name ?? '');
+    setNameEditing(false);
+  }, [agent?.name]);
+
+  const startNameEdit = useCallback(() => {
+    setNameInput(agent?.name ?? '');
+    setNameEditing(true);
+  }, [agent?.name]);
+
   const handleAvatarChange = useCallback(async (next: AgentAvatarId | null) => {
     if (!agentId) return;
     setAvatarSaving(true);
@@ -148,7 +178,51 @@ export default function AgentDetail() {
           />
         </div>
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-semibold text-white">{agent.name}</h1>
+          {nameEditing ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void handleNameSave();
+                  if (e.key === 'Escape') void handleNameCancel();
+                }}
+                disabled={nameSaving}
+                autoFocus
+                className="text-2xl font-semibold bg-gray-800 border border-gray-600 text-white rounded px-2 py-1 focus:outline-none focus:border-indigo-500 disabled:opacity-50"
+              />
+              <button
+                type="button"
+                disabled={nameSaving}
+                onClick={() => void handleNameSave()}
+                className="text-xs px-2 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50"
+              >
+                Save
+              </button>
+              <button
+                type="button"
+                disabled={nameSaving}
+                onClick={() => void handleNameCancel()}
+                className="text-xs px-2 py-1 rounded border border-gray-600 text-gray-400 hover:text-white hover:border-gray-500 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              {nameSaving && <span className="text-xs text-gray-500">Saving…</span>}
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-semibold text-white">{agent.name}</h1>
+              <button
+                type="button"
+                onClick={() => void startNameEdit()}
+                className="text-gray-500 hover:text-white text-xs px-2 py-1 rounded border border-transparent hover:border-gray-600 transition-colors"
+                title="Edit name"
+              >
+                ✎
+              </button>
+            </div>
+          )}
           <p className="text-sm text-gray-500 mt-0.5">
             {roleLabel[agent.orgRole]} · {agent.status}
           </p>

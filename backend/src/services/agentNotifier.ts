@@ -121,20 +121,31 @@ export async function notifyChiefOfStaffOfProject(
   project: ProjectWebhookSnapshot,
   log?: FastifyBaseLogger,
 ): Promise<void> {
+  await postProjectWebhook(project, 'project.pending_approval', 'chief_of_staff', 'cos', log);
+}
+
+/** Helper to POST a project event webhook for a given role. */
+export async function postProjectWebhook(
+  project: ProjectWebhookSnapshot,
+  event: string,
+  orgRole: string,
+  webhookRole: McWebhookRole,
+  log?: FastifyBaseLogger,
+): Promise<void> {
   const [agentInstructions, agents] = await Promise.all([
-    instructionsTextForOrgRole('chief_of_staff'),
-    agentsForOrgRole('chief_of_staff'),
+    instructionsTextForOrgRole(orgRole),
+    agentsForOrgRole(orgRole),
   ]);
   try {
     await postRoleWebhook(
-      'cos',
+      webhookRole,
       {
-        ...basePayload(project, 'project.pending_approval', agentInstructions, agents),
+        ...basePayload(project, event, agentInstructions, agents),
       },
       log,
     );
   } catch (err) {
-    log?.error({ err }, 'Failed to POST project.pending_approval webhook');
+    log?.error({ err }, `Failed to POST ${event} webhook`);
   }
 }
 
@@ -143,21 +154,8 @@ export async function postProjectBacklogUpdatedWebhook(
   project: ProjectWebhookSnapshot,
   log?: FastifyBaseLogger,
 ): Promise<void> {
-  const [agentInstructions, agents] = await Promise.all([
-    instructionsTextForOrgRole('engineer'),
-    agentsForOrgRole('engineer'),
-  ]);
-  try {
-    await postRoleWebhook(
-      'eng',
-      {
-        ...basePayload(project, 'project.backlog_updated', agentInstructions, agents),
-      },
-      log,
-    );
-  } catch (err) {
-    log?.error({ err }, 'Failed to POST project.backlog_updated webhook');
-  }
+  await postProjectWebhook(project, 'project.backlog_updated', 'engineer', 'eng', log);
+  await postProjectWebhook(project, 'project.backlog_updated', 'qa', 'qa', log);
 }
 
 /** When every task in the project is in Review: notify QA (`project.all_tasks_completed`). */
@@ -165,21 +163,7 @@ export async function notifyQaProjectAllTasksInReview(
   project: ProjectWebhookSnapshot,
   log?: FastifyBaseLogger,
 ): Promise<void> {
-  const [agentInstructions, agents] = await Promise.all([
-    instructionsTextForOrgRole('qa'),
-    agentsForOrgRole('qa'),
-  ]);
-  try {
-    await postRoleWebhook(
-      'qa',
-      {
-        ...basePayload(project, 'project.all_tasks_completed', agentInstructions, agents),
-      },
-      log,
-    );
-  } catch (err) {
-    log?.error({ err }, 'Failed to POST project.all_tasks_completed webhook');
-  }
+  await postProjectWebhook(project, 'project.all_tasks_completed', 'qa', 'qa', log);
 }
 
 /** When every project task is `done` or `not_done`: notify CoS (`project.review_completed`). */
@@ -187,19 +171,5 @@ export async function notifyChiefOfStaffOfReviewCompleted(
   project: ProjectWebhookSnapshot,
   log?: FastifyBaseLogger,
 ): Promise<void> {
-  const [agentInstructions, agents] = await Promise.all([
-    instructionsTextForOrgRole('chief_of_staff'),
-    agentsForOrgRole('chief_of_staff'),
-  ]);
-  try {
-    await postRoleWebhook(
-      'cos',
-      {
-        ...basePayload(project, 'project.review_completed', agentInstructions, agents),
-      },
-      log,
-    );
-  } catch (err) {
-    log?.error({ err }, 'Failed to POST project.review_completed webhook');
-  }
+  await postProjectWebhook(project, 'project.review_completed', 'chief_of_staff', 'cos', log);
 }
