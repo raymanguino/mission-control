@@ -90,7 +90,6 @@ export function createMcpHttpApp(): express.Express {
     const sessionHeaderRaw = req.headers['mcp-session-id'];
     const sessionHeader = typeof sessionHeaderRaw === 'string' ? sessionHeaderRaw.trim() : undefined;
     const body = req.body as unknown;
-
     if (!sessionHeader) {
       if (!body || typeof body !== 'object' || !isInitializeRequest(body)) {
         res.status(400).json({

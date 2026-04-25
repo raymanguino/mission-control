@@ -139,4 +139,20 @@ export function registerAgentTools(server: McpServer) {
       };
     },
   );
+
+  server.tool(
+    'agent_instructions',
+    'Get the role-based instructions for a specific agent.\n\nRequired: `agentId`.',
+    {
+      agentId: z.string().uuid().describe('Agent UUID (required).'),
+    },
+    async ({ agentId }) => {
+      const result = await apiGet<{ agentId: string; orgRole: string; instructions: string }>(
+        `/api/agents/${agentId}/instructions`,
+      );
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      };
+    },
+  );
 }

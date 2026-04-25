@@ -40,36 +40,32 @@ export default function AgentDetail() {
   const [reportsToName, setReportsToName] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [avatarSaving, setAvatarSaving] = useState(false);
-  const [nameEditing, setNameEditing] = useState(false);
   const [nameInput, setNameInput] = useState('');
   const [nameSaving, setNameSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const handleNameSave = useCallback(async () => {
+  const handleNameChange = useCallback(async () => {
     if (!agentId || !nameInput.trim()) return;
+    if (
+      !window.confirm(
+        `Rename agent "${agent?.name}" to "${nameInput.trim()}"? Supporting backend changes may be needed.`,
+      )
+    ) {
+      return;
+    }
     setNameSaving(true);
     try {
       const updated = await api.patch<Agent>(`/api/agents/${agentId}`, {
         name: nameInput.trim(),
       });
       setAgent(updated);
-      setNameEditing(false);
+      setNameInput('');
     } catch (err) {
       console.error('Failed to update name', { agentId, err });
     } finally {
       setNameSaving(false);
     }
   }, [agentId, nameInput]);
-
-  const handleNameCancel = useCallback(() => {
-    setNameInput(agent?.name ?? '');
-    setNameEditing(false);
-  }, [agent?.name]);
-
-  const startNameEdit = useCallback(() => {
-    setNameInput(agent?.name ?? '');
-    setNameEditing(true);
-  }, [agent?.name]);
 
   const handleAvatarChange = useCallback(async (next: AgentAvatarId | null) => {
     if (!agentId) return;
@@ -178,51 +174,7 @@ export default function AgentDetail() {
           />
         </div>
         <div className="min-w-0 flex-1">
-          {nameEditing ? (
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={nameInput}
-                onChange={(e) => setNameInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') void handleNameSave();
-                  if (e.key === 'Escape') void handleNameCancel();
-                }}
-                disabled={nameSaving}
-                autoFocus
-                className="text-2xl font-semibold bg-gray-800 border border-gray-600 text-white rounded px-2 py-1 focus:outline-none focus:border-indigo-500 disabled:opacity-50"
-              />
-              <button
-                type="button"
-                disabled={nameSaving}
-                onClick={() => void handleNameSave()}
-                className="text-xs px-2 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50"
-              >
-                Save
-              </button>
-              <button
-                type="button"
-                disabled={nameSaving}
-                onClick={() => void handleNameCancel()}
-                className="text-xs px-2 py-1 rounded border border-gray-600 text-gray-400 hover:text-white hover:border-gray-500 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              {nameSaving && <span className="text-xs text-gray-500">Saving…</span>}
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-semibold text-white">{agent.name}</h1>
-              <button
-                type="button"
-                onClick={() => void startNameEdit()}
-                className="text-gray-500 hover:text-white text-xs px-2 py-1 rounded border border-transparent hover:border-gray-600 transition-colors"
-                title="Edit name"
-              >
-                ✎
-              </button>
-            </div>
-          )}
+          <h1 className="text-2xl font-semibold text-white">{agent.name}</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             {roleLabel[agent.orgRole]} · {agent.status}
           </p>
@@ -327,17 +279,44 @@ export default function AgentDetail() {
 
       <div className="mt-6 rounded-xl border border-red-900/50 bg-red-950/20 p-5">
         <h2 className="text-sm font-medium text-red-400/90 uppercase tracking-wide mb-2">Danger zone</h2>
-        <p className="text-xs text-gray-500 mb-3">
-          Permanently remove this agent registration. This cannot be undone.
-        </p>
-        <button
-          type="button"
-          disabled={deleting}
-          onClick={() => void handleDeleteAgent()}
-          className="text-sm px-3 py-1.5 rounded-lg border border-red-800 text-red-300 hover:bg-red-950/50 disabled:opacity-50"
-        >
-          {deleting ? 'Removing…' : 'Remove agent'}
-        </button>
+        <div className="space-y-4">
+          <div>
+            <p className="text-xs text-gray-500 mb-3">
+              Permanently remove this agent registration. This cannot be undone.
+            </p>
+            <button
+              type="button"
+              disabled={deleting}
+              onClick={() => void handleDeleteAgent()}
+              className="text-sm px-3 py-1.5 rounded-lg border border-red-800 text-red-300 hover:bg-red-950/50 disabled:opacity-50"
+            >
+              {deleting ? 'Removing…' : 'Remove agent'}
+            </button>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 mb-3">
+              Change the name of this agent. Supporting backend changes may be needed.
+            </p>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                placeholder={agent.name}
+                disabled={nameSaving}
+                className="text-sm bg-gray-800 border border-red-800/60 text-white rounded px-2 py-1.5 focus:outline-none focus:border-red-600 disabled:opacity-50 w-48"
+              />
+              <button
+                type="button"
+                disabled={nameSaving || !nameInput.trim() || nameInput.trim() === agent.name}
+                onClick={() => void handleNameChange()}
+                className="text-sm px-3 py-1.5 rounded-lg border border-red-800 text-red-300 hover:bg-red-950/50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {nameSaving ? 'Renaming…' : 'Rename agent'}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="bg-gray-900 rounded-xl border border-gray-800 p-5 mt-6">

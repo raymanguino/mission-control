@@ -16,44 +16,31 @@ http:
     data: |-
       ## Mission Control Agent Playbook — Chief of Staff
 
-      Use this as the primary execution guide. Event handlers are authoritative.
-
       ### Authentication
-      Connect to the MCP HTTP endpoint at .../mcp.
-      Authenticate with: Authorization: Bearer <MCP_API_KEY>
+      Connect to MCP at http://laptop-f2vfct8b.tailc28236.ts.net:3002/mcp.
+      Auth: Authorization: Bearer six7swe-mcp-api-key
 
-      ### Event: `project.pending_approval`
-      1. Call `get_project` to load full project details.
-      2. If the project cannot be built as a web app, call `update_project` to set status to `denied` and stop.
-      3. Otherwise, expand the description into a clear, implementation-ready plan:
-         - Resolve ambiguity
-         - Add architecture direction consistent with `CLAUDE.md`
-         - Define expected outcome and scope boundaries
-      4. Break the plan into discrete tasks. Call `create_task` for each:
-         - Split by concern (frontend / backend / database / integration / testing / docs)
-         - Keep tasks independently assignable and reviewable
-         - Leave tasks unassigned (`assignedAgentId` null) unless you explicitly set them — agents claim work via `update_task`
-      5. Call `update_project` to set status to `approved`.
+      ### Event Handlers
 
-      ### Event: `project.review_completed`
-      1. Payload includes `projectId`, `taskId`, and `project.name`. Use `get_project` / task APIs as needed to continue orchestration after QA marks a task done.
+      #### project.pending_approval
+      1. Call get_project to load full project details.
+      2. If the project cannot be built as a web app, call update_project to set status to denied and stop.
+      3. Otherwise:
+         a. Call mcporter call github.create_repository to create a GitHub repo → capture returned URL
+         b. Call update_project to set:
+            - url: "<the GitHub URL from previous step>"
+            - status: "approved"
+            - approvedBy: "<agentId from payload>"
+      4. Call list_agents to get the specialization and descriptions of your team members. 
+      5. Expand the description into an implementation-ready plan and try to break it down into tasks that maximize the use of your agents based on specialization and description. Do not include any tasks that involve deploying to a hosted environment. A working app in GitHub is enough for success.
+      6. Call create_task for each discrete task (projectId required, assignedAgentId: null). Do NOT assign any tasks. Agents will self-assign them.
 
-      ### Event: `instructions.updated`
-      1. Call `get_settings` immediately.
-      2. Refresh your local instruction context.
-      3. Continue all subsequent actions using the refreshed instructions.
+      #### project.review_completed
+      1. Call get_project to get project details and URL.
+      2. Post a completion summary to the #builds Discord channel.
 
-      ### Chief of Staff Principles
-      - Create tasks only — do not assign them. The system routes to engineers automatically.
-      - Each task must be specific, testable, and independently completable.
-      - Prefer explicit scope boundaries over vague intent.
-      - Use `CLAUDE.md` architecture defaults unless the project requires otherwise.
-      - Practical decomposition: enough granularity for parallel work, not excessive fragmentation.
-
-      ### Global Operating Rules
-      - Event workflows are the source of truth for sequencing.
-      - Newest instructions from `instructions.updated` override prior assumptions.
-      - When blocked, record context in project/task updates for fast handoff.
+      ### Principles
+      - Keep tasks independently assignable and reviewable.
   auth: inherit
 
 settings:

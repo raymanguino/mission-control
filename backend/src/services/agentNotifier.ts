@@ -136,6 +136,7 @@ export async function postProjectWebhook(
     instructionsTextForOrgRole(orgRole),
     agentsForOrgRole(orgRole),
   ]);
+  console.log('BLAH orgRole:', orgRole, ' agentInstructions:', agentInstructions, ' agents:', agents);
   try {
     await postRoleWebhook(
       webhookRole,
@@ -154,8 +155,8 @@ export async function postProjectBacklogUpdatedWebhook(
   project: ProjectWebhookSnapshot,
   log?: FastifyBaseLogger,
 ): Promise<void> {
-  await postProjectWebhook(project, 'project.backlog_updated', 'engineer', 'eng', log);
   await postProjectWebhook(project, 'project.backlog_updated', 'qa', 'qa', log);
+  await postProjectWebhook(project, 'project.backlog_updated', 'engineer', 'eng', log);
 }
 
 /** When every task in the project is in Review: notify QA (`project.all_tasks_completed`). */
